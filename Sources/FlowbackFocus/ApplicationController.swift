@@ -1,0 +1,37 @@
+import Foundation
+import AppKit
+import FlowbackCore
+import OSLog
+
+private let logger = Logger(subsystem: "com.flowback.app", category: "ApplicationController")
+
+public protocol ApplicationControlling: Sendable {
+    func frontmostApplication() -> NSRunningApplication?
+    func runningApplication(forProcessIdentifier pid: Int32) -> NSRunningApplication?
+    func runningApplications(withBundleIdentifier bundleID: String) -> [NSRunningApplication]
+    func activate(application: NSRunningApplication) -> Bool
+}
+
+/// Manages discovery and activation of macOS applications using NSWorkspace
+public final class ApplicationController: ApplicationControlling, @unchecked Sendable {
+    public static let shared = ApplicationController()
+    
+    public init() {}
+    
+    public func frontmostApplication() -> NSRunningApplication? {
+        NSWorkspace.shared.frontmostApplication
+    }
+    
+    public func runningApplication(forProcessIdentifier pid: Int32) -> NSRunningApplication? {
+        NSRunningApplication(processIdentifier: pid_t(pid))
+    }
+    
+    public func runningApplications(withBundleIdentifier bundleID: String) -> [NSRunningApplication] {
+        NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+    }
+    
+    public func activate(application: NSRunningApplication) -> Bool {
+        logger.info("Activating application \(application.bundleIdentifier ?? "unknown") (PID: \(application.processIdentifier))")
+        return application.activate(options: [])
+    }
+}
