@@ -9,6 +9,7 @@ public protocol MenuBarActionDelegate: AnyObject, Sendable {
     func didRequestOpenDashboard()
     func didRequestOpenSettings()
     func didRequestOpenDiagnostics()
+    func didRequestRefresh()
     func didRequestQuit()
 }
 
@@ -161,6 +162,10 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
         menu.addItem(NSMenuItem.separator())
         
         // Windows and settings
+        let refreshItem = NSMenuItem(title: "Refresh Agents & Status", action: #selector(refreshStatus), keyEquivalent: "r")
+        refreshItem.target = self
+        menu.addItem(refreshItem)
+        
         let dashItem = NSMenuItem(title: "Open Dashboard...", action: #selector(openDashboard), keyEquivalent: "d")
         dashItem.target = self
         menu.addItem(dashItem)
@@ -200,6 +205,7 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
     @objc private func setLock60() { delegate?.didToggleFocusLock(minutes: 60) }
     @objc private func disableLock() { delegate?.didToggleFocusLock(minutes: nil) }
     
+    @objc private func refreshStatus() { delegate?.didRequestRefresh() }
     @objc private func openDashboard() { delegate?.didRequestOpenDashboard() }
     @objc private func openSettings() { delegate?.didRequestOpenSettings() }
     @objc private func openDiagnostics() { delegate?.didRequestOpenDiagnostics() }

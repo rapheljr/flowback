@@ -46,6 +46,37 @@ public actor SessionManager {
         return Array(all.prefix(limit))
     }
     
+    // MARK: - Proactive Discovery Merging
+    
+    public func mergeDiscoveredSessions(_ discovered: [AgentSession]) async {
+        let now = Date()
+        for s in discovered {
+            if let existing = sessions[s.id] {
+                // If discovered session is active, ensure our in-memory session reflects active state
+                if s.state.isActive && !existing.state.isActive && existing.state != .completed {
+                    var updated = existing
+                    updated.state = s.state
+                    updated.updatedAt = now
+                    if updated.workspace == nil { updated.workspace = s.workspace }
+                    if updated.originContext == nil { updated.originContext = s.originContext }
+                    sessions[s.id] = updated
+                }
+            } else {
+                // New session discovered directly from provider
+                sessions[s.id] = s
+                await timeline.record(
+                    sessionID: s.id,
+                    category: "Discovery",
+                    summary: "Active session discovered: \(s.projectName) (\(s.providerID.rawValue))",
+                    details: s.workspace ?? "Unknown workspace"
+                )
+                if let storage = storageDelegate {
+                    try? await storage.saveSession(s)
+                }
+            }
+        }
+    }
+    
     // MARK: - Event Ingestion & State Transitions
     
     public func handleEvent(_ event: AgentEvent) async -> AgentSession {

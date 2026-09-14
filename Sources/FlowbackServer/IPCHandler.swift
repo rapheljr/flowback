@@ -68,6 +68,9 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         case "emit":
             return await handleEmit(payload: request.payload)
             
+        case "refresh":
+            return await handleRefresh()
+            
         case "test-focus":
             return await handleTestFocus()
             
@@ -189,6 +192,30 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         return IPCResponse(success: true, message: "Focus Lock enabled for \(durationMinutes) minutes")
     }
     
+    private func handleRefresh() async -> IPCResponse {
+        let discovered = await providerRegistry.discoverAllActiveSessions()
+        if !discovered.isEmpty {
+            await sessionManager.mergeDiscoveredSessions(discovered)
+        }
+        let active = await sessionManager.getActiveSessions()
+        
+        let report: [String: Any] = [
+            "status": "refreshed",
+            "activeSessionsCount": active.count,
+            "activeSessions": active.map { session in
+                [
+                    "id": session.id.rawValue,
+                    "projectName": session.projectName,
+                    "provider": session.providerID.rawValue,
+                    "state": session.state.rawValue,
+                    "workspace": session.workspace ?? "unknown"
+                ]
+            }
+        ]
+        let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted])
+        return IPCResponse(success: true, message: "Refreshed. \(active.count) active agent(s) found.", data: data)
+    }
+    
     private func handleHook(providerString: String?, payload: Data?) async -> IPCResponse {
         guard let provName = providerString else {
             return IPCResponse(success: false, message: "Missing provider name")
@@ -202,6 +229,20 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
             return IPCResponse(success: false, message: "Provider '\(provName)' not registered")
         }
         
+        var isPreInvocation = false
+        var isPostInvocation = false
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let hookName = json["hook_event_name"] as? String {
+                if hookName.caseInsensitiveCompare("PreInvocation") == .orderedSame {
+                    isPreInvocation = true
+                } else if hookName.caseInsensitiveCompare("PostInvocation") == .orderedSame {
+                    isPostInvocation = true
+                }
+            } else if json["invocationNum"] != nil && json["terminationReason"] == nil {
+                isPreInvocation = true
+            }
+        }
+        
         do {
             if let event = try provider.parseLifecyclePayload(data: data) {
                 await eventBus.publish(agentEvent: event)
@@ -211,8 +252,15 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
             logger.error("Failed to parse hook payload for \(provName): \(error.localizedDescription)")
         }
         
-        // Standard hook response for Antigravity: {"decision": "allow"}
-        let responseData = "{\"decision\":\"allow\"}".data(using: .utf8)
+        let responseStr: String
+        if isPreInvocation {
+            responseStr = "{\"injectSteps\":[]}"
+        } else if isPostInvocation {
+            responseStr = "{}"
+        } else {
+            responseStr = "{\"decision\":\"allow\"}"
+        }
+        let responseData = responseStr.data(using: .utf8)
         return IPCResponse(success: true, message: "Hook ingested", data: responseData)
     }
     

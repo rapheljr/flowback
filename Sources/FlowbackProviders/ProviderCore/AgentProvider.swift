@@ -12,6 +12,13 @@ public protocol AgentProvider: Sendable {
     func parseLifecyclePayload(data: Data) throws -> AgentEvent?
     func installIntegration() async throws
     func uninstallIntegration() async throws
+    func discoverActiveSessions() async -> [AgentSession]
+}
+
+public extension AgentProvider {
+    func discoverActiveSessions() async -> [AgentSession] {
+        []
+    }
 }
 
 /// Registry coordinating agent providers
@@ -41,5 +48,14 @@ public actor ProviderRegistry {
             healths.append(h)
         }
         return healths.sorted { $0.displayName < $1.displayName }
+    }
+    
+    public func discoverAllActiveSessions() async -> [AgentSession] {
+        var discovered: [AgentSession] = []
+        for provider in providers.values {
+            let sessions = await provider.discoverActiveSessions()
+            discovered.append(contentsOf: sessions)
+        }
+        return discovered
     }
 }

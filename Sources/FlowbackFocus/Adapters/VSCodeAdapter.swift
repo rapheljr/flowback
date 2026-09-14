@@ -11,7 +11,9 @@ public struct VSCodeAdapter: ApplicationAdapter {
     private let supportedBundles: Set<String> = [
         "com.microsoft.VSCode",
         "com.microsoft.VSCodeInsiders",
-        "com.visualstudio.code.oss"
+        "com.visualstudio.code.oss",
+        "com.google.antigravity-ide",
+        "com.google.antigravity"
     ]
     
     public init() {}

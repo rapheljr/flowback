@@ -47,6 +47,7 @@ public struct DashboardView: View {
     public var onRepairAntigravity: () -> Void
     public var onTestFocus: () -> Void
     public var onTestNotification: () -> Void
+    public var onRefresh: () -> Void
     
     @StateObject private var viewModel = DashboardViewModel()
     
@@ -63,7 +64,8 @@ public struct DashboardView: View {
         onSaveConfig: @escaping (PolicyConfiguration) -> Void,
         onRepairAntigravity: @escaping () -> Void,
         onTestFocus: @escaping () -> Void,
-        onTestNotification: @escaping () -> Void
+        onTestNotification: @escaping () -> Void,
+        onRefresh: @escaping () -> Void = {}
     ) {
         self._activeSessions = activeSessions
         self._allSessions = allSessions
@@ -78,6 +80,7 @@ public struct DashboardView: View {
         self.onRepairAntigravity = onRepairAntigravity
         self.onTestFocus = onTestFocus
         self.onTestNotification = onTestNotification
+        self.onRefresh = onRefresh
     }
     
     public var body: some View {
@@ -90,41 +93,53 @@ public struct DashboardView: View {
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
             .listStyle(.sidebar)
         } detail: {
-            switch viewModel.selectedTab {
-            case .overview:
-                OverviewView(
-                    activeSessions: $activeSessions,
-                    attentionQueue: $attentionQueue,
-                    focusLock: $focusLock,
-                    onFocusSession: onFocusSession
-                )
-            case .agents:
-                AgentsView(
-                    sessions: allSessions,
-                    onFocusSession: onFocusSession
-                )
-            case .timeline:
-                SessionTimelineView(
-                    sessions: allSessions,
-                    timelineEntries: timelineEntries
-                )
-            case .applications:
-                ApplicationsView(
-                    protectedApps: $config.protectedApplications
-                )
-            case .diagnostics:
-                DiagnosticsView(
-                    providerHealths: providerHealths,
-                    permissionStatus: permissionStatus,
-                    onRepairAntigravity: onRepairAntigravity,
-                    onTestFocus: onTestFocus,
-                    onTestNotification: onTestNotification
-                )
-            case .settings:
-                SettingsView(
-                    config: $config,
-                    onSave: onSaveConfig
-                )
+            Group {
+                switch viewModel.selectedTab {
+                case .overview:
+                    OverviewView(
+                        activeSessions: $activeSessions,
+                        attentionQueue: $attentionQueue,
+                        focusLock: $focusLock,
+                        onFocusSession: onFocusSession,
+                        onRefresh: onRefresh
+                    )
+                case .agents:
+                    AgentsView(
+                        sessions: allSessions,
+                        onFocusSession: onFocusSession
+                    )
+                case .timeline:
+                    SessionTimelineView(
+                        sessions: allSessions,
+                        timelineEntries: timelineEntries
+                    )
+                case .applications:
+                    ApplicationsView(
+                        protectedApps: $config.protectedApplications
+                    )
+                case .diagnostics:
+                    DiagnosticsView(
+                        providerHealths: providerHealths,
+                        permissionStatus: permissionStatus,
+                        onRepairAntigravity: onRepairAntigravity,
+                        onTestFocus: onTestFocus,
+                        onTestNotification: onTestNotification
+                    )
+                case .settings:
+                    SettingsView(
+                        config: $config,
+                        onSave: onSaveConfig
+                    )
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Button(action: onRefresh) {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
+                    .help("Scan and refresh active agent sessions (⌘R)")
+                    .keyboardShortcut("r", modifiers: .command)
+                }
             }
         }
         .frame(minWidth: 800, minHeight: 550)

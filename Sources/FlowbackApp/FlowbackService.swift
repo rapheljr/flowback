@@ -202,6 +202,15 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
                 await self?.refreshUIState()
             }
         }
+        
+        // Background active agent discovery (every 10s)
+        Task { [weak self] in
+            while true {
+                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                guard let self = self else { break }
+                await self.refreshUIState()
+            }
+        }
     }
     
     private func setupGlobalHotkeys() {
@@ -233,6 +242,12 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
     // MARK: - UI State Refresh
     
     public func refreshUIState() async {
+        // Proactively scan for live running agent sessions across providers
+        let discovered = await providerRegistry.discoverAllActiveSessions()
+        if !discovered.isEmpty {
+            await sessionManager.mergeDiscoveredSessions(discovered)
+        }
+        
         let active = await sessionManager.getActiveSessions()
         let all = await sessionManager.getAllSessions()
         let recent = await sessionManager.getRecentSessions(limit: 10)
@@ -257,6 +272,12 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
     }
     
     // MARK: - MenuBarActionDelegate
+    
+    public func didRequestRefresh() {
+        Task { [weak self] in
+            await self?.refreshUIState()
+        }
+    }
     
     public func didSelectFocus(sessionID: AgentSessionID) {
         Task {
@@ -324,35 +345,40 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
             permissionStatusBinding: Binding(get: { self.permissionStatus }, set: { self.permissionStatus = $0 }),
             config: Binding(get: { self.configuration }, set: { self.configuration = $0 }),
             focusLock: Binding(get: { self.focusLock }, set: { self.focusLock = $0 }),
-            onFocusSession: { session in
+            onFocusSession: { [weak self] session in
                 Task { [weak self] in
                     _ = await self?.focusController.manualFocusSession(session)
                 }
             },
-            onSaveConfig: { updated in
+            onSaveConfig: { [weak self] updated in
                 Task { [weak self] in
                     try? await self?.settingsRepository.saveConfiguration(updated)
                 }
             },
-            onRepairAntigravity: {
+            onRepairAntigravity: { [weak self] in
                 Task { [weak self] in
                     let provider = AntigravityProvider()
                     try? await provider.installIntegration()
                     await self?.refreshUIState()
                 }
             },
-            onTestFocus: {
+            onTestFocus: { [weak self] in
                 Task { [weak self] in
                     _ = await self?.ipcHandler.handleRequest(IPCRequest(command: "test-focus"))
                     await self?.refreshUIState()
                 }
             },
-            onTestNotification: {
+            onTestNotification: { [weak self] in
                 Task { [weak self] in
                     await self?.notificationManager.sendAggregatedNotification(
                         title: "Flowback Test Alert",
                         body: "Notification and focus routing verification succeeded."
                     )
+                }
+            },
+            onRefresh: { [weak self] in
+                Task { [weak self] in
+                    await self?.refreshUIState()
                 }
             }
         )

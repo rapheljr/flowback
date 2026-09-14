@@ -184,6 +184,22 @@ await testGroup("Antigravity Provider Official Hook Contract") {
     """.data(using: .utf8)!
     let event3 = try provider.parseLifecyclePayload(data: payloadError)
     assertTest(event3?.type == .agentFailed, "Antigravity error payload translates to .agentFailed")
+    
+    // Case 4: PreInvocation hook -> agentStarted
+    let payloadPre = """
+    {
+        "hook_event_name": "PreInvocation",
+        "conversationId": "conv-test-pre",
+        "workspacePaths": ["/Users/abin/workspace/projects/focus-switcher"],
+        "invocationNum": 1
+    }
+    """.data(using: .utf8)!
+    let eventPre = try provider.parseLifecyclePayload(data: payloadPre)
+    assertTest(eventPre?.type == .agentStarted, "Antigravity PreInvocation translates to .agentStarted")
+    
+    // Case 5: Proactive active session discovery
+    let discovered = await provider.discoverActiveSessions()
+    assertTest(discovered.count >= 1, "Antigravity discoverActiveSessions finds running agents on system")
 }
 
 // 6. Acceptance Scenarios A through J

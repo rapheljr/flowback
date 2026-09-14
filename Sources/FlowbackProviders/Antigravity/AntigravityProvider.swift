@@ -1,4 +1,6 @@
 import Foundation
+import AppKit
+import CoreGraphics
 import FlowbackCore
 import OSLog
 
@@ -69,8 +71,8 @@ public final class AntigravityProvider: AgentProvider, Sendable {
     
     public func parseLifecyclePayload(data: Data) throws -> AgentEvent? {
         let decoder = JSONDecoder()
-        guard let payload = try? decoder.decode(AntigravityStopPayload.self, from: data) else {
-            logger.warning("Could not decode Antigravity stop payload")
+        guard let payload = try? decoder.decode(AntigravityHookPayload.self, from: data) else {
+            logger.warning("Could not decode Antigravity hook payload")
             return nil
         }
         
@@ -84,6 +86,9 @@ public final class AntigravityProvider: AgentProvider, Sendable {
         if let execNum = payload.executionNum {
             metadata["executionNum"] = "\(execNum)"
         }
+        if let invNum = payload.invocationNum {
+            metadata["invocationNum"] = "\(invNum)"
+        }
         if let err = payload.error, !err.isEmpty {
             metadata["error"] = err
         }
@@ -92,13 +97,49 @@ public final class AntigravityProvider: AgentProvider, Sendable {
         }
         
         let eventType: AgentEventType
+        let hookName = payload.hook_event_name?.lowercased()
+        
         if let err = payload.error, !err.isEmpty {
             eventType = .agentFailed
+        } else if hookName == "preinvocation" || (payload.invocationNum != nil && payload.terminationReason == nil) {
+            eventType = (payload.invocationNum == 1) ? .agentStarted : .agentRunning
+        } else if hookName == "postinvocation" {
+            eventType = .agentProgress
         } else if payload.fullyIdle == true {
             eventType = .agentCompleted
+        } else if hookName == "stop" || payload.terminationReason != nil {
+            eventType = (payload.fullyIdle == false) ? .agentRunning : .agentCompleted
         } else {
-            // Stop fired, but background tasks are still running
             eventType = .agentRunning
+        }
+        
+        // Resolve Origin Context
+        var origin: OriginContext? = nil
+        let targetBundle = "com.google.antigravity-ide"
+        if let ws = primaryWorkspace {
+            let folderName = (ws as NSString).lastPathComponent
+            if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == targetBundle || $0.bundleIdentifier == "com.google.antigravity" }) {
+                var winID: UInt32? = nil
+                var winTitle = "\(folderName) — Antigravity"
+                if let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
+                    for win in windowList {
+                        let pid = win[kCGWindowOwnerPID as String] as? Int32 ?? 0
+                        let title = win[kCGWindowName as String] as? String ?? ""
+                        if pid == app.processIdentifier && title.localizedCaseInsensitiveContains(folderName) {
+                            winID = win[kCGWindowNumber as String] as? UInt32
+                            winTitle = title
+                            break
+                        }
+                    }
+                }
+                origin = OriginContext(
+                    bundleIdentifier: app.bundleIdentifier ?? targetBundle,
+                    processIdentifier: app.processIdentifier,
+                    windowIdentifier: winID,
+                    windowTitle: winTitle,
+                    workspacePath: ws
+                )
+            }
         }
         
         return AgentEvent(
@@ -107,8 +148,182 @@ public final class AntigravityProvider: AgentProvider, Sendable {
             sessionID: AgentSessionID(payload.conversationId),
             type: eventType,
             workspace: primaryWorkspace,
+            origin: origin,
             metadata: metadata
         )
+    }
+    
+    public func discoverActiveSessions() async -> [AgentSession] {
+        let fm = FileManager.default
+        let searchRoots = [
+            ("~/.gemini/antigravity-ide/brain" as NSString).expandingTildeInPath,
+            ("~/.gemini/antigravity/brain" as NSString).expandingTildeInPath,
+            ("~/.gemini/antigravity-cli/brain" as NSString).expandingTildeInPath
+        ]
+        
+        let now = Date()
+        var discovered: [AgentSession] = []
+        let antigravityApps = NSWorkspace.shared.runningApplications.filter {
+            $0.bundleIdentifier == "com.google.antigravity-ide" || $0.bundleIdentifier == "com.google.antigravity"
+        }
+        
+        for root in searchRoots {
+            guard fm.fileExists(atPath: root),
+                  let entries = try? fm.contentsOfDirectory(atPath: root) else {
+                continue
+            }
+            
+            for convID in entries where !convID.hasPrefix(".") {
+                let convPath = (root as NSString).appendingPathComponent(convID)
+                let transcriptPath = ((convPath as NSString).appendingPathComponent(".system_generated/logs") as NSString).appendingPathComponent("transcript.jsonl")
+                let tasksPath = (convPath as NSString).appendingPathComponent(".system_generated/tasks")
+                
+                guard fm.fileExists(atPath: transcriptPath) else { continue }
+                let attrs = (try? fm.attributesOfItem(atPath: transcriptPath)) ?? [:]
+                let modDate = attrs[.modificationDate] as? Date ?? Date.distantPast
+                let createDate = attrs[.creationDate] as? Date ?? modDate
+                
+                // Check if recently modified (within 20 minutes) or has tasks active
+                var recentlyActive = (now.timeIntervalSince(modDate) < 1200)
+                if !recentlyActive, fm.fileExists(atPath: tasksPath),
+                   let taskFiles = try? fm.contentsOfDirectory(atPath: tasksPath) {
+                    for tf in taskFiles {
+                        let tPath = (tasksPath as NSString).appendingPathComponent(tf)
+                        let tAttrs = (try? fm.attributesOfItem(atPath: tPath)) ?? [:]
+                        if let tMod = tAttrs[.modificationDate] as? Date, now.timeIntervalSince(tMod) < 1200 {
+                            recentlyActive = true
+                            break
+                        }
+                    }
+                }
+                
+                guard recentlyActive else { continue }
+                
+                // Read head and tail of transcript file
+                guard let fileHandle = FileHandle(forReadingAtPath: transcriptPath) else { continue }
+                let fileSize = fileHandle.seekToEndOfFile()
+                
+                // Read head
+                fileHandle.seek(toFileOffset: 0)
+                let headData = fileHandle.readData(ofLength: Int(min(fileSize, 65536)))
+                let headStr = String(data: headData, encoding: .utf8) ?? ""
+                
+                // Read tail if large
+                var tailStr = ""
+                if fileSize > 65536 {
+                    let tailOffset = max(65536, fileSize - 65536)
+                    fileHandle.seek(toFileOffset: tailOffset)
+                    let tailData = fileHandle.readDataToEndOfFile()
+                    tailStr = String(data: tailData, encoding: .utf8) ?? ""
+                }
+                fileHandle.closeFile()
+                
+                let chunkStr = headStr + "\n" + tailStr
+                let lines = (tailStr.isEmpty ? headStr : tailStr).components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+                guard let lastLine = lines.last else { continue }
+                
+                // If last line indicates fully completed and stopped idle without background tasks, skip
+                if lastLine.contains("\"fullyIdle\":true") && now.timeIntervalSince(modDate) > 300 {
+                    continue
+                }
+                
+                // Extract workspace path
+                var workspacePath: String? = nil
+                
+                // Pattern 1: /workspace/projects/<name>
+                if let projRange = chunkStr.range(of: "/workspace/projects/([A-Za-z0-9_-]+)", options: .regularExpression) {
+                    let matched = String(chunkStr[projRange])
+                    let comps = matched.components(separatedBy: "/workspace/projects/")
+                    if comps.count > 1, let proj = comps.last?.components(separatedBy: "/").first, !proj.isEmpty {
+                        workspacePath = "/Users/abin/workspace/projects/\(proj)"
+                    }
+                }
+                
+                // Pattern 2: "Cwd":"...path..."
+                if workspacePath == nil, let cwdRange = chunkStr.range(of: "\"Cwd\":\\s*\"([^\"]+)\"", options: .regularExpression) {
+                    let matched = String(chunkStr[cwdRange])
+                    let comps = matched.components(separatedBy: "\"")
+                    if comps.count >= 4 {
+                        workspacePath = comps[3].replacingOccurrences(of: "\\/", with: "/")
+                    }
+                }
+                
+                // Pattern 3: Active Document: /path/...
+                if workspacePath == nil, let docRange = chunkStr.range(of: "Active Document:\\s*([^\\n]+)", options: .regularExpression) {
+                    let docLine = String(chunkStr[docRange])
+                    let pathPart = docLine.replacingOccurrences(of: "Active Document:", with: "").trimmingCharacters(in: .whitespaces)
+                    if let firstSlash = pathPart.firstIndex(of: "/") {
+                        let fullPath = String(pathPart[firstSlash...])
+                        let comps = fullPath.components(separatedBy: "/workspace/projects/")
+                        if comps.count > 1, let proj = comps.last?.components(separatedBy: "/").first {
+                            workspacePath = "/Users/abin/workspace/projects/\(proj)"
+                        } else {
+                            workspacePath = (fullPath as NSString).deletingLastPathComponent
+                        }
+                    }
+                }
+                
+                // Pattern 4: -> /Users/abin/... mapping
+                if workspacePath == nil, let uriRange = chunkStr.range(of: "->\\s*(/Users/[^\\n\\s]+)", options: .regularExpression) {
+                    let uriLine = String(chunkStr[uriRange])
+                    let pathPart = uriLine.replacingOccurrences(of: "->", with: "").trimmingCharacters(in: .whitespaces)
+                    workspacePath = pathPart
+                }
+                
+                // Pattern 5: file:///Users/...
+                if workspacePath == nil, let fileUriRange = chunkStr.range(of: "file://(/Users/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+)", options: .regularExpression) {
+                    let fileLine = String(chunkStr[fileUriRange])
+                    let pathPart = fileLine.replacingOccurrences(of: "file://", with: "").trimmingCharacters(in: .whitespaces)
+                    let comps = pathPart.components(separatedBy: "/workspace/projects/")
+                    if comps.count > 1, let proj = comps.last?.components(separatedBy: "/").first {
+                        workspacePath = "/Users/abin/workspace/projects/\(proj)"
+                    }
+                }
+                
+                // Resolve Origin Context
+                var origin: OriginContext? = nil
+                if let ws = workspacePath {
+                    let folderName = (ws as NSString).lastPathComponent
+                    if let app = antigravityApps.first {
+                        var winID: UInt32? = nil
+                        var winTitle = "\(folderName) — Antigravity"
+                        if let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
+                            for win in windowList {
+                                let pid = win[kCGWindowOwnerPID as String] as? Int32 ?? 0
+                                let title = win[kCGWindowName as String] as? String ?? ""
+                                if pid == app.processIdentifier && title.localizedCaseInsensitiveContains(folderName) {
+                                    winID = win[kCGWindowNumber as String] as? UInt32
+                                    winTitle = title
+                                    break
+                                }
+                            }
+                        }
+                        origin = OriginContext(
+                            bundleIdentifier: app.bundleIdentifier ?? "com.google.antigravity-ide",
+                            processIdentifier: app.processIdentifier,
+                            windowIdentifier: winID,
+                            windowTitle: winTitle,
+                            workspacePath: ws
+                        )
+                    }
+                }
+                
+                let session = AgentSession(
+                    id: AgentSessionID(convID),
+                    providerID: .antigravity,
+                    providerSessionID: convID,
+                    state: .running,
+                    workspace: workspacePath,
+                    originContext: origin,
+                    startedAt: createDate,
+                    updatedAt: modDate
+                )
+                
+                discovered.append(session)
+            }
+        }
+        
+        return discovered
     }
     
     public func installIntegration() async throws {
@@ -130,13 +345,29 @@ public final class AntigravityProvider: AgentProvider, Sendable {
             }
         }
         
-        // Define Flowback hook block
+        let cmd = "export PATH=\"$HOME/.local/bin:/usr/local/bin:$PATH\"; flowback hook antigravity"
+        
+        // Define Flowback hook block supporting PreInvocation, PostInvocation, and Stop
         let flowbackHook: [String: Any] = [
             "enabled": true,
+            "PreInvocation": [
+                [
+                    "type": "command",
+                    "command": cmd,
+                    "timeout": 5
+                ]
+            ],
+            "PostInvocation": [
+                [
+                    "type": "command",
+                    "command": cmd,
+                    "timeout": 5
+                ]
+            ],
             "Stop": [
                 [
                     "type": "command",
-                    "command": "flowback hook antigravity",
+                    "command": cmd,
                     "timeout": 5
                 ]
             ]
@@ -146,7 +377,7 @@ public final class AntigravityProvider: AgentProvider, Sendable {
         
         let outputData = try JSONSerialization.data(withJSONObject: hooksDict, options: [.prettyPrinted, .sortedKeys])
         try outputData.write(to: URL(fileURLWithPath: hooksPath))
-        logger.info("Successfully installed Flowback Stop hook to \(hooksPath)")
+        logger.info("Successfully installed Flowback hooks (PreInvocation, PostInvocation, Stop) to \(hooksPath)")
     }
     
     public func uninstallIntegration() async throws {

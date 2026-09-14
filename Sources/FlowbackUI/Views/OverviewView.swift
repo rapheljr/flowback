@@ -7,17 +7,20 @@ public struct OverviewView: View {
     @Binding var attentionQueue: [AttentionRequest]
     @Binding var focusLock: FocusLockState
     public var onFocusSession: (AgentSession) -> Void
+    public var onRefresh: () -> Void
     
     public init(
         activeSessions: Binding<[AgentSession]>,
         attentionQueue: Binding<[AttentionRequest]>,
         focusLock: Binding<FocusLockState>,
-        onFocusSession: @escaping (AgentSession) -> Void
+        onFocusSession: @escaping (AgentSession) -> Void,
+        onRefresh: @escaping () -> Void = {}
     ) {
         self._activeSessions = activeSessions
         self._attentionQueue = attentionQueue
         self._focusLock = focusLock
         self.onFocusSession = onFocusSession
+        self.onRefresh = onRefresh
     }
     
     public var body: some View {
@@ -101,6 +104,12 @@ public struct OverviewView: View {
                         Text("Active Agents")
                             .font(.title2.bold())
                         Spacer()
+                        Button(action: onRefresh) {
+                            Label("Refresh", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .help("Scan and refresh active agent sessions")
                     }
                     
                     if activeSessions.isEmpty {

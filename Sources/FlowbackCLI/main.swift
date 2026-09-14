@@ -13,6 +13,7 @@ func printHelp() {
       
     Commands:
       status                    Show daemon status and summary
+      refresh                   Scan for active agents and refresh status
       agents                    List currently active agent sessions
       sessions                  List recent agent sessions and timelines
       doctor                    Run diagnostics and permission checks
@@ -39,6 +40,28 @@ case "help", "-h", "--help":
     printHelp()
     exit(0)
 
+case "refresh":
+    do {
+        let resp = try client.send(command: "refresh")
+        print(resp.message)
+        if let data = resp.data, let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let active = json["activeSessions"] as? [[String: Any]], !active.isEmpty {
+                print("Active Agents:")
+                for a in active {
+                    let proj = a["projectName"] as? String ?? "unknown"
+                    let prov = a["provider"] as? String ?? "unknown"
+                    let st = a["state"] as? String ?? "running"
+                    print("  • [\(st)] \(prov) — \(proj)")
+                }
+            } else {
+                print("No active agents running.")
+            }
+        }
+    } catch {
+        print("Flowback daemon is not running.")
+        exit(1)
+    }
+
 case "hook":
     let providerName = args.count > 2 ? args[2] : "antigravity"
     // Read stdin
@@ -52,7 +75,12 @@ case "hook":
         }
     } catch {
         // Safe degradation: if Flowback daemon isn't running, never fail the agent's hook!
-        print("{\"decision\":\"allow\"}")
+        if let json = try? JSONSerialization.jsonObject(with: inputData) as? [String: Any],
+           (json["invocationNum"] != nil && json["terminationReason"] == nil) || json["hook_event_name"] as? String == "PreInvocation" {
+            print("{\"injectSteps\":[]}")
+        } else {
+            print("{\"decision\":\"allow\"}")
+        }
     }
     exit(0)
 
