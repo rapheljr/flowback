@@ -13,7 +13,13 @@ public struct VSCodeAdapter: ApplicationAdapter {
         "com.microsoft.VSCodeInsiders",
         "com.visualstudio.code.oss",
         "com.google.antigravity-ide",
-        "com.google.antigravity"
+        "com.google.antigravity",
+        "com.codeium.windsurf",
+        "com.vscodium",
+        "com.vscodium.codium",
+        "co.posit.positron",
+        "com.rstudio.positron",
+        "com.byteplus.trae"
     ]
     
     public init() {}
