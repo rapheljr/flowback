@@ -76,11 +76,12 @@ The Flowback icon will appear in your macOS menu bar.
 flowback doctor
 ```
 
-### 3. Check Active Sessions & Providers
+### 3. Check Active Sessions & Refresh
 ```bash
 flowback status
-flowback providers
+flowback refresh
 flowback agents
+flowback providers
 ```
 
 ### 4. Enable Focus Lock
@@ -90,17 +91,22 @@ flowback focus-lock 30m
 
 ---
 
-## Supported Providers
+## Supported Providers & Applications
 
-* **Antigravity:** Installed hooks at `~/.gemini/config/hooks.json`. Subscribes to `Stop` event, prioritizing `fullyIdle = true`.
-* **Claude Code:** Terminal/hook provider with automatic hook detection.
+* **Antigravity:** Installed hooks at `~/.gemini/config/hooks.json`. Listens to `PreInvocation`, `PostInvocation`, and `Stop` events. Features proactive active transcript scanning and live background discovery.
+* **Claude Code:** Terminal/hook provider with automatic hook detection and state mapping.
 * **OpenAI Codex:** Process & hook provider.
 * **Gemini CLI:** CLI hook integration.
 * **Aider:** Git & terminal notification integration.
-* **Generic Hook Protocol:** Any script or tool can emit normalized events:
+* **Generic Hook Protocol:** Any script, agent, or CI tool can emit normalized events:
   ```bash
-  flowback emit agent.completed --provider custom-agent --session s123 --workspace /path/to/project
+  flowback emit '{"schemaVersion":1,"event":"agent.completed","provider":"custom","sessionId":"s123","workspace":"/path/to/project"}'
   ```
+
+### Supported Editors & Terminals
+* **Editors:** Google Antigravity IDE, Visual Studio Code (Stable, Insiders, Code OSS), Windsurf, VSCodium, Positron, Trae, and Cursor.
+* **Terminals:** Apple Terminal, iTerm2, Kitty, Alacritty, Ghostty, and Warp.
+* **Browsers:** Brave, Google Chrome, Safari, Microsoft Edge, Arc, and generic macOS applications.
 
 ---
 
