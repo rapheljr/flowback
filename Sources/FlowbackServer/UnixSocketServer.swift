@@ -111,24 +111,47 @@ public final class UnixSocketServer: @unchecked Sendable {
     private func handleClient(_ clientFd: Int32) async {
         defer { close(clientFd) }
         
-        var buffer = [UInt8](repeating: 0, count: 65536)
-        let bytesRead = read(clientFd, &buffer, buffer.count)
-        guard bytesRead > 0 else { return }
+        // Set receive timeout to prevent hanging connections
+        var timeout = timeval(tv_sec: 5, tv_usec: 0)
+        setsockopt(clientFd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
         
-        let requestData = Data(buffer[0..<bytesRead])
+        var requestData = Data()
+        var buffer = [UInt8](repeating: 0, count: 16384)
         let decoder = JSONDecoder()
+        var decodedRequest: IPCRequest? = nil
+        
+        while true {
+            let bytesRead = read(clientFd, &buffer, buffer.count)
+            if bytesRead <= 0 { break }
+            requestData.append(buffer, count: bytesRead)
+            
+            if let req = try? decoder.decode(IPCRequest.self, from: requestData) {
+                decodedRequest = req
+                break
+            }
+        }
+        
+        if decodedRequest == nil {
+            decodedRequest = try? decoder.decode(IPCRequest.self, from: requestData)
+        }
         
         let response: IPCResponse
-        if let request = try? decoder.decode(IPCRequest.self, from: requestData),
-           let del = self.delegate {
+        if let request = decodedRequest, let del = self.delegate {
             response = await del.handleRequest(request)
         } else {
             response = IPCResponse(success: false, message: "Malformed IPC request")
         }
         
         if let responseData = try? JSONEncoder().encode(response) {
-            _ = responseData.withUnsafeBytes { raw in
-                write(clientFd, raw.baseAddress, responseData.count)
+            responseData.withUnsafeBytes { raw in
+                guard let base = raw.baseAddress else { return }
+                var totalWritten = 0
+                let totalBytes = responseData.count
+                while totalWritten < totalBytes {
+                    let written = write(clientFd, base + totalWritten, totalBytes - totalWritten)
+                    if written <= 0 { break }
+                    totalWritten += written
+                }
             }
         }
     }

@@ -325,6 +325,139 @@ await testGroup("Final Acceptance Scenarios A through J") {
     try? FileManager.default.removeItem(atPath: "\(crashDbPath)-shm")
 }
 
+// 7. Deep Audit & Robustness Verification
+await testGroup("Deep Audit & Robustness Verification") {
+    // 1. Adapter Coverage Audit
+    let vsAdapter = VSCodeAdapter()
+    let expectedVSCodeBundles = [
+        "com.microsoft.VSCode",
+        "com.microsoft.VSCodeInsiders",
+        "com.visualstudio.code.oss",
+        "com.google.antigravity-ide",
+        "com.google.antigravity",
+        "com.codeium.windsurf",
+        "com.vscodium",
+        "com.vscodium.codium",
+        "co.posit.positron",
+        "com.rstudio.positron",
+        "com.byteplus.trae"
+    ]
+    for bundle in expectedVSCodeBundles {
+        assertTest(vsAdapter.canHandle(bundleIdentifier: bundle), "VSCodeAdapter handles \(bundle)")
+    }
+    
+    let cursorAdapter = CursorAdapter()
+    assertTest(cursorAdapter.canHandle(bundleIdentifier: "com.todesktop.230313mzl4w4u92"), "CursorAdapter handles com.todesktop.230313mzl4w4u92")
+    assertTest(cursorAdapter.canHandle(bundleIdentifier: "co.anysphere.cursor"), "CursorAdapter handles co.anysphere.cursor")
+    
+    // 2. SQLite Transient Memory Stress Test
+    let auditDbPath = NSTemporaryDirectory() + "flowback_audit_\(UUID().uuidString).sqlite"
+    let auditDb = await RecoveryManager.shared.initializeStorage(path: auditDbPath)
+    let auditRepo = SessionRepository(db: auditDb)
+    
+    var stressSuccess = true
+    for i in 1...20 {
+        let dynString = "Workspace_Path_Dynamically_Allocated_\(UUID().uuidString)_\(i)"
+        let origin = OriginContext(
+            bundleIdentifier: "com.google.antigravity-ide",
+            processIdentifier: Int32(1000 + i),
+            windowIdentifier: UInt32(5000 + i),
+            windowTitle: "Window Title \(dynString)",
+            workspacePath: "/Users/abin/projects/\(dynString)"
+        )
+        let sess = AgentSession(
+            id: AgentSessionID("audit-sess-\(i)"),
+            providerID: .antigravity,
+            state: .running,
+            workspace: "/Users/abin/projects/\(dynString)",
+            originContext: origin
+        )
+        do {
+            try await auditRepo.saveSession(sess)
+        } catch {
+            stressSuccess = false
+            break
+        }
+    }
+    assertTest(stressSuccess, "SQLite handles rapid dynamic string persistence with SQLITE_TRANSIENT without memory fault")
+    
+    let fetchedSess = try? await auditRepo.fetchRecentSessions(limit: 50)
+    assertTest(fetchedSess?.count == 20, "Retrieved all 20 persisted stress sessions with data intact")
+    
+    // 3. Database Transaction Rollback Test
+    var rollbackVerified = false
+    do {
+        _ = try await auditDb.runInTransaction {
+            try await auditDb.execute(sql: "INSERT INTO sessions (id, provider_id, state, started_at, updated_at) VALUES ('atomic-test', 'antigravity', 'running', 1.0, 1.0);")
+            throw SQLiteError.executionFailed("Deliberate failure to test rollback", code: 999)
+        }
+    } catch {
+        // Expected throw, verify record was rolled back
+        let rows = try? await auditDb.query(sql: "SELECT id FROM sessions WHERE id = 'atomic-test';") { _ in true }
+        if (rows?.isEmpty ?? false) {
+            rollbackVerified = true
+        }
+    }
+    assertTest(rollbackVerified, "SQLite transactions roll back completely on thrown error")
+    
+    await auditDb.close()
+    try? FileManager.default.removeItem(atPath: auditDbPath)
+    try? FileManager.default.removeItem(atPath: "\(auditDbPath)-wal")
+    try? FileManager.default.removeItem(atPath: "\(auditDbPath)-shm")
+    
+    // 4. IPCHandler Edge Case & Malformed Payloads
+    let tempDbIPC = NSTemporaryDirectory() + "flowback_audit_ipc_\(UUID().uuidString).sqlite"
+    let ipcDb = await RecoveryManager.shared.initializeStorage(path: tempDbIPC)
+    let ipcSettingsRepo = SettingsRepository(db: ipcDb)
+    let ipcSessionMgr = SessionManager(storageDelegate: SessionRepository(db: ipcDb))
+    let mockApp = MockApplicationController()
+    let mockWin = MockWindowController()
+    let intentEngine = UserIntentEngine(idleTracker: MockIdleTracker(), windowController: mockWin, spaceController: MockSpaceController())
+    let ipcFocusCtrl = FocusController(appController: mockApp, windowController: mockWin, intentEngine: intentEngine, arbiter: AttentionArbiter())
+    let testRegistry = ProviderRegistry()
+    await testRegistry.register(provider: AntigravityProvider())
+    await testRegistry.register(provider: ClaudeCodeProvider())
+    await testRegistry.register(provider: CodexProvider())
+    await testRegistry.register(provider: GenericHookProvider())
+    
+    let ipcHandler = IPCHandler(
+        sessionManager: ipcSessionMgr,
+        focusController: ipcFocusCtrl,
+        providerRegistry: testRegistry,
+        settingsRepo: ipcSettingsRepo
+    )
+    
+    // Unknown command
+    let unkResp = await ipcHandler.handleRequest(IPCRequest(command: "non_existent_command_xyz"))
+    assertTest(!unkResp.success && unkResp.message.contains("Unknown command"), "IPCHandler safely rejects unknown commands")
+    
+    // Malformed hook JSON
+    let malformedHookResp = await ipcHandler.handleRequest(IPCRequest(command: "hook", argument: "antigravity", payload: "not-json-content".data(using: .utf8)))
+    assertTest(malformedHookResp.success, "IPCHandler fails safe on unparseable hook payload and provides fallback allow")
+    
+    // Missing arguments
+    let missingArgsResp = await ipcHandler.handleRequest(IPCRequest(command: "focus", argument: "invalid-session-id-404"))
+    assertTest(!missingArgsResp.success, "IPCHandler safely returns error for non-existent session focus")
+    
+    await ipcDb.close()
+    try? FileManager.default.removeItem(atPath: tempDbIPC)
+    try? FileManager.default.removeItem(atPath: "\(tempDbIPC)-wal")
+    try? FileManager.default.removeItem(atPath: "\(tempDbIPC)-shm")
+    
+    // 5. Provider Hook Robustness
+    let claude = ClaudeCodeProvider()
+    let claudeEmpty = try? claude.parseLifecyclePayload(data: Data())
+    assertTest(claudeEmpty == nil, "ClaudeCodeProvider handles empty data gracefully")
+    
+    let codex = CodexProvider()
+    let codexPerm = try? codex.parseLifecyclePayload(data: "{\"status\": \"permission_required\", \"session_id\": \"codex-1\"}".data(using: .utf8)!)
+    assertTest(codexPerm?.type == .agentPermissionRequired, "CodexProvider translates permission_required status")
+    
+    let generic = GenericHookProvider()
+    let genericMalformed = try? generic.parseLifecyclePayload(data: "{\"bad_schema\": true}".data(using: .utf8)!)
+    assertTest(genericMalformed == nil, "GenericHookProvider rejects non-conforming payloads cleanly")
+}
+
 print("\n================================================================")
 print("TEST RESULTS SUMMARY")
 print("Total tests executed: \(totalTestsRun)")

@@ -44,19 +44,41 @@ public struct IPCClient: Sendable {
         let req = IPCRequestDTO(command: command, argument: argument, payload: payload)
         let reqData = try JSONEncoder().encode(req)
         
-        _ = reqData.withUnsafeBytes { raw in
-            write(fd, raw.baseAddress, reqData.count)
+        reqData.withUnsafeBytes { raw in
+            guard let base = raw.baseAddress else { return }
+            var totalWritten = 0
+            let totalBytes = reqData.count
+            while totalWritten < totalBytes {
+                let written = write(fd, base + totalWritten, totalBytes - totalWritten)
+                if written <= 0 { break }
+                totalWritten += written
+            }
         }
         
         // Read response
-        var buffer = [UInt8](repeating: 0, count: 65536)
-        let bytesRead = read(fd, &buffer, buffer.count)
-        guard bytesRead > 0 else {
-            return (false, "No response from Flowback daemon", nil)
+        var respData = Data()
+        var buffer = [UInt8](repeating: 0, count: 16384)
+        let decoder = JSONDecoder()
+        var decodedResponse: IPCResponseDTO? = nil
+        
+        while true {
+            let bytesRead = read(fd, &buffer, buffer.count)
+            if bytesRead <= 0 { break }
+            respData.append(buffer, count: bytesRead)
+            
+            if let resp = try? decoder.decode(IPCResponseDTO.self, from: respData) {
+                decodedResponse = resp
+                break
+            }
         }
         
-        let respData = Data(buffer[0..<bytesRead])
-        let resp = try JSONDecoder().decode(IPCResponseDTO.self, from: respData)
+        if decodedResponse == nil {
+            decodedResponse = try? decoder.decode(IPCResponseDTO.self, from: respData)
+        }
+        
+        guard let resp = decodedResponse else {
+            return (false, "No valid response from Flowback daemon", nil)
+        }
         return (resp.success, resp.message, resp.data)
     }
 }

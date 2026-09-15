@@ -3,6 +3,7 @@ import SQLite3
 import OSLog
 
 private let logger = Logger(subsystem: "com.flowback.app", category: "SQLiteDatabase")
+private let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
 public enum SQLiteError: Error, LocalizedError {
     case connectionFailed(String)
@@ -113,7 +114,7 @@ public actor SQLiteDatabase {
         try execute(sql: "PRAGMA user_version = \(version);")
     }
     
-    public func runInTransaction<T>(_ block: () async throws -> T) async throws -> T {
+    public func runInTransaction<T: Sendable>(_ block: @Sendable () async throws -> T) async throws -> T {
         try execute(sql: "BEGIN IMMEDIATE TRANSACTION;")
         do {
             let result = try await block()
@@ -166,14 +167,13 @@ public actor SQLiteDatabase {
         }
         return results
     }
-    
     private func bind(statement: OpaquePointer?, values: [Any?]) throws {
         for (index, val) in values.enumerated() {
             let idx = Int32(index + 1)
             if val == nil {
                 sqlite3_bind_null(statement, idx)
             } else if let stringVal = val as? String {
-                sqlite3_bind_text(statement, idx, (stringVal as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, idx, (stringVal as NSString).utf8String, -1, SQLITE_TRANSIENT)
             } else if let intVal = val as? Int {
                 sqlite3_bind_int64(statement, idx, Int64(intVal))
             } else if let int32Val = val as? Int32 {
@@ -186,10 +186,10 @@ public actor SQLiteDatabase {
                 sqlite3_bind_int(statement, idx, boolVal ? 1 : 0)
             } else if let dataVal = val as? Data {
                 _ = dataVal.withUnsafeBytes { rawBuffer in
-                    sqlite3_bind_blob(statement, idx, rawBuffer.baseAddress, Int32(dataVal.count), nil)
+                    sqlite3_bind_blob(statement, idx, rawBuffer.baseAddress, Int32(dataVal.count), SQLITE_TRANSIENT)
                 }
             } else {
-                sqlite3_bind_text(statement, idx, ("\(val!)" as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, idx, ("\(val!)" as NSString).utf8String, -1, SQLITE_TRANSIENT)
             }
         }
     }
