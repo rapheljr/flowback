@@ -8,15 +8,18 @@ public struct PermissionStatus: Codable, Sendable {
     public var accessibilityGranted: Bool
     public var notificationsGranted: Bool
     public var launchAtLoginEnabled: Bool
+    public var isAppBundle: Bool
     
     public init(
         accessibilityGranted: Bool = false,
         notificationsGranted: Bool = false,
-        launchAtLoginEnabled: Bool = false
+        launchAtLoginEnabled: Bool = false,
+        isAppBundle: Bool = (Bundle.main.bundleIdentifier != nil)
     ) {
         self.accessibilityGranted = accessibilityGranted
         self.notificationsGranted = notificationsGranted
         self.launchAtLoginEnabled = launchAtLoginEnabled
+        self.isAppBundle = isAppBundle
     }
 }
 
@@ -25,6 +28,11 @@ public final class PermissionManager: Sendable {
     public static let shared = PermissionManager()
     
     public init() {}
+    
+    /// Evaluates if the current running process is inside an application bundle with a valid bundle identifier
+    public var isAppBundle: Bool {
+        Bundle.main.bundleIdentifier != nil
+    }
     
     /// Evaluates if Accessibility permissions are currently granted
     public func isAccessibilityGranted() -> Bool {
@@ -40,6 +48,7 @@ public final class PermissionManager: Sendable {
     
     /// Checks Notification authorization state
     public func checkNotificationStatus() async -> Bool {
+        guard isAppBundle else { return false }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         return settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
@@ -47,6 +56,7 @@ public final class PermissionManager: Sendable {
     
     /// Requests Notification authorization
     public func requestNotifications() async -> Bool {
+        guard isAppBundle else { return false }
         let center = UNUserNotificationCenter.current()
         do {
             return try await center.requestAuthorization(options: [.alert, .sound, .badge])
@@ -57,11 +67,13 @@ public final class PermissionManager: Sendable {
     
     /// Checks if Launch at Login is enabled via ServiceManagement
     public func isLaunchAtLoginEnabled() -> Bool {
-        SMAppService.mainApp.status == .enabled
+        guard isAppBundle else { return false }
+        return SMAppService.mainApp.status == .enabled
     }
     
     /// Configures Launch at Login state
     public func setLaunchAtLogin(enabled: Bool) throws {
+        guard isAppBundle else { return }
         if enabled {
             if SMAppService.mainApp.status != .enabled {
                 try SMAppService.mainApp.register()
@@ -78,10 +90,12 @@ public final class PermissionManager: Sendable {
         let ax = isAccessibilityGranted()
         let notif = await checkNotificationStatus()
         let login = isLaunchAtLoginEnabled()
+        let inBundle = isAppBundle
         return PermissionStatus(
             accessibilityGranted: ax,
             notificationsGranted: notif,
-            launchAtLoginEnabled: login
+            launchAtLoginEnabled: login,
+            isAppBundle: inBundle
         )
     }
 }

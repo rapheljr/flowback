@@ -30,6 +30,7 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
     public private(set) var providerRegistry: ProviderRegistry!
     
     // Server & Notifications
+    public var isHeadless: Bool = false
     private var socketServer: UnixSocketServer!
     private var ipcHandler: IPCHandler!
     private let notificationManager = NotificationManager.shared
@@ -93,8 +94,10 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
         notificationManager.setActionDelegate(self)
         notificationManager.registerDelegate()
         
-        menuBarController.setDelegate(self)
-        menuBarController.setup()
+        if !isHeadless {
+            menuBarController.setDelegate(self)
+            menuBarController.setup()
+        }
         
         // 7. Setup IPC Server
         self.ipcHandler = IPCHandler(
@@ -263,12 +266,14 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
         self.permissionStatus = perms
         self.timelineEntries = timeline
         
-        menuBarController.updateState(
-            activeSessions: active,
-            recentSessions: recent,
-            attentionQueue: queue,
-            focusLock: focusLock
-        )
+        if !isHeadless {
+            menuBarController.updateState(
+                activeSessions: active,
+                recentSessions: recent,
+                attentionQueue: queue,
+                focusLock: focusLock
+            )
+        }
     }
     
     // MARK: - MenuBarActionDelegate

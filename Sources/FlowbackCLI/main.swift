@@ -40,6 +40,10 @@ case "help", "-h", "--help":
     printHelp()
     exit(0)
 
+case "version", "-v", "--version":
+    print("flowback v1.0.0 (build 1) — CLI tool for Flowback Context & Focus Orchestrator")
+    exit(0)
+
 case "refresh":
     do {
         let resp = try client.send(command: "refresh")
@@ -176,8 +180,9 @@ case "doctor", "providers":
                 for p in provs {
                     let name = (p["name"] as? String) ?? ""
                     let status = (p["status"] as? String) ?? ""
+                    let tier = (p["supportLevel"] as? String) ?? "adapter"
                     let isInst = (p["installed"] as? Bool) == true ? "✓" : "○"
-                    print("  \(isInst) \(name): \(status)")
+                    print("  \(isInst) \(name) [\(tier)]: \(status)")
                 }
             }
         } else {
