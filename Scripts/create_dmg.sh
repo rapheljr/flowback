@@ -4,11 +4,12 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$PROJECT_ROOT/dist"
 APP_BUNDLE="$DIST_DIR/Flowback.app"
-DMG_PATH="$DIST_DIR/Flowback.dmg"
+DMG_NAME="${1:-Flowback.dmg}"
+DMG_PATH="$DIST_DIR/$DMG_NAME"
 DMG_TEMP="$DIST_DIR/dmg_temp"
 
 echo "=========================================="
-echo "Creating Flowback.dmg"
+echo "Creating $DMG_NAME"
 echo "=========================================="
 
 if [ ! -d "$APP_BUNDLE" ]; then
