@@ -72,6 +72,38 @@ public actor SessionRepository: SessionStorageDelegate {
         }
     }
     
+    /// Prunes finished sessions older than given days while keeping at least `keepMinCount` most recent sessions.
+    /// Also cleans up orphaned events associated with pruned sessions.
+    @discardableResult
+    public func pruneCompletedSessions(olderThanDays days: Int = 30, keepMinCount: Int = 50) async throws -> Int {
+        let countSql = "SELECT COUNT(*) FROM sessions;"
+        let totalCount = try await db.query(sql: countSql, bindings: []) { stmt in
+            Int(sqlite3_column_int(stmt, 0))
+        }.first ?? 0
+        
+        guard totalCount > keepMinCount else { return 0 }
+        
+        let cutoff = Date().addingTimeInterval(-Double(days * 86400)).timeIntervalSince1970
+        let deleteSql = """
+        DELETE FROM sessions 
+        WHERE state IN ('completed', 'failed', 'stopped', 'cancelled')
+          AND updated_at < ?
+          AND id NOT IN (
+              SELECT id FROM sessions ORDER BY updated_at DESC LIMIT ?
+          );
+        """
+        try await db.execute(sql: deleteSql, bindings: [cutoff, keepMinCount])
+        
+        // Clean up orphaned events
+        let pruneEventsSql = "DELETE FROM events WHERE session_id NOT IN (SELECT id FROM sessions);"
+        try await db.execute(sql: pruneEventsSql, bindings: [])
+        
+        let afterCount = try await db.query(sql: countSql, bindings: []) { stmt in
+            Int(sqlite3_column_int(stmt, 0))
+        }.first ?? 0
+        return max(0, totalCount - afterCount)
+    }
+    
     private static func mapRowToSession(_ stmt: OpaquePointer) throws -> AgentSession {
         let idStr = String(cString: sqlite3_column_text(stmt, 0))
         let providerStr = String(cString: sqlite3_column_text(stmt, 1))

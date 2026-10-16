@@ -21,11 +21,13 @@ public final class RecoveryManager: Sendable {
             logger.fault("Database opening or migration failed: \(error.localizedDescription). Initiating recovery...")
             await db.close()
             
-            // Rename corrupt database to backup
-            let backupPath = "\(path).corrupt.\(Int(Date().timeIntervalSince1970))"
-            try? FileManager.default.moveItem(atPath: path, toPath: backupPath)
-            try? FileManager.default.removeItem(atPath: "\(path)-wal")
-            try? FileManager.default.removeItem(atPath: "\(path)-shm")
+            // Rename corrupt database to backup if file-backed
+            if path != ":memory:" {
+                let backupPath = "\(path).corrupt.\(Int(Date().timeIntervalSince1970))"
+                try? FileManager.default.moveItem(atPath: path, toPath: backupPath)
+                try? FileManager.default.removeItem(atPath: "\(path)-wal")
+                try? FileManager.default.removeItem(atPath: "\(path)-shm")
+            }
             
             // Re-instantiate clean database
             let freshDb = SQLiteDatabase(path: path)

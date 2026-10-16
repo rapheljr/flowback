@@ -55,4 +55,22 @@ public actor EventRepository {
             )
         }
     }
+    
+    /// Prunes events older than given days.
+    @discardableResult
+    public func pruneEvents(olderThanDays days: Int = 30) async throws -> Int {
+        let cutoff = Date().addingTimeInterval(-Double(days * 86400)).timeIntervalSince1970
+        let countSql = "SELECT COUNT(*) FROM events;"
+        let beforeCount = try await db.query(sql: countSql, bindings: []) { stmt in
+            Int(sqlite3_column_int(stmt, 0))
+        }.first ?? 0
+        
+        let sql = "DELETE FROM events WHERE timestamp < ?;"
+        try await db.execute(sql: sql, bindings: [cutoff])
+        
+        let afterCount = try await db.query(sql: countSql, bindings: []) { stmt in
+            Int(sqlite3_column_int(stmt, 0))
+        }.first ?? 0
+        return max(0, beforeCount - afterCount)
+    }
 }

@@ -53,9 +53,13 @@ public actor SQLiteDatabase {
     public func open() throws {
         guard box == nil else { return }
         
-        // Ensure directory exists
-        let dir = (path as NSString).deletingLastPathComponent
-        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        // Ensure directory exists if path is a file
+        if path != ":memory:" {
+            let dir = (path as NSString).deletingLastPathComponent
+            if !dir.isEmpty {
+                try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+            }
+        }
         
         var handle: OpaquePointer?
         let flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX
@@ -67,9 +71,11 @@ public actor SQLiteDatabase {
         
         self.box = ConnectionBox(handle: handle)
         
-        // Configure WAL mode for high concurrency
-        try execute(sql: "PRAGMA journal_mode=WAL;")
-        try execute(sql: "PRAGMA synchronous=NORMAL;")
+        // Configure WAL mode for high concurrency on file-backed databases
+        if path != ":memory:" {
+            try execute(sql: "PRAGMA journal_mode=WAL;")
+            try execute(sql: "PRAGMA synchronous=NORMAL;")
+        }
         try execute(sql: "PRAGMA foreign_keys=ON;")
     }
     
