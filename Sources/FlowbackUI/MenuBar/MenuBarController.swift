@@ -34,12 +34,21 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
     }
     
     public func setup() {
+        guard statusItem == nil else { return }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         updateStatusItemAppearance()
         
         let menu = NSMenu()
         menu.delegate = self
         statusItem?.menu = menu
+    }
+    
+    public func teardown() {
+        if let item = statusItem {
+            item.menu = nil
+            NSStatusBar.system.removeStatusItem(item)
+            statusItem = nil
+        }
     }
     
     public func updateState(
