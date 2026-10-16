@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy & Manifesto — Flowback macOS Context Manager</title>
+  <meta name="description" content="Flowback's local-first privacy manifesto: zero telemetry, zero keystroke logging, zero source code collection, and local SQLite storage.">
+  <link rel="canonical" href="https://rapheljr.github.io/flowback/privacy/">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://rapheljr.github.io/flowback/privacy/">
+  <meta property="og:title" content="Flowback Privacy Manifesto">
+  <meta property="og:description" content="Flowback knows WHERE you were, not WHAT you were doing. Local-first, zero telemetry, zero cloud calls.">
+  <meta property="og:image" content="https://rapheljr.github.io/flowback/assets/flowback-banner.svg">
+
+  <link rel="icon" type="image/svg+xml" href="../assets/flowback-icon.svg">
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="../" class="brand" aria-label="Flowback Home">
+        <img src="../assets/flowback-icon.svg" alt="Flowback Logo" class="brand-icon">
+        <span>Flowback</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="../">Home</a></li>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="../docs/">Documentation</a></li>
+          <li><a href="../changelog/">Changelog</a></li>
+          <li><a href="./" class="active">Privacy</a></li>
+          <li><a href="../contributing/">Contributing</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" title="Toggle color theme" aria-label="Toggle theme">☀️</button>
+        <a href="../download/" class="btn btn-primary">Download</a>
+        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>Flowback Privacy Manifesto</h1>
+      <p style="font-size: 1.35rem; color: var(--accent-cyan); font-weight: 600;">
+        &ldquo;Flowback knows WHERE you were, not WHAT you were doing.&rdquo;
+      </p>
+    </div>
+
+    <!-- The Core Privacy Contract -->
+    <article class="card" style="max-width: 850px; margin: 0 auto 3.5rem auto; padding: 2.5rem;">
+      <h2>The Privacy Contract</h2>
+      <p>Flowback was engineered from line 1 for developers working on proprietary, sensitive, and air-gapped codebases. Our architectural posture is strictly <strong>local-first, least-privilege, and zero-trust</strong>.</p>
+
+      <div style="margin: 2rem 0;">
+        <h3 style="color: var(--accent-rose); font-size: 1.15rem; margin-bottom: 0.75rem;">
+          What Flowback NEVER Observes, Captures, or Stores:
+        </h3>
+        <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.4rem;">
+          <li>❌ <strong>NO Screenshots or Screen Captures:</strong> Flowback never captures video or display buffers.</li>
+          <li>❌ <strong>NO Keystroke or Keylogging:</strong> Idle detection queries system elapsed seconds via <code>CGEventSourceSecondsSinceLastEventType</code>; it cannot inspect which keys are pressed.</li>
+          <li>❌ <strong>NO Mouse Coordinates or Cursor Tracking:</strong> Flowback does not record pointer trajectories.</li>
+          <li>❌ <strong>NO Source Code or File Contents:</strong> Flowback stores folder paths and window IDs, never source code lines or git diffs.</li>
+          <li>❌ <strong>NO Environment Variables, API Keys, or Secrets:</strong> Hook dispatchers strip sensitive tokens.</li>
+          <li>❌ <strong>NO Telemetry, Analytics, or Remote Crash Dumps:</strong> The binary contains zero networking libraries and makes zero outbound HTTP/TCP calls.</li>
+          <li>❌ <strong>NO Accounts or Cloud Sync:</strong> No user registration, no telemetry keys.</li>
+        </ul>
+      </div>
+
+      <div style="border-top: 1px solid var(--border-subtle); padding-top: 2rem;">
+        <h3 style="color: var(--accent-emerald); font-size: 1.15rem; margin-bottom: 0.75rem;">
+          What Flowback DOES Observe &amp; Store Locally:
+        </h3>
+        <p>To restore you to the correct working window, Flowback records only minimal structural metadata in local SQLite:</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Field</th>
+                <th>Purpose</th>
+                <th>Example</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>bundleIdentifier</code></td>
+                <td>Which app was active</td>
+                <td><code>com.microsoft.VSCode</code></td>
+              </tr>
+              <tr>
+                <td><code>processIdentifier</code></td>
+                <td>Target process ID</td>
+                <td><code>4821</code></td>
+              </tr>
+              <tr>
+                <td><code>windowIdentifier</code></td>
+                <td>Target window ID</td>
+                <td><code>42</code></td>
+              </tr>
+              <tr>
+                <td><code>windowTitle</code></td>
+                <td>Workspace title match</td>
+                <td><code>matchday — Visual Studio Code</code></td>
+              </tr>
+              <tr>
+                <td><code>workspacePath</code></td>
+                <td>Project directory</td>
+                <td><code>/Users/name/src/matchday</code></td>
+              </tr>
+              <tr>
+                <td><code>timestamp</code></td>
+                <td>Session start / stop time</td>
+                <td><code>2026-10-16T09:00:00Z</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </article>
+
+    <!-- Local Storage & Removal -->
+    <section style="max-width: 850px; margin: 0 auto 3.5rem auto;">
+      <h2>Local Storage &amp; Data Deletion</h2>
+      <p>All data remains on your physical Mac at:</p>
+      <pre><code>~/.flowback/flowback.sqlite</code></pre>
+      <p>Sessions older than 30 days are automatically pruned during database maintenance. You can permanently wipe all Flowback storage, settings, and socket references at any time:</p>
+      <pre><code>rm -rf ~/.flowback</code></pre>
+    </section>
+
+    <!-- Permissions Rationale -->
+    <section style="max-width: 850px; margin: 0 auto; border-top: 1px solid var(--border-subtle); padding-top: 3rem;">
+      <h2>macOS Permissions Rationale</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Accessibility (<code>AXUIElement</code>)</h3>
+          <p>Required to query window IDs and perform <code>kAXRaiseAction</code>. If denied, Flowback falls back to application-level switching without errors.</p>
+        </div>
+        <div class="card">
+          <h3>Notifications (<code>UNUserNotificationCenter</code>)</h3>
+          <p>Required to deliver interactive alert banners when you are actively typing in another application.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="brand">
+          <img src="../assets/flowback-icon.svg" alt="Flowback" class="brand-icon">
+          <span>Flowback</span>
+        </div>
+        <p>Native macOS context &amp; focus manager for AI coding agents. Your agents work. Your context comes back.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../changelog/">Changelog</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Documentation</h4>
+        <ul>
+          <li><a href="../docs/">Documentation Hub</a></li>
+          <li><a href="../docs/#quickstart">Quick Start</a></li>
+          <li><a href="../docs/#installation">Installation</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <ul>
+          <li><a href="https://github.com/rapheljr/flowback" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="../contributing/">Contributing</a></li>
+          <li><a href="./">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>Copyright &copy; 2026 Abin Rapheal and Flowback Contributors. MIT License.</div>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>

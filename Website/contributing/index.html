@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contributing to Flowback — Developer Guide & Community Standards</title>
+  <meta name="description" content="Learn how to contribute to Flowback: development setup, running tests, adding new agent providers, application adapters, and submitting pull requests.">
+  <link rel="canonical" href="https://rapheljr.github.io/flowback/contributing/">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://rapheljr.github.io/flowback/contributing/">
+  <meta property="og:title" content="Contributing to Flowback">
+  <meta property="og:description" content="Guide for contributors: local builds, testing, architecture rules, and pull request workflows.">
+  <meta property="og:image" content="https://rapheljr.github.io/flowback/assets/flowback-banner.svg">
+
+  <link rel="icon" type="image/svg+xml" href="../assets/flowback-icon.svg">
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="../" class="brand" aria-label="Flowback Home">
+        <img src="../assets/flowback-icon.svg" alt="Flowback Logo" class="brand-icon">
+        <span>Flowback</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="../">Home</a></li>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="../docs/">Documentation</a></li>
+          <li><a href="../changelog/">Changelog</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="./" class="active">Contributing</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" title="Toggle color theme" aria-label="Toggle theme">☀️</button>
+        <a href="../download/" class="btn btn-primary">Download</a>
+        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>Contributing to Flowback</h1>
+      <p>Flowback is an open-source, community-driven project. We welcome code contributions, bug reports, and new agent adapters.</p>
+    </div>
+
+    <!-- Dev Setup Section -->
+    <section style="margin-bottom: 3.5rem;">
+      <h2>Development Setup</h2>
+      <p>Requirements: macOS 14.0+ (Apple Silicon or Intel), Swift 6.0+, and Apple Command Line Tools.</p>
+      
+      <pre><code># 1. Clone repository
+git clone https://github.com/rapheljr/flowback.git
+cd flowback
+
+# 2. Build local debug binaries
+swift build
+
+# 3. Run full verification test suite (61 tests)
+swift run FlowbackTestRunner</code></pre>
+    </section>
+
+    <!-- Testing & Verification -->
+    <section style="margin-bottom: 3.5rem; border-top: 1px solid var(--border-subtle); padding-top: 3rem;">
+      <h2>Deterministic Testing &amp; Quality Checks</h2>
+      <p>Every pull request must pass all verification tests without regression:</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Verification Test Suite</h3>
+          <p>Flowback includes a standalone test runner testing 61 assertions across state machine transitions, event deduplication, policy hierarchy, SQLite recovery, and acceptance scenarios:</p>
+          <pre><code>swift run FlowbackTestRunner</code></pre>
+        </div>
+        <div class="card">
+          <h3>Linting &amp; Formatting</h3>
+          <p>Swift code is validated using SwiftLint:</p>
+          <pre><code>make lint
+# Or: swiftlint</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contribution Areas -->
+    <section style="margin-bottom: 3.5rem; border-top: 1px solid var(--border-subtle); padding-top: 3rem;">
+      <h2>How You Can Contribute</h2>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon">🤖</div>
+          <h3>Add an Agent Provider</h3>
+          <p>Implement the <code>AgentProvider</code> protocol in <code>Sources/FlowbackProviders/</code> to map new AI assistants into normalized <code>AgentEvent</code>s.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🖥️</div>
+          <h3>Add an Application Adapter</h3>
+          <p>Implement <code>ApplicationAdapter</code> in <code>Sources/FlowbackFocus/Adapters/</code> to discover and raise windows in new IDEs or terminals.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🐛</div>
+          <h3>Find Good First Issues</h3>
+          <p>Browse our issue tracker for issues tagged <a href="https://github.com/rapheljr/flowback/labels/good%20first%20issue" target="_blank" rel="noopener noreferrer"><code>good first issue</code></a> to get started quickly.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pull Request Process -->
+    <section style="margin-bottom: 3.5rem; border-top: 1px solid var(--border-subtle); padding-top: 3rem;">
+      <h2>Pull Request Guidelines</h2>
+      <ol style="margin: 1rem 0 2rem 1.5rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.5rem;">
+        <li>Follow <a href="https://www.conventionalcommits.org/" target="_blank" rel="noopener noreferrer">Conventional Commits</a> (e.g., <code>feat(provider): add Windsurf support</code>, <code>fix(focus): prevent focus steal</code>).</li>
+        <li>Keep pull requests focused on a single change; avoid bundling unrelated refactorings.</li>
+        <li>Include unit or integration test assertions in <code>FlowbackTestRunner</code> or <code>Tests/</code>.</li>
+        <li>Ensure zero personal tokens, secrets, or proprietary test paths are committed.</li>
+        <li>Fill out the <a href="https://github.com/rapheljr/flowback/blob/main/.github/PULL_REQUEST_TEMPLATE.md" target="_blank" rel="noopener noreferrer">Pull Request Template</a> completely.</li>
+      </ol>
+    </section>
+
+    <!-- Security Vulnerabilities -->
+    <section style="border-top: 1px solid var(--border-subtle); padding-top: 3rem;">
+      <h2>Security Vulnerabilities</h2>
+      <p>Do NOT report security vulnerabilities through public GitHub issues. Please report privately via GitHub Security Advisories:</p>
+      <a href="https://github.com/rapheljr/flowback/security/advisories/new" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">
+        🔒 Report Security Advisory Privately
+      </a>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="brand">
+          <img src="../assets/flowback-icon.svg" alt="Flowback" class="brand-icon">
+          <span>Flowback</span>
+        </div>
+        <p>Native macOS context &amp; focus manager for AI coding agents. Your agents work. Your context comes back.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../changelog/">Changelog</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Documentation</h4>
+        <ul>
+          <li><a href="../docs/">Documentation Hub</a></li>
+          <li><a href="../docs/#quickstart">Quick Start</a></li>
+          <li><a href="../docs/#installation">Installation</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <ul>
+          <li><a href="https://github.com/rapheljr/flowback" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="./">Contributing</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>Copyright &copy; 2026 Abin Rapheal and Flowback Contributors. MIT License.</div>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation Hub — Flowback macOS Context Manager</title>
+  <meta name="description" content="Official documentation for Flowback: installation, configuration, agent integrations, CLI reference, focus policies, troubleshooting, and architecture.">
+  <link rel="canonical" href="https://rapheljr.github.io/flowback/docs/">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://rapheljr.github.io/flowback/docs/">
+  <meta property="og:title" content="Flowback Documentation Hub">
+  <meta property="og:description" content="Guides and technical specifications for Flowback macOS focus and context management.">
+  <meta property="og:image" content="https://rapheljr.github.io/flowback/assets/flowback-banner.svg">
+
+  <link rel="icon" type="image/svg+xml" href="../assets/flowback-icon.svg">
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="../" class="brand" aria-label="Flowback Home">
+        <img src="../assets/flowback-icon.svg" alt="Flowback Logo" class="brand-icon">
+        <span>Flowback</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="../">Home</a></li>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="./" class="active">Documentation</a></li>
+          <li><a href="../changelog/">Changelog</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="../contributing/">Contributing</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" title="Toggle color theme" aria-label="Toggle theme">☀️</button>
+        <a href="../download/" class="btn btn-primary">Download</a>
+        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>Flowback Documentation</h1>
+      <p>Technical reference, integration guides, and operational manuals for developers and contributors.</p>
+    </div>
+
+    <!-- Section 1: Getting Started -->
+    <section style="margin-bottom: 3.5rem;">
+      <h2 style="font-size: 1.5rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
+        🚀 Getting Started
+      </h2>
+      <div class="grid-3">
+        <div class="card" id="quickstart">
+          <div class="card-icon">⚡</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/Docs/QUICKSTART.md" target="_blank" rel="noopener noreferrer">Quick Start Guide →</a></h3>
+          <p>Get up and running with Flowback in under 3 minutes. Test intent detection and focus restoration.</p>
+        </div>
+
+        <div class="card" id="installation">
+          <div class="card-icon">📦</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/INSTALLATION.md" target="_blank" rel="noopener noreferrer">Installation &amp; Setup →</a></h3>
+          <p>Step-by-step DMG installation, Homebrew, Gatekeeper verification, and uninstallation instructions.</p>
+        </div>
+
+        <div class="card" id="cli">
+          <div class="card-icon">💻</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/Docs/CLI_REFERENCE.md" target="_blank" rel="noopener noreferrer">CLI Reference →</a></h3>
+          <p>Complete syntax and options for <code>flowback doctor</code>, <code>status</code>, <code>focus-lock</code>, and <code>emit</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Integrations & Adapters -->
+    <section style="margin-bottom: 3.5rem;">
+      <h2 style="font-size: 1.5rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
+        🤖 Integrations &amp; Adapters
+      </h2>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon">🔌</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/Docs/AGENT_INTEGRATIONS.md" target="_blank" rel="noopener noreferrer">Agent Integrations →</a></h3>
+          <p>Hook configuration for Google Antigravity, Claude Code, OpenAI Codex, and Gemini CLI.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🖥️</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/Docs/APPLICATION_ADAPTERS.md" target="_blank" rel="noopener noreferrer">Application Adapters →</a></h3>
+          <p>Window discovery adapters for VS Code variants, Cursor, Windsurf, terminals, and browsers.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">📜</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/EVENT_PROTOCOL.md" target="_blank" rel="noopener noreferrer">JSON Event Protocol (v1) →</a></h3>
+          <p>Complete schema specification for emitting custom agent events over Unix domain socket IPC.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Configuration & Policies -->
+    <section style="margin-bottom: 3.5rem;">
+      <h2 style="font-size: 1.5rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
+        ⚙️ Configuration &amp; Policies
+      </h2>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon">🎛️</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/Docs/CONFIGURATION.md" target="_blank" rel="noopener noreferrer">Configuration &amp; Policies →</a></h3>
+          <p>Multi-tier policy hierarchy (Workspace &gt; Application &gt; Provider &gt; Global) in <code>config.json</code>.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🧠</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/FOCUS_ENGINE.md" target="_blank" rel="noopener noreferrer">Focus Engine &amp; Arbitration →</a></h3>
+          <p>Intent sensing, priority ordering, cooldown windows, and macOS Spaces policies.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🩺</div>
+          <h3 id="troubleshooting"><a href="https://github.com/rapheljr/flowback/blob/main/TROUBLESHOOTING.md" target="_blank" rel="noopener noreferrer">Troubleshooting Guide →</a></h3>
+          <p>Step-by-step diagnostic fixes for Accessibility permissions, notifications, and socket errors.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Architecture & Engineering -->
+    <section>
+      <h2 style="font-size: 1.5rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
+        🏗️ Architecture &amp; Engineering
+      </h2>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon">📐</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener noreferrer">Architecture Specification →</a></h3>
+          <p>Deep technical architecture, subsystem boundaries, concurrency model, and decoupling principles.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🛠️</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/DEVELOPMENT.md" target="_blank" rel="noopener noreferrer">Development Guide →</a></h3>
+          <p>Compiling from source, running the 61-scenario verification test harness, and contributing.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🚀</div>
+          <h3><a href="https://github.com/rapheljr/flowback/blob/main/RELEASE.md" target="_blank" rel="noopener noreferrer">Release Engineering →</a></h3>
+          <p>Release checklists, code signing, Apple notarization, checksum verification, and rollback processes.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="brand">
+          <img src="../assets/flowback-icon.svg" alt="Flowback" class="brand-icon">
+          <span>Flowback</span>
+        </div>
+        <p>Native macOS context &amp; focus manager for AI coding agents. Your agents work. Your context comes back.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../changelog/">Changelog</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Documentation</h4>
+        <ul>
+          <li><a href="./">Documentation Hub</a></li>
+          <li><a href="#quickstart">Quick Start</a></li>
+          <li><a href="#installation">Installation</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <ul>
+          <li><a href="https://github.com/rapheljr/flowback" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="../contributing/">Contributing</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>Copyright &copy; 2026 Abin Rapheal and Flowback Contributors. MIT License.</div>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>

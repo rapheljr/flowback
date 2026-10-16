@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download Flowback for macOS — Releases & Checksums</title>
+  <meta name="description" content="Download official Flowback DMG and ZIP release artifacts for Apple Silicon and Intel Macs. Verified SHA-256 checksums, Gatekeeper guidance, and installation instructions.">
+  <link rel="canonical" href="https://rapheljr.github.io/flowback/download/">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://rapheljr.github.io/flowback/download/">
+  <meta property="og:title" content="Download Flowback for macOS">
+  <meta property="og:description" content="Official release downloads, cryptographic checksums, and verification instructions for Flowback on macOS.">
+  <meta property="og:image" content="https://rapheljr.github.io/flowback/assets/flowback-banner.svg">
+
+  <link rel="icon" type="image/svg+xml" href="../assets/flowback-icon.svg">
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="../" class="brand" aria-label="Flowback Home">
+        <img src="../assets/flowback-icon.svg" alt="Flowback Logo" class="brand-icon">
+        <span>Flowback</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="../">Home</a></li>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="./" class="active">Download</a></li>
+          <li><a href="../docs/">Documentation</a></li>
+          <li><a href="../changelog/">Changelog</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="../contributing/">Contributing</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" title="Toggle color theme" aria-label="Toggle theme">☀️</button>
+        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>Download Flowback for macOS</h1>
+      <p>Native context and focus management for your AI coding agents. Free, open source, and privacy first.</p>
+    </div>
+
+    <!-- Active Release Card (Derives from release-manifest.json) -->
+    <div id="manifestContainer" data-manifest-src="../release-manifest.json" class="card" style="max-width: 850px; margin: 0 auto 3rem auto; padding: 2.5rem; border: 1px solid var(--border-bright); box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h2 id="manifestVersion" style="margin: 0; font-size: 2rem;">v1.0.0</h2>
+            <span class="badge badge-supported">Latest Stable</span>
+            <span id="signatureStatusBadge" class="badge badge-partial">Development Build (Ad-hoc Signed)</span>
+          </div>
+          <div style="color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem;">
+            Released on <span id="manifestDate" style="color: var(--text-primary); font-weight: 600;">2026-10-16</span> • macOS 14.0 (Sonoma) or newer
+          </div>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); text-align: right;">
+          Compatibility: <strong>Apple Silicon &amp; Intel</strong>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+        <a id="dmgDownloadBtn" href="https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg" class="btn btn-primary btn-lg" style="flex: 1; min-width: 240px;">
+          ⬇️ Download DMG <span style="font-size: 0.8em; opacity: 0.8;">(arm64, 1.2 MB)</span>
+        </a>
+        <a id="zipDownloadBtn" href="https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.zip" class="btn btn-secondary btn-lg" style="flex: 1; min-width: 240px;">
+          ⬇️ Download ZIP <span style="font-size: 0.8em; opacity: 0.8;">(arm64, Portable)</span>
+        </a>
+      </div>
+
+      <!-- Verified SHA-256 Checksums -->
+      <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1.5rem;">
+        <h3 style="font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.75rem;">
+          Verified SHA-256 Checksums
+        </h3>
+        <div id="checksumsList">
+          <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Flowback-1.0.0-arm64.dmg (Apple Silicon)</div>
+            <code style="word-break: break-all; font-size: 0.8rem;">e4a069b8bd1bf3cb363994379725e3bc98d535c0a92576c066a1b9c3c1466124</code>
+          </div>
+          <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Flowback-1.0.0-arm64.zip (Apple Silicon)</div>
+            <code style="word-break: break-all; font-size: 0.8rem;">95e437816bba72b67b599a4c8870afc15b1ff3386a2289b5672ed0a018f16ee9</code>
+          </div>
+        </div>
+
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.75rem;">
+          To verify in your terminal: <code>shasum -a 256 Flowback-1.0.0-arm64.dmg</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- Installation & Gatekeeper Walkthrough -->
+    <section style="max-width: 850px; margin: 0 auto 3.5rem auto;">
+      <h2>Installation Instructions</h2>
+      <ol style="margin: 1rem 0 2rem 1.5rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.75rem;">
+        <li>Download <code>Flowback-1.0.0-arm64.dmg</code> above and verify the SHA-256 hash.</li>
+        <li>Double click the <code>.dmg</code> file to mount it, and drag <strong>Flowback.app</strong> into your <strong>Applications</strong> folder.</li>
+        <li>Launch <strong>Flowback</strong> from Spotlight or Applications. The compass icon will appear in your top menu bar.</li>
+        <li>Grant <strong>Accessibility</strong> and <strong>Notification</strong> permissions when prompted so Flowback can restore windows accurately without stealing focus during typing.</li>
+      </ol>
+
+      <!-- macOS Gatekeeper Notice -->
+      <div class="card" style="border-left: 4px solid var(--accent-amber); background: rgba(245, 158, 11, 0.05);">
+        <h3 style="color: var(--accent-amber);">macOS Gatekeeper Verification Notice</h3>
+        <p style="font-size: 0.95rem; margin-bottom: 0.75rem;">
+          Open-source builds produced outside Apple Developer ID programs or self-compiled builds are ad-hoc signed. If macOS displays <em>"Flowback cannot be opened because the developer cannot be verified"</em>:
+        </p>
+        <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
+          <strong>Option 1:</strong> Right-click (or Control-click) on <code>/Applications/Flowback.app</code> in Finder, select <strong>Open</strong>, and confirm in the alert dialog.
+        </p>
+        <p style="font-size: 0.95rem; margin: 0;">
+          <strong>Option 2:</strong> Remove the quarantine attribute via terminal:
+          <pre><code>xattr -cr /Applications/Flowback.app</code></pre>
+        </p>
+      </div>
+    </section>
+
+    <!-- Upgrades & Uninstallation -->
+    <section style="max-width: 850px; margin: 0 auto 3.5rem auto; border-top: 1px solid var(--border-subtle); padding-top: 3rem;">
+      <div class="grid-2">
+        <div>
+          <h3>Upgrading Flowback</h3>
+          <p>Download the latest <code>.dmg</code>, drag Flowback to Applications, and select <strong>Replace</strong>. Your existing local session database (<code>~/.flowback/flowback.sqlite</code>) and settings are preserved and automatically migrated.</p>
+        </div>
+        <div>
+          <h3>Clean Uninstallation</h3>
+          <p>Flowback removes cleanly without touching your project workspaces:</p>
+          <pre><code>pkill Flowback
+rm -rf /Applications/Flowback.app
+# Optional: remove local session history
+rm -rf ~/.flowback</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Previous Versions -->
+    <section style="max-width: 850px; margin: 0 auto; border-top: 1px solid var(--border-subtle); padding-top: 2rem; text-align: center;">
+      <p>Looking for release notes or previous builds? Visit <a href="https://github.com/rapheljr/flowback/releases" target="_blank" rel="noopener noreferrer">GitHub Releases</a> or review the full <a href="../changelog/">Changelog</a>.</p>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="brand">
+          <img src="../assets/flowback-icon.svg" alt="Flowback" class="brand-icon">
+          <span>Flowback</span>
+        </div>
+        <p>Native macOS context &amp; focus manager for AI coding agents. Your agents work. Your context comes back.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="./">Download</a></li>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../changelog/">Changelog</a></li>
+          <li><a href="https://github.com/rapheljr/flowback/releases" target="_blank" rel="noopener noreferrer">Releases</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Documentation</h4>
+        <ul>
+          <li><a href="../docs/">Documentation Hub</a></li>
+          <li><a href="../docs/#quickstart">Quick Start</a></li>
+          <li><a href="../docs/#installation">Installation</a></li>
+          <li><a href="../docs/#cli">CLI Reference</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <ul>
+          <li><a href="https://github.com/rapheljr/flowback" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="../contributing/">Contributing</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="https://github.com/rapheljr/flowback/security/advisories/new" target="_blank" rel="noopener noreferrer">Security</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>Copyright &copy; 2026 Abin Rapheal and Flowback Contributors. MIT License.</div>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>

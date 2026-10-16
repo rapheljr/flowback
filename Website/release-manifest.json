@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "version": "1.0.0",
+  "channel": "stable",
+  "releaseDate": "2026-10-16",
+  "minimumMacOS": "14.0",
+  "signatureStatus": "ad-hoc",
+  "notarizationStatus": "unnotarized",
+  "artifacts": [
+    {
+      "name": "Flowback-1.0.0-arm64.dmg",
+      "architecture": "arm64",
+      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg",
+      "sha256": "e4a069b8bd1bf3cb363994379725e3bc98d535c0a92576c066a1b9c3c1466124",
+      "signatureStatus": "ad-hoc",
+      "notarizationStatus": "unnotarized"
+    },
+    {
+      "name": "Flowback-1.0.0-arm64.zip",
+      "architecture": "arm64",
+      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.zip",
+      "sha256": "95e437816bba72b67b599a4c8870afc15b1ff3386a2289b5672ed0a018f16ee9",
+      "signatureStatus": "ad-hoc",
+      "notarizationStatus": "unnotarized"
+    }
+  ],
+  "releaseNotesURL": "https://github.com/rapheljr/flowback/releases/tag/v1.0.0"
+}

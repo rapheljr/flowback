@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Features — Flowback Native macOS Focus & Context Manager</title>
+  <meta name="description" content="Explore Flowback's deep feature set: exact window restoration, user intent sensing, attention arbitration, Focus Lock, and local SQLite persistence.">
+  <link rel="canonical" href="https://rapheljr.github.io/flowback/features/">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://rapheljr.github.io/flowback/features/">
+  <meta property="og:title" content="Flowback Features — Intelligent Context & Focus Management">
+  <meta property="og:description" content="Deep dive into agent lifecycle tracking, window restoration hierarchy, typing suppression, and local-first architecture.">
+  <meta property="og:image" content="https://rapheljr.github.io/flowback/assets/flowback-banner.svg">
+
+  <link rel="icon" type="image/svg+xml" href="../assets/flowback-icon.svg">
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="../" class="brand" aria-label="Flowback Home">
+        <img src="../assets/flowback-icon.svg" alt="Flowback Logo" class="brand-icon">
+        <span>Flowback</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="../">Home</a></li>
+          <li><a href="./" class="active">Features</a></li>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="../docs/">Documentation</a></li>
+          <li><a href="../changelog/">Changelog</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="../contributing/">Contributing</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" title="Toggle color theme" aria-label="Toggle theme">☀️</button>
+        <a href="../download/" class="btn btn-primary">Download</a>
+        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-header">
+      <h1>Capabilities &amp; System Features</h1>
+      <p>A comprehensive overview of Flowback's architecture, intent detection, and multi-agent focus coordination.</p>
+    </div>
+
+    <!-- Feature 1: Lifecycle Tracking & Context Capture -->
+    <section style="margin-bottom: 3.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+        <span class="badge badge-supported">Implemented</span>
+        <h2>1. Agent Lifecycle Tracking &amp; Context Capture</h2>
+      </div>
+      <p>When an agent starts working, Flowback immediately records an immutable <code>OriginContext</code> snapshot before you switch tasks:</p>
+      <div class="grid-2" style="margin-top: 1rem;">
+        <div class="card">
+          <h3>Captured Metadata</h3>
+          <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
+            <li><code>bundleIdentifier</code>: The exact active application (e.g. <code>com.microsoft.VSCode</code>)</li>
+            <li><code>processIdentifier</code>: POSIX PID of the editor or terminal process</li>
+            <li><code>windowIdentifier</code>: macOS window ID via <code>AXUIElement</code></li>
+            <li><code>windowTitle</code>: Folder and file pattern matching</li>
+            <li><code>workspacePath</code>: Absolute project root directory</li>
+            <li><code>startTimestamp</code>: High-resolution UTC start timestamp</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Proactive Background Discovery</h3>
+          <p>In addition to standard lifecycle hooks, Flowback runs proactive background discovery:</p>
+          <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
+            <li>Scans live Antigravity transcripts in <code>~/.gemini/antigravity-ide/brain/</code></li>
+            <li>Translates <code>fullyIdle=true</code> into confirmed task completion</li>
+            <li>Detects waiting user inputs (<code>USER_INPUT</code> steps)</li>
+            <li>Recovers active sessions across application launches</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feature 2: Exact Window & Workspace Restoration -->
+    <section style="margin-bottom: 3.5rem; border-top: 1px solid var(--border-subtle); padding-top: 3rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+        <span class="badge badge-supported">Implemented</span>
+        <h2>2. Exact Window &amp; Workspace Restoration Hierarchy</h2>
+      </div>
+      <p>Flowback does not blindly launch apps. It executes Section 14 restoration hierarchy to bring forward the exact window you were working in:</p>
+      <div class="grid-3" style="margin-top: 1rem;">
+        <div class="card">
+          <div class="badge badge-neutral" style="margin-bottom: 0.5rem;">Tier 1</div>
+          <h3>Numeric Window ID</h3>
+          <p>Locates the exact window using Accessibility APIs and triggers <code>kAXRaiseAction</code> without switching focus if you are in another space.</p>
+        </div>
+        <div class="card">
+          <div class="badge badge-neutral" style="margin-bottom: 0.5rem;">Tier 2</div>
+          <h3>Workspace Title Match</h3>
+          <p>If the window was closed, reloaded, or split, Flowback scans all windows of the target PID and matches the project title.</p>
+        </div>
+        <div class="card">
+          <div class="badge badge-neutral" style="margin-bottom: 0.5rem;">Tier 3</div>
+          <h3>Application Fallback</h3>
+          <p>Gracefully activates the parent process via <code>NSWorkspace</code>, or presents an actionable alert if the window is unavailable.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feature 3: User Intent Engine -->
+    <section style="margin-bottom: 3.5rem; border-top: 1px solid var(--border-subtle); padding-top: 3rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+        <span class="badge badge-supported">Implemented</span>
+        <h2>3. User Intent Engine (Typing Protection)</h2>
+      </div>
+      <p>The cardinal rule of Flowback: <strong>Never interrupt active typing.</strong></p>
+      <div class="card" style="margin-top: 1rem;">
+        <h3>How Intent Sensing Works:</h3>
+        <p>Flowback queries macOS CoreGraphics event source idle timers (<code>CGEventSourceSecondsSinceLastEventType</code>) across keyboard and mouse events. If any input occurred within the configurable idle threshold (default: <strong>5.0 seconds</strong>):</p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+          <div style="flex: 1; min-width: 250px; background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="color: var(--accent-rose); font-weight: 700; margin-bottom: 0.5rem;">Active Input (&lt; 5s):</div>
+            <p style="margin: 0; font-size: 0.9rem;">Auto-restoration is suppressed. A macOS notification banner is delivered with <code>[Focus Window]</code> and <code>[Review]</code> buttons. Your typing is never interrupted.</p>
+          </div>
+          <div style="flex: 1; min-width: 250px; background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="color: var(--accent-emerald); font-weight: 700; margin-bottom: 0.5rem;">System Idle (&ge; 5s):</div>
+            <p style="margin: 0; font-size: 0.9rem;">Hands are off the keyboard. Flowback smoothly brings the origin editor or terminal window to the front, ready for your immediate review.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feature 4: Attention Arbiter & Focus Lock -->
+    <section style="margin-bottom: 3.5rem; border-top: 1px solid var(--border-subtle); padding-top: 3rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+        <span class="badge badge-supported">Implemented</span>
+        <h2>4. Attention Arbiter, Cooldowns &amp; Focus Lock</h2>
+      </div>
+      <div class="grid-2" style="margin-top: 1rem;">
+        <div class="card">
+          <h3>Priority Ordering &amp; Aggregation</h3>
+          <p>When multiple agents run in parallel, completions are prioritized:</p>
+          <ol style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.25rem;">
+            <li><code>permissionRequired</code> (Urgent user review)</li>
+            <li><code>failure</code> (Compilation / build error)</li>
+            <li><code>completed</code> (Successful task finish)</li>
+            <li><code>waiting</code> (Subagent or background timer)</li>
+            <li><code>informational</code> (Progress updates)</li>
+          </ol>
+          <p style="margin-top: 0.75rem; font-size: 0.9rem;">Completions occurring within a 1.5-second aggregation window are collapsed into a single summary with a 1000ms focus cooldown.</p>
+        </div>
+
+        <div class="card">
+          <h3>Focus Lock Mode</h3>
+          <p>In a presentation, zoom call, or deep contemplation? Enable Focus Lock directly from the status bar menu or terminal:</p>
+          <pre><code>flowback focus-lock 30m</code></pre>
+          <p style="font-size: 0.9rem;">Focus Lock silences all automatic window raising while preserving notification banners so you stay informed without disorientation.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feature 5: Planned Capabilities Roadmap -->
+    <section style="border-top: 1px solid var(--border-subtle); padding-top: 3rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+        <span class="badge badge-planned">Planned</span>
+        <h2>5. Experimental &amp; Upcoming Milestones</h2>
+      </div>
+      <p>Upcoming features scheduled for releases v1.1.0 and v1.2.0:</p>
+      <div class="grid-3" style="margin-top: 1rem;">
+        <div class="card">
+          <h3>Multi-Monitor Pinning</h3>
+          <p>Remember which physical display each agent originated on and restrict focus restoration to the active screen.</p>
+        </div>
+        <div class="card">
+          <h3>Terminal Deep Tab Linking</h3>
+          <p>Deeper AppleScript dictionary integration to activate specific tabs in Ghostty and iTerm2.</p>
+        </div>
+        <div class="card">
+          <h3>Provider Sidecar Architecture</h3>
+          <p>Author out-of-process providers in Python, Go, or TypeScript without recompiling Flowback.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="brand">
+          <img src="../assets/flowback-icon.svg" alt="Flowback" class="brand-icon">
+          <span>Flowback</span>
+        </div>
+        <p>Native macOS context &amp; focus manager for AI coding agents. Your agents work. Your context comes back.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="./">Features</a></li>
+          <li><a href="../changelog/">Changelog</a></li>
+          <li><a href="https://github.com/rapheljr/flowback/releases" target="_blank" rel="noopener noreferrer">Releases</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Documentation</h4>
+        <ul>
+          <li><a href="../docs/">Documentation Hub</a></li>
+          <li><a href="../docs/#quickstart">Quick Start</a></li>
+          <li><a href="../docs/#installation">Installation</a></li>
+          <li><a href="../docs/#cli">CLI Reference</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <ul>
+          <li><a href="https://github.com/rapheljr/flowback" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="../contributing/">Contributing</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="https://github.com/rapheljr/flowback/security/advisories/new" target="_blank" rel="noopener noreferrer">Security</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>Copyright &copy; 2026 Abin Rapheal and Flowback Contributors. MIT License.</div>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>
