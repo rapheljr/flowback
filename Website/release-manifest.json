@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "channel": "stable",
   "releaseDate": "2026-10-16",
-  "gitCommit": "34286331b96323b96f42eca7e76f8e9d59b0c050",
+  "gitCommit": "cdcd2d051cb510c88fc6237bcaab35793447b186",
   "buildConfiguration": "release",
   "minimumMacOS": "14.0",
   "signatureStatus": "ad-hoc",
@@ -13,7 +13,7 @@
       "name": "Flowback-1.0.0-arm64.dmg",
       "architecture": "arm64",
       "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg",
-      "sha256": "ae0da1de62b38030837b99f52f4e900b097fa882514a10c0d1d745941c25b4ff",
+      "sha256": "36b7e9562d54884be189ab7c901a8b6f82aadf41652843fef9659d1960caca9b",
       "signatureStatus": "ad-hoc",
       "notarizationStatus": "unnotarized"
     },
@@ -21,7 +21,7 @@
       "name": "Flowback-1.0.0.dmg",
       "architecture": "universal",
       "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0.dmg",
-      "sha256": "6a04fb9a11148258a5372deb906f8c5fe18352e3b6e9a17fdc2ee58391d4a502",
+      "sha256": "ed219b9ea93968c68ad58a5f573c03c8eee1196d4905be34d0247c8f589f3d55",
       "signatureStatus": "ad-hoc",
       "notarizationStatus": "unnotarized"
     },
@@ -29,7 +29,7 @@
       "name": "Flowback-1.0.0-arm64.zip",
       "architecture": "arm64",
       "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.zip",
-      "sha256": "1eab1d19210bcdb494a8dbc286ac0902ead3dde5ad0139a90e712d8a908ebd91",
+      "sha256": "3d10a5dca80037832293812fb57a4eb08ec4fa821230df16d1be250113627a2b",
       "signatureStatus": "ad-hoc",
       "notarizationStatus": "unnotarized"
     },
@@ -37,7 +37,7 @@
       "name": "Flowback-1.0.0-macos.zip",
       "architecture": "universal",
       "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-macos.zip",
-      "sha256": "b2dfc0f053f7cee2acfa49885243ab7a106371f06ba060570e37465566da8534",
+      "sha256": "2898fd6b5390129bb25fbb2afcf8e6e4618b85d331fb54a1b58c312401d81637",
       "signatureStatus": "ad-hoc",
       "notarizationStatus": "unnotarized"
     }
