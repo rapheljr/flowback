@@ -1,82 +1,159 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="100%" height="100%">
   <defs>
+    <!-- Background Canvas Gradient -->
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#090d16"/>
-      <stop offset="50%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#030712"/>
+      <stop offset="0%" stop-color="#070A10"/>
+      <stop offset="50%" stop-color="#0B0F17"/>
+      <stop offset="100%" stop-color="#04060A"/>
     </linearGradient>
-    <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="60%" stop-color="#f8fafc"/>
-      <stop offset="100%" stop-color="#94a3b8"/>
+
+    <!-- Title Gradient -->
+    <linearGradient id="titleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
     </linearGradient>
+
+    <!-- Tagline Gradient -->
     <linearGradient id="tagGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="50%" stop-color="#818cf8"/>
-      <stop offset="100%" stop-color="#c084fc"/>
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="60%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#93C5FD"/>
     </linearGradient>
-    <linearGradient id="iconGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="100%" stop-color="#6366f1"/>
+
+    <!-- Icon Canvas Background -->
+    <linearGradient id="iconBodyGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#1E2638"/>
+      <stop offset="40%" stop-color="#141B29"/>
+      <stop offset="100%" stop-color="#0A0E17"/>
     </linearGradient>
+
+    <linearGradient id="iconRim" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.32"/>
+      <stop offset="30%" stop-color="#94A3B8" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <linearGradient id="flowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+
+    <linearGradient id="anchorMetal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="60%" stop-color="#F1F5F9"/>
+      <stop offset="100%" stop-color="#CBD5E1"/>
+    </linearGradient>
+
     <filter id="shadow">
-      <feDropShadow dx="0" dy="12" stdDeviation="24" flood-color="#000" flood-opacity="0.6"/>
+      <feDropShadow dx="0" dy="16" stdDeviation="28" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+
+    <filter id="ambient" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="30" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
 
   <!-- Background Canvas -->
   <rect width="1200" height="480" fill="url(#bg)"/>
 
-  <!-- Subtle Ambient Glow -->
-  <circle cx="280" cy="240" r="220" fill="#38bdf8" opacity="0.06" filter="blur(60px)"/>
-  <circle cx="950" cy="240" r="260" fill="#6366f1" opacity="0.05" filter="blur(80px)"/>
+  <!-- Subtle Precision Grid -->
+  <line x1="0" y1="120" x2="1200" y2="120" stroke="#1E293B" stroke-width="1" opacity="0.35"/>
+  <line x1="0" y1="240" x2="1200" y2="240" stroke="#1E293B" stroke-width="1" opacity="0.35"/>
+  <line x1="0" y1="360" x2="1200" y2="360" stroke="#1E293B" stroke-width="1" opacity="0.35"/>
+  <line x1="400" y1="0" x2="400" y2="480" stroke="#1E293B" stroke-width="1" opacity="0.25"/>
 
-  <!-- Grid lines -->
-  <line x1="0" y1="120" x2="1200" y2="120" stroke="#1e293b" stroke-width="1" opacity="0.4"/>
-  <line x1="0" y1="240" x2="1200" y2="240" stroke="#1e293b" stroke-width="1" opacity="0.4"/>
-  <line x1="0" y1="360" x2="1200" y2="360" stroke="#1e293b" stroke-width="1" opacity="0.4"/>
+  <!-- Subtle Cyan Ambient Light Behind Icon -->
+  <circle cx="230" cy="240" r="180" fill="#0284C7" opacity="0.12" filter="blur(60px)"/>
 
-  <!-- Icon Section (Left) -->
+  <!-- Left: Flowback macOS Application Icon -->
   <g transform="translate(100, 110)">
-    <rect width="260" height="260" rx="60" fill="#1e1b4b" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
-    <circle cx="130" cy="130" r="95" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="4 6" opacity="0.6"/>
-    <path d="M 65 130 A 65 65 0 1 1 130 195" fill="none" stroke="url(#iconGlow)" stroke-width="12" stroke-linecap="round"/>
-    <path d="M 115 182 L 132 195 L 115 208" fill="none" stroke="#38bdf8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="110" y="110" width="40" height="40" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="3"/>
-    <circle cx="130" cy="130" r="6" fill="#38bdf8"/>
+    <!-- Squircle base 260x260 with rx=58 -->
+    <rect width="260" height="260" rx="58" ry="58" 
+          fill="url(#iconBodyGrad)" 
+          stroke="url(#iconRim)" 
+          stroke-width="1.8" 
+          filter="url(#shadow)"/>
+
+    <!-- Subtle radar guides -->
+    <circle cx="130" cy="130" r="95" fill="none" stroke="#334155" stroke-width="1" stroke-dasharray="3 6" opacity="0.4"/>
+    <circle cx="130" cy="130" r="65" fill="none" stroke="#334155" stroke-width="1" stroke-dasharray="4 4" opacity="0.3"/>
+
+    <!-- Scaled Flowback Symbol (Origin Centered at 130, 130) -->
+    <g transform="translate(130, 130) scale(0.36) translate(-238, -272)">
+      <!-- Left Anchor -->
+      <rect x="64" y="112" width="96" height="288" rx="48" fill="url(#anchorMetal)"/>
+      <circle cx="112" cy="256" r="22" fill="#0A0E17"/>
+      <circle cx="112" cy="256" r="10" fill="#38BDF8"/>
+
+      <!-- Ambient Glow Behind Loop -->
+      <path d="M 160 148 L 304 148 C 363.6 148 412 196.4 412 256 C 412 315.6 363.6 364 304 364 L 244 364 L 244 316 L 304 316 C 337.1 316 364 289.1 364 256 C 364 222.9 337.1 196 304 196 L 160 196 Z" 
+            fill="#38BDF8" opacity="0.3" filter="url(#ambient)"/>
+
+      <!-- Cantilever Return Loop -->
+      <path d="M 160 148 L 304 148 C 363.6 148 412 196.4 412 256 C 412 315.6 363.6 364 304 364 L 244 364 L 244 316 L 304 316 C 337.1 316 364 289.1 364 256 C 364 222.9 337.1 196 304 196 L 160 196 Z" 
+            fill="url(#flowGrad)"/>
+      <!-- Return Chevron -->
+      <path d="M 264 296 L 196 364 L 264 432 L 284 412 L 236 364 L 284 316 Z" 
+            fill="#38BDF8"/>
+    </g>
   </g>
 
-  <!-- Typography (Right) -->
-  <g transform="translate(420, 155)">
-    <!-- Title -->
-    <text x="0" y="45" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif" font-size="58" font-weight="800" fill="url(#titleGrad)" letter-spacing="-1">Flowback</text>
-    <rect x="270" y="12" width="76" height="28" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2"/>
-    <text x="308" y="31" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="700" fill="#38bdf8" text-anchor="middle">v1.0.0</text>
+  <!-- Right: Identity Typography & Architecture Signals -->
+  <g transform="translate(430, 130)">
+    <!-- Title + Version Lockup -->
+    <text x="0" y="52" 
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif" 
+          font-size="62" 
+          font-weight="700" 
+          fill="url(#titleGrad)" 
+          letter-spacing="-1.8">Flowback</text>
+    
+    <rect x="294" y="16" width="76" height="28" rx="7" fill="#1E293B" stroke="#38BDF8" stroke-width="1.2"/>
+    <text x="332" y="35" 
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" 
+          font-size="12" 
+          font-weight="700" 
+          fill="#38BDF8" 
+          text-anchor="middle">v1.0.0</text>
 
     <!-- Tagline -->
-    <text x="0" y="98" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="600" fill="url(#tagGrad)" letter-spacing="-0.3">Your agents work. Your context comes back.</text>
+    <text x="0" y="102" 
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif" 
+          font-size="27" 
+          font-weight="600" 
+          fill="url(#tagGrad)" 
+          letter-spacing="-0.4">Your agents work. Your context comes back.</text>
 
     <!-- Subtitle description -->
-    <text x="0" y="138" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="18" fill="#94a3b8" font-weight="400">Native macOS context and focus manager for AI coding agents.</text>
-    <text x="0" y="164" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="18" fill="#94a3b8" font-weight="400">Restores origin windows, protects active typing, and arbitrates multi-agent attention.</text>
+    <text x="0" y="142" 
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" 
+          font-size="17" 
+          fill="#94A3B8" 
+          font-weight="400">Native macOS focus &amp; context orchestrator for AI coding workflows.</text>
+    <text x="0" y="168" 
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" 
+          font-size="17" 
+          fill="#94A3B8" 
+          font-weight="400">Restores origin windows, protects active typing, and arbitrates multi-agent attention.</text>
 
-    <!-- Badges / Tech Highlights -->
-    <g transform="translate(0, 195)">
+    <!-- Badges / Architecture Highlights -->
+    <g transform="translate(0, 204)">
       <!-- Badge 1 -->
-      <rect x="0" y="0" width="138" height="34" rx="17" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-      <text x="69" y="22" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#cbd5e1" text-anchor="middle">100% Swift 6</text>
+      <rect x="0" y="0" width="136" height="34" rx="8" fill="#141B29" stroke="#334155" stroke-width="1"/>
+      <text x="68" y="22" font-family="-apple-system, system-ui, sans-serif" font-size="13" font-weight="600" fill="#CBD5E1" text-anchor="middle">100% Swift 6</text>
 
       <!-- Badge 2 -->
-      <rect x="150" y="0" width="160" height="34" rx="17" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-      <text x="230" y="22" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#cbd5e1" text-anchor="middle">Zero Focus Stealing</text>
+      <rect x="148" y="0" width="168" height="34" rx="8" fill="#141B29" stroke="#334155" stroke-width="1"/>
+      <text x="232" y="22" font-family="-apple-system, system-ui, sans-serif" font-size="13" font-weight="600" fill="#CBD5E1" text-anchor="middle">Zero Focus Stealing</text>
 
       <!-- Badge 3 -->
-      <rect x="322" y="0" width="154" height="34" rx="17" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-      <text x="399" y="22" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#cbd5e1" text-anchor="middle">Local SQLite WAL</text>
+      <rect x="328" y="0" width="154" height="34" rx="8" fill="#141B29" stroke="#334155" stroke-width="1"/>
+      <text x="405" y="22" font-family="-apple-system, system-ui, sans-serif" font-size="13" font-weight="600" fill="#CBD5E1" text-anchor="middle">Local SQLite WAL</text>
 
       <!-- Badge 4 -->
-      <rect x="488" y="0" width="136" height="34" rx="17" fill="#1e293b" stroke="#334155" stroke-width="1"/>
-      <text x="556" y="22" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#38bdf8" text-anchor="middle">Zero Telemetry</text>
+      <rect x="494" y="0" width="140" height="34" rx="8" fill="#141B29" stroke="#0284C7" stroke-width="1.2"/>
+      <text x="564" y="22" font-family="-apple-system, system-ui, sans-serif" font-size="13" font-weight="600" fill="#38BDF8" text-anchor="middle">Zero Telemetry</text>
     </g>
   </g>
 </svg>

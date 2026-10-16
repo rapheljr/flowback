@@ -61,6 +61,10 @@ cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
     <string>14.0</string>
     <key>LSUIElement</key>
     <true/>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSAppleEventsUsageDescription</key>
@@ -70,6 +74,30 @@ cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
 </dict>
 </plist>
 EOF
+
+# Package metadata (PkgInfo standard Apple bundle descriptor)
+echo -n "APPL????" > "$CONTENTS_DIR/PkgInfo"
+
+# Copy Icon Resources
+
+echo "Installing application icons and menu bar templates..."
+if [ -f "$PROJECT_ROOT/Design/Brand/AppIcon.icns" ]; then
+    cp "$PROJECT_ROOT/Design/Brand/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+fi
+if [ -f "$PROJECT_ROOT/Design/Brand/menubar-icon.pdf" ]; then
+    cp "$PROJECT_ROOT/Design/Brand/menubar-icon.pdf" "$RESOURCES_DIR/menubar-icon.pdf"
+fi
+if [ -f "$PROJECT_ROOT/Design/Brand/menubar-icon.svg" ]; then
+    cp "$PROJECT_ROOT/Design/Brand/menubar-icon.svg" "$RESOURCES_DIR/menubar-icon.svg"
+fi
+if [ -f "$PROJECT_ROOT/Design/Brand/png/menubar-icon-black-18.png" ]; then
+    cp "$PROJECT_ROOT/Design/Brand/png/menubar-icon-black-18.png" "$RESOURCES_DIR/menubar-icon.png"
+fi
+if [ -f "$PROJECT_ROOT/Design/Brand/png/menubar-icon-black-36.png" ]; then
+    cp "$PROJECT_ROOT/Design/Brand/png/menubar-icon-black-36.png" "$RESOURCES_DIR/menubar-icon@2x.png"
+fi
+
+
 
 # Entitlements
 ENTITLEMENTS_FILE="$DIST_DIR/Flowback.entitlements"

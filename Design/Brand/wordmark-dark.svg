@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 110" width="460" height="110">
+  <defs>
+    <linearGradient id="wmGradDark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
+    </linearGradient>
+  </defs>
+  <text x="0" y="80" 
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif" 
+        font-size="88" 
+        font-weight="650" 
+        letter-spacing="-2.2" 
+        fill="url(#wmGradDark)">Flowback</text>
+</svg>

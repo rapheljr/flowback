@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 160" width="640" height="160">
+  <defs>
+    <linearGradient id="hlFlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#0369A1"/>
+    </linearGradient>
+    <filter id="hlShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0284C7" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  
+  <g transform="translate(60, 0)">
+    <g transform="translate(0, 28) scale(0.2031)">
+      <g transform="translate(18, -16)">
+        <path fill-rule="evenodd" fill="#0F172A" d="M 112 112
+A 48 48 0 0 1 160 160
+L 160 352
+A 48 48 0 0 1 112 400
+A 48 48 0 0 1 64 352
+L 64 160
+A 48 48 0 0 1 112 112
+Z
+M 112 256
+m -22, 0
+a 22 22 0 0 1 44 0
+a 22 22 0 0 1 -44 0
+Z
+"/>
+        <circle cx="112" cy="256" r="10" fill="#0284C7"/>
+        <path d="M 160 148
+L 304 148
+C 363.6 148 412 196.4 412 256
+C 412 315.6 363.6 364 304 364
+L 244 364
+L 244 316
+L 304 316
+C 337.1 316 364 289.1 364 256
+C 364 222.9 337.1 196 304 196
+L 160 196
+Z" fill="url(#hlFlowGrad)" filter="url(#hlShadow)"/>
+        <path d="M 264 296
+L 196 364
+L 264 432
+L 284 412
+L 236 364
+L 284 316
+Z" fill="#0284C7"/>
+      </g>
+    </g>
+    
+    <text x="132" y="103" 
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif" 
+          font-size="64" 
+          font-weight="650" 
+          letter-spacing="-1.8" 
+          fill="#0F172A">Flowback</text>
+          
+    <rect x="440" y="70" width="72" height="26" rx="6" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+    <text x="476" y="87" 
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" 
+          font-size="11" 
+          font-weight="700" 
+          letter-spacing="0.8" 
+          fill="#0284C7" 
+          text-anchor="middle">macOS</text>
+  </g>
+</svg>

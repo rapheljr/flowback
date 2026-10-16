@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <g transform="translate(18, -16)" fill="#FFFFFF">
+    <!-- Anchor with Compound Knockout Hole (Zero Mask Dependency) -->
+    <path fill-rule="evenodd" d="M 112 112
+A 48 48 0 0 1 160 160
+L 160 352
+A 48 48 0 0 1 112 400
+A 48 48 0 0 1 64 352
+L 64 160
+A 48 48 0 0 1 112 112
+Z
+M 112 256
+m -22, 0
+a 22 22 0 0 1 44 0
+a 22 22 0 0 1 -44 0
+Z
+"/>
+    <path d="M 160 148
+L 304 148
+C 363.6 148 412 196.4 412 256
+C 412 315.6 363.6 364 304 364
+L 244 364
+L 244 316
+L 304 316
+C 337.1 316 364 289.1 364 256
+C 364 222.9 337.1 196 304 196
+L 160 196
+Z"/>
+    <path d="M 264 296
+L 196 364
+L 264 432
+L 284 412
+L 236 364
+L 284 316
+Z"/>
+  </g>
+</svg>

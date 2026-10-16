@@ -1,6 +1,6 @@
 # Flowback Universal macOS AI Agent Context & Focus Manager Makefile
 
-.PHONY: all build release test clean package dmg install-cli lint website-dev website-build help
+.PHONY: all build release test clean package dmg install-cli lint website-dev website-build brand-assets verify-brand help
 
 all: build test
 
@@ -9,7 +9,7 @@ help:
 	@echo "====================="
 	@echo "make build         - Compile debug targets"
 	@echo "make release       - Compile optimized release targets"
-	@echo "make test          - Run full verification test suite (61 tests)"
+	@echo "make test          - Run full verification test suite (125 tests)"
 	@echo "make package       - Package Flowback.app bundle"
 	@echo "make dmg           - Build compressed Flowback.dmg installer"
 	@echo "make manifest      - Generate release-manifest.json and SHA256SUMS"
@@ -17,7 +17,16 @@ help:
 	@echo "make lint          - Run SwiftLint checks"
 	@echo "make website-dev   - Start local HTTP server for Website/"
 	@echo "make website-build - Validate website static assets and links"
+	@echo "make brand-assets  - Regenerate all vector, PDF, PNG, and ICNS brand assets"
+	@echo "make verify-brand  - Audit brand asset dimensions, geometry, and contrast"
 	@echo "make clean         - Remove build artifacts and scratch databases"
+
+brand-assets:
+	swift Scripts/generate_brand_assets.swift
+
+verify-brand:
+	swift Scripts/verify_brand_assets.swift
+
 
 build:
 	swift build
