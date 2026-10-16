@@ -113,7 +113,7 @@ public actor SessionRepository: SessionStorageDelegate {
         let taskIdStr: String? = sqlite3_column_type(stmt, 4) != SQLITE_NULL ? String(cString: sqlite3_column_text(stmt, 4)) : nil
         let workspace: String? = sqlite3_column_type(stmt, 5) != SQLITE_NULL ? String(cString: sqlite3_column_text(stmt, 5)) : nil
         
-        var origin: OriginContext? = nil
+        var origin: OriginContext?
         if sqlite3_column_type(stmt, 6) != SQLITE_NULL, let originStr = sqlite3_column_text(stmt, 6) {
             let data = Data(String(cString: originStr).utf8)
             origin = try? JSONDecoder().decode(OriginContext.self, from: data)

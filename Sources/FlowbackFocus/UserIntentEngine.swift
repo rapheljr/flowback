@@ -166,7 +166,8 @@ public struct UserIntentEngine: Sendable {
             let isActivelyUsing = idleTracker.isUserActive(within: config.activeInteractionThresholdSeconds)
             if isActivelyUsing {
                 let frontName = frontmostApp?.localizedName ?? "another application"
-                let reason = "User is actively interacting with \(frontName) (idle time < \(config.activeInteractionThresholdSeconds)s). Avoiding focus disruption."
+                let reason = "User is actively interacting with \(frontName) " +
+                    "(idle time < \(config.activeInteractionThresholdSeconds)s). Avoiding focus disruption."
                 logger.info("\(reason)")
                 return .notifyOnly(reason: reason)
             }

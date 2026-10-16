@@ -218,16 +218,17 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
     }
     
     private func handleHook(providerString: String?, payload: Data?) async -> IPCResponse {
+        let allowData = "{\"decision\":\"allow\"}".data(using: .utf8)
         guard let provName = providerString else {
-            return IPCResponse(success: true, message: "Missing provider name (safe pass-through)", data: "{\"decision\":\"allow\"}".data(using: .utf8))
+            return IPCResponse(success: true, message: "Missing provider name (safe pass-through)", data: allowData)
         }
         guard let data = payload else {
-            return IPCResponse(success: true, message: "Missing hook payload (safe pass-through)", data: "{\"decision\":\"allow\"}".data(using: .utf8))
+            return IPCResponse(success: true, message: "Missing hook payload (safe pass-through)", data: allowData)
         }
         
         let provID = AgentProviderID(provName)
         guard let provider = await providerRegistry.getProvider(provID) else {
-            return IPCResponse(success: true, message: "Provider '\(provName)' not registered (safe pass-through)", data: "{\"decision\":\"allow\"}".data(using: .utf8))
+            return IPCResponse(success: true, message: "Provider '\(provName)' not registered (safe pass-through)", data: allowData)
         }
         
         var isPreInvocation = false

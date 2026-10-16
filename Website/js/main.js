@@ -36,17 +36,56 @@ function updateThemeIcon(theme) {
   }
 }
 
-// Mobile Menu
+// Accessible Mobile Menu with Touch & Keyboard Escape Support
 function initMobileMenu() {
   const menuBtn = document.getElementById("mobileMenuBtn");
   const navLinks = document.getElementById("navLinks");
-  if (menuBtn && navLinks) {
-    menuBtn.addEventListener("click", () => {
-      navLinks.classList.toggle("open");
-      const isOpen = navLinks.classList.contains("open");
-      menuBtn.setAttribute("aria-expanded", isOpen);
-    });
+  if (!menuBtn || !navLinks) return;
+
+  function setMenuState(open) {
+    navLinks.classList.toggle("open", open);
+    menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    menuBtn.textContent = open ? "✕" : "☰";
+    menuBtn.setAttribute("aria-label", open ? "Close navigation menu" : "Open navigation menu");
+    document.body.classList.toggle("nav-open", open);
   }
+
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = navLinks.classList.contains("open");
+    setMenuState(!isOpen);
+  });
+
+  // Close menu on Escape key press and restore focus to menu button
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && navLinks.classList.contains("open")) {
+      setMenuState(false);
+      menuBtn.focus();
+    }
+  });
+
+  // Close menu when clicking outside
+  document.addEventListener("click", (e) => {
+    if (navLinks.classList.contains("open") && !navLinks.contains(e.target) && e.target !== menuBtn) {
+      setMenuState(false);
+    }
+  });
+
+  // Close menu when clicking any link inside it
+  navLinks.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      if (navLinks.classList.contains("open")) {
+        setMenuState(false);
+      }
+    });
+  });
+
+  // Auto-close menu if resizing above tablet breakpoint (1024px)
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 1024 && navLinks.classList.contains("open")) {
+      setMenuState(false);
+    }
+  });
 }
 
 // FAQ Accordion
@@ -55,26 +94,45 @@ function initFAQ() {
   faqItems.forEach(item => {
     const question = item.querySelector(".faq-question");
     if (question) {
-      question.addEventListener("click", () => {
+      question.setAttribute("tabindex", "0");
+      question.setAttribute("role", "button");
+      question.setAttribute("aria-expanded", "false");
+
+      const toggleItem = () => {
         const wasActive = item.classList.contains("active");
-        faqItems.forEach(i => i.classList.remove("active"));
+        faqItems.forEach(i => {
+          i.classList.remove("active");
+          const q = i.querySelector(".faq-question");
+          if (q) q.setAttribute("aria-expanded", "false");
+        });
         if (!wasActive) {
           item.classList.add("active");
+          question.setAttribute("aria-expanded", "true");
+        }
+      };
+
+      question.addEventListener("click", toggleItem);
+      question.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggleItem();
         }
       });
     }
   });
 }
 
-// Copy Code Snippets
+// Copy Code Snippets with Enhanced Touch Targets & Feedback
 function initCopyButtons() {
   const codeBlocks = document.querySelectorAll("pre");
   codeBlocks.forEach(block => {
+    // Avoid duplicate buttons
+    if (block.querySelector(".copy-btn")) return;
+
     const btn = document.createElement("button");
     btn.className = "copy-btn";
     btn.textContent = "Copy";
     btn.setAttribute("aria-label", "Copy code snippet");
-    btn.style.cssText = "position: absolute; right: 10px; top: 10px; font-size: 11px; padding: 4px 8px; background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-subtle); border-radius: 4px; cursor: pointer;";
 
     block.style.position = "relative";
     block.appendChild(btn);
@@ -84,7 +142,11 @@ function initCopyButtons() {
       try {
         await navigator.clipboard.writeText(code.replace(/Copy$/, "").trim());
         btn.textContent = "Copied!";
-        setTimeout(() => { btn.textContent = "Copy"; }, 2000);
+        btn.setAttribute("aria-label", "Copied to clipboard");
+        setTimeout(() => {
+          btn.textContent = "Copy";
+          btn.setAttribute("aria-label", "Copy code snippet");
+        }, 2000);
       } catch (err) {
         btn.textContent = "Failed";
       }
@@ -106,7 +168,6 @@ async function initDownloadManifest() {
     renderManifest(data);
   } catch (err) {
     console.warn("Could not load release-manifest.json dynamically, fallback active:", err);
-    // Keep server-rendered static fallback visible
   }
 }
 
@@ -148,7 +209,7 @@ function renderManifest(manifest) {
     checksumsList.innerHTML = manifest.artifacts.map(a => `
       <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
         <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">${a.name} (${a.architecture})</div>
-        <code style="word-break: break-all; font-size: 0.8rem;">${a.sha256}</code>
+        <code style="word-break: break-all; overflow-wrap: anywhere; font-size: 0.8rem; display: block;">${a.sha256}</code>
       </div>
     `).join("");
   }

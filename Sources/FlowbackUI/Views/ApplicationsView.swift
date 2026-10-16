@@ -64,12 +64,15 @@ public struct ApplicationsView: View {
                                 Text(app)
                                     .font(.system(.body, design: .monospaced))
                                 Spacer()
-                                Button(action: {
-                                    protectedApps.removeAll { $0 == app }
-                                }) {
-                                    Image(systemName: "trash")
-                                        .foregroundColor(.red)
-                                }
+                                Button(
+                                    action: {
+                                        protectedApps.removeAll { $0 == app }
+                                    },
+                                    label: {
+                                        Image(systemName: "trash")
+                                            .foregroundColor(.red)
+                                    }
+                                )
                                 .buttonStyle(.plain)
                                 .accessibilityLabel("Remove \(app) from protected applications")
                                 .help("Remove \(app) from protected applications")

@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="../css/main.css">
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to main content</a>
 
   <!-- Navigation Bar -->
   <header class="site-header">
@@ -26,7 +27,7 @@
         <span>Flowback</span>
       </a>
 
-      <nav>
+      <nav aria-label="Primary Navigation">
         <ul class="nav-links" id="navLinks">
           <li><a href="../">Home</a></li>
           <li><a href="./" class="active">Features</a></li>
@@ -35,19 +36,23 @@
           <li><a href="../changelog/">Changelog</a></li>
           <li><a href="../privacy/">Privacy</a></li>
           <li><a href="../contributing/">Contributing</a></li>
+          <li class="mobile-nav-actions">
+            <a href="../download/" class="btn btn-primary">⬇️ Download for macOS</a>
+            <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">★ View on GitHub</a>
+          </li>
         </ul>
       </nav>
 
       <div class="nav-actions">
         <button class="theme-toggle" id="themeToggle" title="Toggle color theme" aria-label="Toggle theme">☀️</button>
-        <a href="../download/" class="btn btn-primary">Download</a>
-        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu">☰</button>
+        <a href="../download/" class="btn btn-primary header-cta">Download</a>
+        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary header-cta" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">☰</button>
       </div>
     </div>
   </header>
 
-  <main class="container">
+  <main id="main" class="container">
     <div class="page-header">
       <h1>Capabilities &amp; System Features</h1>
       <p>A comprehensive overview of Flowback's architecture, intent detection, and multi-agent focus coordination.</p>
@@ -122,11 +127,11 @@
         <h3>How Intent Sensing Works:</h3>
         <p>Flowback queries macOS CoreGraphics event source idle timers (<code>CGEventSourceSecondsSinceLastEventType</code>) across keyboard and mouse events. If any input occurred within the configurable idle threshold (default: <strong>5.0 seconds</strong>):</p>
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
-          <div style="flex: 1; min-width: 250px; background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+          <div class="intent-card">
             <div style="color: var(--accent-rose); font-weight: 700; margin-bottom: 0.5rem;">Active Input (&lt; 5s):</div>
             <p style="margin: 0; font-size: 0.9rem;">Auto-restoration is suppressed. A macOS notification banner is delivered with <code>[Focus Window]</code> and <code>[Review]</code> buttons. Your typing is never interrupted.</p>
           </div>
-          <div style="flex: 1; min-width: 250px; background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+          <div class="intent-card">
             <div style="color: var(--accent-emerald); font-weight: 700; margin-bottom: 0.5rem;">System Idle (&ge; 5s):</div>
             <p style="margin: 0; font-size: 0.9rem;">Hands are off the keyboard. Flowback smoothly brings the origin editor or terminal window to the front, ready for your immediate review.</p>
           </div>

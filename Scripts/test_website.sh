@@ -104,6 +104,12 @@ if errors > 0:
 print(f'  ✓ All {checked} internal link references verified successfully!')
 "
 
+# 5. Responsive & Mobile Usability Automated Regression Suite
+if command -v node >/dev/null 2>&1 && [ -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
+  node "$PROJECT_ROOT/Scripts/test_website_responsive.mjs"
+fi
+
 echo "=========================================="
 echo "ALL WEBSITE VALIDATIONS PASSED! ✓"
 echo "=========================================="
+

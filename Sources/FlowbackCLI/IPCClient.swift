@@ -1,6 +1,18 @@
 import Foundation
 import FlowbackCore
 
+public struct IPCClientResult: Sendable {
+    public let success: Bool
+    public let message: String
+    public let data: Data?
+    
+    public init(success: Bool, message: String, data: Data? = nil) {
+        self.success = success
+        self.message = message
+        self.data = data
+    }
+}
+
 public struct IPCClient: Sendable {
     public let socketPath: String
     
@@ -8,7 +20,7 @@ public struct IPCClient: Sendable {
         self.socketPath = socketPath
     }
     
-    public func send(command: String, argument: String? = nil, payload: Data? = nil) throws -> (success: Bool, message: String, data: Data?) {
+    public func send(command: String, argument: String? = nil, payload: Data? = nil) throws -> IPCClientResult {
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else {
             throw POSIXError(.init(rawValue: errno) ?? .EIO)
@@ -59,7 +71,7 @@ public struct IPCClient: Sendable {
         var respData = Data()
         var buffer = [UInt8](repeating: 0, count: 16384)
         let decoder = JSONDecoder()
-        var decodedResponse: IPCResponseDTO? = nil
+        var decodedResponse: IPCResponseDTO?
         
         while true {
             let bytesRead = read(fd, &buffer, buffer.count)
@@ -77,9 +89,9 @@ public struct IPCClient: Sendable {
         }
         
         guard let resp = decodedResponse else {
-            return (false, "No valid response from Flowback daemon", nil)
+            return IPCClientResult(success: false, message: "No valid response from Flowback daemon", data: nil)
         }
-        return (resp.success, resp.message, resp.data)
+        return IPCClientResult(success: resp.success, message: resp.message, data: resp.data)
     }
 }
 

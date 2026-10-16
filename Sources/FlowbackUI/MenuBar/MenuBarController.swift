@@ -118,7 +118,6 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
         return fallback
     }
 
-    
     // MARK: - NSMenuDelegate
     
     public func menuNeedsUpdate(_ menu: NSMenu) {

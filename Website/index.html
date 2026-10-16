@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to main content</a>
 
   <!-- Navigation Bar -->
   <header class="site-header">
@@ -34,7 +35,7 @@
         <span>Flowback</span>
       </a>
 
-      <nav>
+      <nav aria-label="Primary Navigation">
         <ul class="nav-links" id="navLinks">
           <li><a href="./" class="active">Home</a></li>
           <li><a href="features/">Features</a></li>
@@ -43,20 +44,24 @@
           <li><a href="changelog/">Changelog</a></li>
           <li><a href="privacy/">Privacy</a></li>
           <li><a href="contributing/">Contributing</a></li>
+          <li class="mobile-nav-actions">
+            <a href="download/" class="btn btn-primary">⬇️ Download for macOS</a>
+            <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">★ View on GitHub</a>
+          </li>
         </ul>
       </nav>
 
       <div class="nav-actions">
         <button class="theme-toggle" id="themeToggle" title="Toggle color theme" aria-label="Toggle theme">☀️</button>
-        <a href="download/" class="btn btn-primary" id="headerDownloadBtn">Download</a>
-        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu">☰</button>
+        <a href="download/" class="btn btn-primary header-cta" id="headerDownloadBtn">Download</a>
+        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary header-cta" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">☰</button>
       </div>
     </div>
   </header>
 
   <!-- Hero Section -->
-  <main>
+  <main id="main">
     <section class="hero">
       <div class="container">
         <div class="hero-tagline">Native macOS Context &amp; Attention Arbitration</div>
@@ -72,7 +77,7 @@
           </a>
         </div>
 
-        <div style="margin-bottom: 2.5rem; display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; color: var(--text-secondary);">
+        <div class="hero-highlights">
           <span>✓ macOS 14 Sonoma &amp; 15 Sequoia</span>
           <span>✓ Apple Silicon &amp; Intel</span>
           <span>✓ 100% Swift 6</span>
@@ -184,7 +189,7 @@
         <p>First-class integrations for major coding assistants and an extensible Generic JSON Hook Protocol.</p>
       </div>
 
-      <div class="table-container">
+      <div class="table-container" tabindex="0" role="region" aria-label="Supported agent integrations matrix">
         <table>
           <thead>
             <tr>

@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="../css/main.css">
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to main content</a>
 
   <!-- Navigation Bar -->
   <header class="site-header">
@@ -26,7 +27,7 @@
         <span>Flowback</span>
       </a>
 
-      <nav>
+      <nav aria-label="Primary Navigation">
         <ul class="nav-links" id="navLinks">
           <li><a href="../">Home</a></li>
           <li><a href="../features/">Features</a></li>
@@ -35,26 +36,30 @@
           <li><a href="./" class="active">Changelog</a></li>
           <li><a href="../privacy/">Privacy</a></li>
           <li><a href="../contributing/">Contributing</a></li>
+          <li class="mobile-nav-actions">
+            <a href="../download/" class="btn btn-primary">⬇️ Download for macOS</a>
+            <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">★ View on GitHub</a>
+          </li>
         </ul>
       </nav>
 
       <div class="nav-actions">
         <button class="theme-toggle" id="themeToggle" title="Toggle color theme" aria-label="Toggle theme">☀️</button>
-        <a href="../download/" class="btn btn-primary">Download</a>
-        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu">☰</button>
+        <a href="../download/" class="btn btn-primary header-cta">Download</a>
+        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary header-cta" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">☰</button>
       </div>
     </div>
   </header>
 
-  <main class="container">
+  <main id="main" class="container">
     <div class="page-header">
       <h1>Version History &amp; Changelog</h1>
       <p>All notable changes to Flowback follow <a href="https://semver.org/" target="_blank" rel="noopener noreferrer">Semantic Versioning</a> and the <a href="https://keepachangelog.com/" target="_blank" rel="noopener noreferrer">Keep a Changelog</a> standard.</p>
     </div>
 
     <!-- Release Entry: v1.0.0 -->
-    <article class="card" style="max-width: 850px; margin: 0 auto 3rem auto; padding: 2.5rem;">
+    <article class="card card-featured">
       <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem;">
         <div>
           <h2 style="margin: 0; font-size: 1.85rem;">Version 1.0.0</h2>

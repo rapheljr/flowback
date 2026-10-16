@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to main content</a>
 
   <!-- Navigation Bar -->
   <header class="site-header">
@@ -18,7 +19,7 @@
         <span>Flowback</span>
       </a>
 
-      <nav>
+      <nav aria-label="Primary Navigation">
         <ul class="nav-links" id="navLinks">
           <li><a href="./">Home</a></li>
           <li><a href="features/">Features</a></li>
@@ -27,18 +28,23 @@
           <li><a href="changelog/">Changelog</a></li>
           <li><a href="privacy/">Privacy</a></li>
           <li><a href="contributing/">Contributing</a></li>
+          <li class="mobile-nav-actions">
+            <a href="download/" class="btn btn-primary">⬇️ Download for macOS</a>
+            <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">★ View on GitHub</a>
+          </li>
         </ul>
       </nav>
 
       <div class="nav-actions">
         <button class="theme-toggle" id="themeToggle" title="Toggle color theme" aria-label="Toggle theme">☀️</button>
-        <a href="download/" class="btn btn-primary">Download</a>
-        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="download/" class="btn btn-primary header-cta">Download</a>
+        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary header-cta" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">☰</button>
       </div>
     </div>
   </header>
 
-  <main class="container" style="text-align: center; padding: 6rem 1.5rem;">
+  <main id="main" class="container" style="text-align: center; padding: clamp(3rem, 8vw, 6rem) var(--container-padding);">
     <div style="font-size: 5rem; font-weight: 800; color: var(--accent-cyan); line-height: 1; margin-bottom: 1rem;">404</div>
     <h1>Context Not Found</h1>
     <p style="max-width: 500px; margin: 1rem auto 2rem auto; font-size: 1.15rem;">

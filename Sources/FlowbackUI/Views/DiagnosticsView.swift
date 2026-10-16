@@ -73,7 +73,9 @@ public struct DiagnosticsView: View {
                     
                     DiagnosticRow(
                         title: "macOS Accessibility Permission",
-                        detail: permissionStatus.accessibilityGranted ? "Granted — exact window raising enabled" : "Not granted — degraded to application-level focus",
+                        detail: permissionStatus.accessibilityGranted
+                            ? "Granted — exact window raising enabled"
+                            : "Not granted — degraded to application-level focus",
                         isSuccess: permissionStatus.accessibilityGranted,
                         isWarning: !permissionStatus.accessibilityGranted,
                         actionTitle: permissionStatus.accessibilityGranted ? nil : "Open Settings…",
@@ -178,7 +180,11 @@ public struct DiagnosticsView: View {
                         Text("Local-First Privacy Architecture")
                             .font(.headline)
                     }
-                    Text("Flowback executes 100% locally on your Mac. Agent lifecycle observation, focus evaluations, and session timeline history never leave this device. No network telemetry or prompt content is transmitted.")
+                    Text(
+                        "Flowback executes 100% locally on your Mac. Agent lifecycle observation, " +
+                        "focus evaluations, and session timeline history never leave this device. " +
+                        "No network telemetry or prompt content is transmitted."
+                    )
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -198,8 +204,8 @@ struct DiagnosticRow: View {
     let detail: String
     let isSuccess: Bool
     let isWarning: Bool
-    var actionTitle: String? = nil
-    var onAction: (() -> Void)? = nil
+    var actionTitle: String?
+    var onAction: (() -> Void)?
     
     var body: some View {
         HStack {

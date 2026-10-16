@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="../css/main.css">
 </head>
 <body>
+  <a href="#main" class="skip-link">Skip to main content</a>
 
   <!-- Navigation Bar -->
   <header class="site-header">
@@ -26,7 +27,7 @@
         <span>Flowback</span>
       </a>
 
-      <nav>
+      <nav aria-label="Primary Navigation">
         <ul class="nav-links" id="navLinks">
           <li><a href="../">Home</a></li>
           <li><a href="../features/">Features</a></li>
@@ -35,28 +36,31 @@
           <li><a href="../changelog/">Changelog</a></li>
           <li><a href="../privacy/">Privacy</a></li>
           <li><a href="../contributing/">Contributing</a></li>
+          <li class="mobile-nav-actions">
+            <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">★ View on GitHub</a>
+          </li>
         </ul>
       </nav>
 
       <div class="nav-actions">
         <button class="theme-toggle" id="themeToggle" title="Toggle color theme" aria-label="Toggle theme">☀️</button>
-        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu">☰</button>
+        <a href="https://github.com/rapheljr/flowback" class="btn btn-secondary header-cta" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="navLinks">☰</button>
       </div>
     </div>
   </header>
 
-  <main class="container">
+  <main id="main" class="container">
     <div class="page-header">
       <h1>Download Flowback for macOS</h1>
       <p>Native context and focus management for your AI coding agents. Free, open source, and privacy first.</p>
     </div>
 
     <!-- Active Release Card (Derives from release-manifest.json) -->
-    <div id="manifestContainer" data-manifest-src="../release-manifest.json" class="card" style="max-width: 850px; margin: 0 auto 3rem auto; padding: 2.5rem; border: 1px solid var(--border-bright); box-shadow: var(--shadow-lg);">
+    <div id="manifestContainer" data-manifest-src="../release-manifest.json" class="card card-featured">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
         <div>
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
             <h2 id="manifestVersion" style="margin: 0; font-size: 2rem;">v1.0.0</h2>
             <span class="badge badge-supported">Latest Stable</span>
             <span id="signatureStatusBadge" class="badge badge-partial">Development Build (Ad-hoc Signed)</span>
@@ -72,10 +76,10 @@
 
       <!-- Action Buttons -->
       <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
-        <a id="dmgDownloadBtn" href="https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg" class="btn btn-primary btn-lg" style="flex: 1; min-width: 240px;">
+        <a id="dmgDownloadBtn" href="https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg" class="btn btn-primary btn-lg download-action-btn">
           ⬇️ Download DMG <span style="font-size: 0.8em; opacity: 0.8;">(arm64, 1.2 MB)</span>
         </a>
-        <a id="zipDownloadBtn" href="https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.zip" class="btn btn-secondary btn-lg" style="flex: 1; min-width: 240px;">
+        <a id="zipDownloadBtn" href="https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.zip" class="btn btn-secondary btn-lg download-action-btn">
           ⬇️ Download ZIP <span style="font-size: 0.8em; opacity: 0.8;">(arm64, Portable)</span>
         </a>
       </div>
@@ -121,10 +125,10 @@
         <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
           <strong>Option 1:</strong> Right-click (or Control-click) on <code>/Applications/Flowback.app</code> in Finder, select <strong>Open</strong>, and confirm in the alert dialog.
         </p>
-        <p style="font-size: 0.95rem; margin: 0;">
+        <p style="font-size: 0.95rem; margin-bottom: 0.5rem;">
           <strong>Option 2:</strong> Remove the quarantine attribute via terminal:
-          <pre><code>xattr -cr /Applications/Flowback.app</code></pre>
         </p>
+        <pre><code>xattr -cr /Applications/Flowback.app</code></pre>
       </div>
     </section>
 

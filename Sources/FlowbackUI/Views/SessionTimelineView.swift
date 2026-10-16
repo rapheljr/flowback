@@ -101,7 +101,10 @@ public struct SessionTimelineView: View {
                     }
                     .padding(.vertical, 4)
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(entry.category) at \(entry.formattedTime): \(entry.summary). \(entry.decisionExplanation.map { "Reason: \($0)" } ?? "")")
+                    .accessibilityLabel(
+                        "\(entry.category) at \(entry.formattedTime): \(entry.summary)." +
+                        (entry.decisionExplanation.map { " Reason: \($0)" } ?? "")
+                    )
                     .accessibilityIdentifier("timeline-entry-\(entry.id)")
                 }
             }

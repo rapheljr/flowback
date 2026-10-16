@@ -183,7 +183,7 @@ public final class UnixSocketServer: @unchecked Sendable {
         var requestData = Data()
         var buffer = [UInt8](repeating: 0, count: 16384)
         let decoder = JSONDecoder()
-        var decodedRequest: IPCRequest? = nil
+        var decodedRequest: IPCRequest?
         
         while true {
             let bytesRead = read(clientFd, &buffer, buffer.count)

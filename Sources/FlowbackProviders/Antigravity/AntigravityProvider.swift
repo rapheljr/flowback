@@ -39,7 +39,7 @@ public final class AntigravityProvider: AgentProvider, Sendable {
             hookInstalled = json["flowback-agent-focus"] != nil
         }
         
-        var version: String? = nil
+        var version: String?
         if appExists {
             let infoPlistPath = (appBundlePath as NSString).appendingPathComponent("Contents/Info.plist")
             if let plistData = try? Data(contentsOf: URL(fileURLWithPath: infoPlistPath)),
@@ -116,12 +116,13 @@ public final class AntigravityProvider: AgentProvider, Sendable {
         }
         
         // Resolve Origin Context
-        var origin: OriginContext? = nil
+        var origin: OriginContext?
         let targetBundle = "com.google.antigravity-ide"
         if let ws = primaryWorkspace {
             let folderName = (ws as NSString).lastPathComponent
-            if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == targetBundle || $0.bundleIdentifier == "com.google.antigravity" }) {
-                var winID: UInt32? = nil
+            let isAntigravity = { (b: String?) in b == targetBundle || b == "com.google.antigravity" }
+            if let app = NSWorkspace.shared.runningApplications.first(where: { isAntigravity($0.bundleIdentifier) }) {
+                var winID: UInt32?
                 var winTitle = "\(folderName) — Antigravity"
                 if let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
                     for win in windowList {
@@ -177,7 +178,8 @@ public final class AntigravityProvider: AgentProvider, Sendable {
             
             for convID in entries where !convID.hasPrefix(".") {
                 let convPath = (root as NSString).appendingPathComponent(convID)
-                let transcriptPath = ((convPath as NSString).appendingPathComponent(".system_generated/logs") as NSString).appendingPathComponent("transcript.jsonl")
+                let logsDir = (convPath as NSString).appendingPathComponent(".system_generated/logs")
+                let transcriptPath = (logsDir as NSString).appendingPathComponent("transcript.jsonl")
                 let tasksPath = (convPath as NSString).appendingPathComponent(".system_generated/tasks")
                 
                 guard fm.fileExists(atPath: transcriptPath) else { continue }
@@ -230,7 +232,7 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                 }
                 
                 // Extract workspace path
-                var workspacePath: String? = nil
+                var workspacePath: String?
                 let userHome = NSHomeDirectory()
                 
                 // Pattern 1: /workspace/projects/<name>
@@ -274,7 +276,8 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                 }
                 
                 // Pattern 5: file:///Users/...
-                if workspacePath == nil, let fileUriRange = chunkStr.range(of: "file://(/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+)", options: .regularExpression) {
+                let filePattern = "file://(/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+)"
+                if workspacePath == nil, let fileUriRange = chunkStr.range(of: filePattern, options: .regularExpression) {
                     let fileLine = String(chunkStr[fileUriRange])
                     let pathPart = fileLine.replacingOccurrences(of: "file://", with: "").trimmingCharacters(in: .whitespaces)
                     let comps = pathPart.components(separatedBy: "/workspace/projects/")
@@ -284,11 +287,11 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                 }
                 
                 // Resolve Origin Context
-                var origin: OriginContext? = nil
+                var origin: OriginContext?
                 if let ws = workspacePath {
                     let folderName = (ws as NSString).lastPathComponent
                     if let app = antigravityApps.first {
-                        var winID: UInt32? = nil
+                        var winID: UInt32?
                         var winTitle = "\(folderName) — Antigravity"
                         if let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
                             for win in windowList {

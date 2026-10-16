@@ -247,7 +247,13 @@ await testGroup("Final Acceptance Scenarios A through J") {
     let originC = OriginContext(bundleIdentifier: "com.apple.Terminal", processIdentifier: 2002, windowIdentifier: 88, workspacePath: "/test")
     let sessionC = AgentSession(providerID: .claudeCode, state: .completed, originContext: originC)
     mockIdle.idleSecondsMock = 20.0
-    let focusControllerC = FocusController(appController: mockApp, windowController: mockWin, intentEngine: intentEngine, arbiter: AttentionArbiter(aggregationWindow: 1.0, cooldownDuration: 0.0))
+    let arbiterC = AttentionArbiter(aggregationWindow: 1.0, cooldownDuration: 0.0)
+    let focusControllerC = FocusController(
+        appController: mockApp,
+        windowController: mockWin,
+        intentEngine: intentEngine,
+        arbiter: arbiterC
+    )
     let decisionC = await focusControllerC.handleSessionCompletion(session: sessionC, config: .default, focusLock: FocusLockState())
     guard case .restoreOrigin(let ctxC, _) = decisionC else {
         assertTest(false, "Scenario C: Failed terminal restoration")
@@ -267,9 +273,12 @@ await testGroup("Final Acceptance Scenarios A through J") {
     
     // Scenario E: 3 agents complete within 1 second -> Aggregated attention, cooldown prevents thrashing
     let arbMulti = AttentionArbiter(aggregationWindow: 1.5, cooldownDuration: 1.0)
-    await arbMulti.enqueue(AttentionRequest(sessionID: AgentSessionID("e1"), providerID: .antigravity, priority: .completed, title: "Done", message: "1", workspace: "/p1"))
-    await arbMulti.enqueue(AttentionRequest(sessionID: AgentSessionID("e2"), providerID: .claudeCode, priority: .completed, title: "Done", message: "2", workspace: "/p2"))
-    await arbMulti.enqueue(AttentionRequest(sessionID: AgentSessionID("e3"), providerID: .codex, priority: .completed, title: "Done", message: "3", workspace: "/p3"))
+    let reqE1 = AttentionRequest(sessionID: AgentSessionID("e1"), providerID: .antigravity, priority: .completed, title: "Done", message: "1", workspace: "/p1")
+    let reqE2 = AttentionRequest(sessionID: AgentSessionID("e2"), providerID: .claudeCode, priority: .completed, title: "Done", message: "2", workspace: "/p2")
+    let reqE3 = AttentionRequest(sessionID: AgentSessionID("e3"), providerID: .codex, priority: .completed, title: "Done", message: "3", workspace: "/p3")
+    await arbMulti.enqueue(reqE1)
+    await arbMulti.enqueue(reqE2)
+    await arbMulti.enqueue(reqE3)
     let summaryE = await arbMulti.aggregatedSummary()
     assertTest(summaryE?.title == "3 agents need attention", "Scenario E: Aggregated 3 simultaneous agents into single summary")
     await arbMulti.recordFocusRestoration()
@@ -393,7 +402,9 @@ await testGroup("Deep Audit & Robustness Verification") {
     var rollbackVerified = false
     do {
         _ = try await auditDb.runInTransaction {
-            try await auditDb.execute(sql: "INSERT INTO sessions (id, provider_id, state, started_at, updated_at) VALUES ('atomic-test', 'antigravity', 'running', 1.0, 1.0);")
+            let sql = "INSERT INTO sessions (id, provider_id, state, started_at, updated_at) " +
+                      "VALUES ('atomic-test', 'antigravity', 'running', 1.0, 1.0);"
+            try await auditDb.execute(sql: sql)
             throw SQLiteError.executionFailed("Deliberate failure to test rollback", code: 999)
         }
     } catch {
@@ -676,10 +687,12 @@ await testGroup("Database Retention & Pruning") {
 await testGroup("Apple HIG Compliance & Accessibility Verification") {
     // 1. PermissionManager system URL deep links
     let axURL = PermissionManager.accessibilitySettingsURL
-    assertTest(axURL.absoluteString == "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility", "Accessibility deep link maps to Privacy_Accessibility System Settings pane")
+    let expectedAX = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+    assertTest(axURL.absoluteString == expectedAX, "Accessibility deep link maps to Privacy_Accessibility System Settings pane")
     
     let notifURL = PermissionManager.notificationSettingsURL
-    assertTest(notifURL.absoluteString == "x-apple.systempreferences:com.apple.preference.notifications", "Notification deep link maps to Notifications System Settings pane")
+    let expectedNotif = "x-apple.systempreferences:com.apple.preference.notifications"
+    assertTest(notifURL.absoluteString == expectedNotif, "Notification deep link maps to Notifications System Settings pane")
     
     // 2. PolicyConfiguration Equatability and Live Persistence
     let config1 = PolicyConfiguration.default

@@ -165,9 +165,18 @@ final class AcceptanceScenariosTests: XCTestCase {
     func testScenarioE_MultiAgentAggregationAndCooldown() async {
         let arb = AttentionArbiter(aggregationWindow: 1.5, cooldownDuration: 1.0)
         
-        let req1 = AttentionRequest(sessionID: AgentSessionID("s1"), providerID: .antigravity, priority: .completed, title: "Done", message: "A1", workspace: "/w1")
-        let req2 = AttentionRequest(sessionID: AgentSessionID("s2"), providerID: .claudeCode, priority: .completed, title: "Done", message: "A2", workspace: "/w2")
-        let req3 = AttentionRequest(sessionID: AgentSessionID("s3"), providerID: .codex, priority: .completed, title: "Done", message: "A3", workspace: "/w3")
+        let req1 = AttentionRequest(
+            sessionID: AgentSessionID("s1"), providerID: .antigravity, priority: .completed,
+            title: "Done", message: "A1", workspace: "/w1"
+        )
+        let req2 = AttentionRequest(
+            sessionID: AgentSessionID("s2"), providerID: .claudeCode, priority: .completed,
+            title: "Done", message: "A2", workspace: "/w2"
+        )
+        let req3 = AttentionRequest(
+            sessionID: AgentSessionID("s3"), providerID: .codex, priority: .completed,
+            title: "Done", message: "A3", workspace: "/w3"
+        )
         
         await arb.enqueue(req1)
         await arb.enqueue(req2)

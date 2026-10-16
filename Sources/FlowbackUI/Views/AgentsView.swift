@@ -61,8 +61,11 @@ public struct AgentsView: View {
                             .foregroundColor(.secondary)
                         Text("No agent sessions found")
                             .font(.headline)
-                            .foregroundColor(.secondary)
-                        Text(viewModel.filter == .all ? "Flowback will automatically detect background agent activity." : "No sessions match the '\(viewModel.filter.rawValue)' filter.")
+                        Text(
+                            viewModel.filter == .all
+                                ? "Flowback will automatically detect background agent activity."
+                                : "No sessions match the '\(viewModel.filter.rawValue)' filter."
+                        )
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
