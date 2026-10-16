@@ -1,0 +1,34 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Swift source code
+*.swift text diff=swift
+
+# Shell scripts
+*.sh text eol=lf
+
+# Documentation & Config
+*.md text
+*.json text
+*.yml text
+*.yaml text
+*.plist text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.dmg binary
+*.zip binary
+*.sqlite binary
+*.sqlite-wal binary
+*.sqlite-shm binary
+*.icns binary
+
+# GitHub linguist overrides
+Website/** linguist-documentation=false
+Docs/** linguist-documentation=true
+Tests/** linguist-test=true
+Scripts/** linguist-detectable=true

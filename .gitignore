@@ -1,13 +1,46 @@
+# macOS System
 .DS_Store
+._*
+.AppleDouble
+.LSOverride
+
+# Swift Package Manager & Build Artifacts
 /.build
 /Packages
+.swiftpm/
+
+# Xcode & Developer Tools
 xcuserdata/
 DerivedData/
 *.xcodeproj
 *.xcworkspace
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.pbxuser
+
+# Flowback Runtime Files & Local Databases
 .flowback/
-*.swp
-*~
-.agents/hooks.json.bak*
+flowback.sock
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite.corrupt.*
+
+# Local Distribution & Release Artifacts
 dist/
 release/
+*.dmg
+*.zip
+!Website/release-manifest.json
+
+# Scratch & Temporary
+*.swp
+*~
+*.bak
+.agents/hooks.json.bak*
+node_modules/
+
+# Logs & Test Scratch
+*.log
+scratch/

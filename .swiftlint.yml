@@ -1,0 +1,46 @@
+# SwiftLint Configuration for Flowback
+
+disabled_rules:
+  - trailing_whitespace
+  - todo
+  - identifier_name
+
+opt_in_rules:
+  - empty_count
+  - force_unwrapping
+  - fatal_error_message
+  - redundant_nil_coalescing
+  - unneeded_break_in_switch
+
+included:
+  - Sources
+  - Tests
+
+excluded:
+  - .build
+  - dist
+  - Website
+
+line_length:
+  warning: 160
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+
+file_length:
+  warning: 800
+  error: 1200
+
+type_body_length:
+  warning: 400
+  error: 600
+
+function_body_length:
+  warning: 100
+  error: 150
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+reporter: "github-actions-logging"
