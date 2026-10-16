@@ -80,6 +80,18 @@ public actor SessionManager {
     // MARK: - Event Ingestion & State Transitions
     
     public func handleEvent(_ event: AgentEvent) async -> AgentSession {
+        // Stale & Out-of-order protection: reject events older than current session update
+        if let existing = sessions[event.sessionID], event.timestamp < existing.updatedAt.addingTimeInterval(-2.0) {
+            logger.warning("Dropped stale/out-of-order event \(event.type.rawValue) for session \(event.sessionID.rawValue): timestamp is older than last update")
+            await timeline.record(
+                sessionID: existing.id,
+                category: "Order",
+                summary: "Dropped stale event: \(event.type.rawValue)",
+                details: "Event timestamp \(event.timestamp) is older than session updated at \(existing.updatedAt)"
+            )
+            return existing
+        }
+        
         var session = sessions[event.sessionID] ?? AgentSession(
             id: event.sessionID,
             providerID: event.providerID,

@@ -1,5 +1,15 @@
 import Foundation
 
+/// Explicit tier of integration support for an agent provider
+public enum ProviderSupportLevel: String, Codable, Sendable {
+    case nativeLifecycle = "native-lifecycle"
+    case adapter = "adapter"
+    case genericProtocol = "generic-protocol"
+    case contextOnly = "context-only"
+    case partial = "partial"
+    case planned = "planned"
+}
+
 /// Health and integration status of a specific agent provider
 public struct ProviderHealth: Identifiable, Codable, Hashable, Sendable {
     public var id: String { providerID.rawValue }
@@ -14,6 +24,7 @@ public struct ProviderHealth: Identifiable, Codable, Hashable, Sendable {
     public var totalEventsReceived: Int
     public var statusMessage: String
     public var isSupported: Bool
+    public var supportLevel: ProviderSupportLevel
     
     public init(
         providerID: AgentProviderID,
@@ -26,7 +37,8 @@ public struct ProviderHealth: Identifiable, Codable, Hashable, Sendable {
         lastEventReceivedAt: Date? = nil,
         totalEventsReceived: Int = 0,
         statusMessage: String = "Not detected",
-        isSupported: Bool = true
+        isSupported: Bool = true,
+        supportLevel: ProviderSupportLevel = .adapter
     ) {
         self.providerID = providerID
         self.displayName = displayName
@@ -39,6 +51,7 @@ public struct ProviderHealth: Identifiable, Codable, Hashable, Sendable {
         self.totalEventsReceived = totalEventsReceived
         self.statusMessage = statusMessage
         self.isSupported = isSupported
+        self.supportLevel = supportLevel
     }
     
     public var isHealthy: Bool {

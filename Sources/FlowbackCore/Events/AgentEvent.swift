@@ -12,6 +12,8 @@ public enum AgentEventType: String, Codable, Sendable {
     case agentCancelled = "agent.cancelled"
     case agentStopped = "agent.stopped"
     case agentIdle = "agent.idle"
+    case sessionContextChanged = "session.context_changed"
+    case sessionDisappeared = "session.disappeared"
     case providerConnected = "provider.connected"
     case providerDisconnected = "provider.disconnected"
     
@@ -23,8 +25,18 @@ public enum AgentEventType: String, Codable, Sendable {
         case .agentPermissionRequired: return .permissionRequired
         case .agentCompleted, .agentIdle: return .completed
         case .agentFailed: return .failed
-        case .agentCancelled, .agentStopped: return .cancelled
-        case .providerConnected, .providerDisconnected: return nil
+        case .agentCancelled, .agentStopped, .sessionDisappeared: return .cancelled
+        case .sessionContextChanged, .providerConnected, .providerDisconnected: return nil
+        }
+    }
+    
+    /// Determines whether the event requires focus arbitration evaluation or actionable attention
+    public var isActionableForAttention: Bool {
+        switch self {
+        case .agentCompleted, .agentFailed, .agentPermissionRequired, .agentWaiting, .agentIdle:
+            return true
+        default:
+            return false
         }
     }
 }
