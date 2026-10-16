@@ -38,13 +38,25 @@ test:
 	swift run FlowbackTestRunner
 
 package: release
-	bash Scripts/package_app.sh
+	bash Scripts/package_app.sh 1.0.0 1 universal
 
 dmg: package
-	bash Scripts/create_dmg.sh
+	bash Scripts/create_dmg.sh Flowback-1.0.0.dmg
 
-manifest: dmg
+manifest:
 	bash Scripts/generate_manifest.sh 1.0.0
+
+cask:
+	bash Scripts/generate_cask.sh 1.0.0
+
+artifacts:
+	bash Scripts/package_release_artifacts.sh 1.0.0 universal
+
+validate:
+	bash Scripts/validate_release.sh --local 1.0.0
+
+validate-release:
+	bash Scripts/validate_release.sh --release 1.0.0
 
 install-cli:
 	bash Scripts/install_cli.sh

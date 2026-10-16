@@ -48,6 +48,9 @@ fi
 ARTIFACTS_JSON=""
 FIRST=true
 
+GIT_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo "unknown")"
+BUILD_CONFIG="release"
+
 while IFS= read -r line; do
     [ -z "$line" ] && continue
     HASH=$(echo "$line" | awk '{print $1}')
@@ -58,7 +61,7 @@ while IFS= read -r line; do
         ARCH="x86_64"
     elif [[ "$FILE" =~ "arm64" ]]; then
         ARCH="arm64"
-    elif [[ "$FILE" =~ "universal" ]]; then
+    elif [[ "$FILE" =~ "universal" ]] || [[ "$FILE" =~ "-macos" ]] || [ "$FILE" = "Flowback-${VERSION}.dmg" ] || [ "$FILE" = "Flowback.dmg" ]; then
         ARCH="universal"
     fi
     
@@ -91,6 +94,8 @@ cat <<EOF > "$DIST_DIR/release-manifest.json"
   "version": "${VERSION}",
   "channel": "stable",
   "releaseDate": "${RELEASE_DATE}",
+  "gitCommit": "${GIT_COMMIT}",
+  "buildConfiguration": "${BUILD_CONFIG}",
   "minimumMacOS": "14.0",
   "signatureStatus": "${SIGNATURE_STATUS}",
   "notarizationStatus": "${NOTARIZATION_STATUS}",
