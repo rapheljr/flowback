@@ -106,15 +106,22 @@ function startHttpServer() {
   });
 }
 
+import os from 'node:os';
+
+let chromeUserDataDir = null;
+
 async function startChrome() {
   if (!fs.existsSync(CHROME_PATH)) {
     console.warn(`[WARN] Google Chrome not found at ${CHROME_PATH}. Skipping browser responsive suite.`);
     return null;
   }
 
+  chromeUserDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowback-chrome-cdp-'));
+
   const chromeProc = spawn(CHROME_PATH, [
     '--headless=new',
     `--remote-debugging-port=${CDP_PORT}`,
+    `--user-data-dir=${chromeUserDataDir}`,
     '--disable-gpu',
     '--no-first-run',
     '--no-default-browser-check',
@@ -122,7 +129,7 @@ async function startChrome() {
   ], { stdio: 'ignore' });
 
   // Wait for CDP port to open
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 50; i++) {
     try {
       const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json/version`);
       if (res.ok) return chromeProc;
@@ -269,7 +276,16 @@ async function run() {
     }
   } finally {
     server.close();
-    chromeProc.kill();
+    if (chromeProc) {
+      chromeProc.kill();
+    }
+    if (chromeUserDataDir) {
+      setTimeout(() => {
+        try {
+          fs.rmSync(chromeUserDataDir, { recursive: true, force: true });
+        } catch {}
+      }, 500);
+    }
   }
 
   console.log("==========================================");
