@@ -15,12 +15,24 @@
     <filter id="boxShadow">
       <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.3"/>
     </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrow-indigo" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#818cf8"/>
+    </marker>
+    <marker id="arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#10b981"/>
+    </marker>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#f59e0b"/>
+    </marker>
   </defs>
 
   <rect width="1000" height="520" fill="#0b0f19" rx="16"/>
 
   <!-- Title -->
-  <text x="500" y="44" font-family="-apple-system, sans-serif" font-size="20" font-weight="700" fill="#f8fafc" text-anchor="middle">Flowback Decoupled Architecture & Dataflow</text>
+  <text x="500" y="44" font-family="-apple-system, sans-serif" font-size="20" font-weight="700" fill="#f8fafc" text-anchor="middle">Flowback Decoupled Architecture &amp; Dataflow</text>
   <text x="500" y="68" font-family="-apple-system, sans-serif" font-size="13" fill="#94a3b8" text-anchor="middle">Agent providers never steal focus directly — all events pass through the policy engine and attention arbiter</text>
 
   <!-- Layer 1: Agent Providers -->
@@ -32,10 +44,10 @@
     <text x="100" y="67" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Google Antigravity</text>
 
     <rect x="20" y="82" width="160" height="26" rx="6" fill="#0f172a" stroke="#1e293b"/>
-    <text x="100" y="99" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Claude Code & Codex</text>
+    <text x="100" y="99" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Claude Code &amp; Codex</text>
 
     <rect x="20" y="114" width="160" height="26" rx="6" fill="#0f172a" stroke="#1e293b"/>
-    <text x="100" y="131" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Gemini CLI & Aider</text>
+    <text x="100" y="131" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Gemini CLI &amp; Aider</text>
 
     <rect x="20" y="146" width="160" height="26" rx="6" fill="#0f172a" stroke="#1e293b"/>
     <text x="100" y="163" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Generic Hook Protocol</text>
@@ -48,7 +60,7 @@
   <!-- Layer 2: Core Bus & State Machine -->
   <g transform="translate(290, 100)">
     <rect width="210" height="180" rx="12" fill="url(#boxGrad)" stroke="#334155" stroke-width="1.5" filter="url(#boxShadow)"/>
-    <text x="105" y="32" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="#a78bfa" text-anchor="middle">Event Bus & State</text>
+    <text x="105" y="32" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="#a78bfa" text-anchor="middle">Event Bus &amp; State</text>
 
     <rect x="20" y="52" width="170" height="34" rx="6" fill="#0f172a" stroke="#1e293b"/>
     <text x="105" y="73" font-family="-apple-system, sans-serif" font-size="12" fill="#e2e8f0" text-anchor="middle">Event Deduplicator (Sliding)</text>
@@ -61,13 +73,13 @@
   </g>
 
   <!-- Arrow 2 -> 3 -->
-  <path d="M 500 190 L 550 190" stroke="#818cf8" stroke-width="2.5" fill="none"/>
+  <path d="M 500 190 L 550 190" stroke="#818cf8" stroke-width="2.5" fill="none" marker-end="url(#arrow-indigo)"/>
   <text x="525" y="178" font-family="-apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">State</text>
 
   <!-- Layer 3: Decision Engine -->
   <g transform="translate(550, 85)">
     <rect width="210" height="210" rx="12" fill="url(#accentBox)" stroke="#6366f1" stroke-width="2" filter="url(#boxShadow)"/>
-    <text x="105" y="32" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="#f8fafc" text-anchor="middle">Intent & Arbitration</text>
+    <text x="105" y="32" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="#f8fafc" text-anchor="middle">Intent &amp; Arbitration</text>
 
     <rect x="18" y="50" width="174" height="42" rx="6" fill="#0f172a" stroke="#4338ca"/>
     <text x="105" y="68" font-family="-apple-system, sans-serif" font-size="12" font-weight="600" fill="#38bdf8" text-anchor="middle">User Intent Engine</text>
@@ -84,7 +96,7 @@
 
   <!-- Forks from Decision Engine -->
   <!-- Top Path: Idle -> Restore Window -->
-  <path d="M 760 150 L 810 150" stroke="#10b981" stroke-width="2.5" fill="none"/>
+  <path d="M 760 150 L 810 150" stroke="#10b981" stroke-width="2.5" fill="none" marker-end="url(#arrow-emerald)"/>
   <text x="785" y="140" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="#10b981" text-anchor="middle">Idle</text>
 
   <g transform="translate(810, 110)">
@@ -95,7 +107,7 @@
   </g>
 
   <!-- Bottom Path: Typing / Locked -> Actionable Notification -->
-  <path d="M 760 230 L 810 230" stroke="#f59e0b" stroke-width="2.5" fill="none"/>
+  <path d="M 760 230 L 810 230" stroke="#f59e0b" stroke-width="2.5" fill="none" marker-end="url(#arrow-amber)"/>
   <text x="785" y="222" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="#f59e0b" text-anchor="middle">Active</text>
 
   <g transform="translate(810, 200)">
