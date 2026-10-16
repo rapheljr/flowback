@@ -1,6 +1,6 @@
 cask "flowback" do
   version "1.0.0"
-  sha256 "b2dfc0f053f7cee2acfa49885243ab7a106371f06ba060570e37465566da8534"
+  sha256 "2898fd6b5390129bb25fbb2afcf8e6e4618b85d331fb54a1b58c312401d81637"
 
   url "https://github.com/rapheljr/flowback/releases/download/v#{version}/Flowback-#{version}-macos.zip"
   name "Flowback"
