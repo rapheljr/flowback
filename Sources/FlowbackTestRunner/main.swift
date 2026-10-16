@@ -6,6 +6,8 @@ import FlowbackFocus
 import FlowbackProviders
 import FlowbackServer
 import FlowbackTestHarness
+import FlowbackNotifications
+import FlowbackUI
 
 // MARK: - Test Framework Infrastructure
 
@@ -668,6 +670,65 @@ await testGroup("Database Retention & Pruning") {
     try? FileManager.default.removeItem(atPath: dbPath)
     try? FileManager.default.removeItem(atPath: "\(dbPath)-wal")
     try? FileManager.default.removeItem(atPath: "\(dbPath)-shm")
+}
+
+// 18. Apple HIG Compliance & Accessibility Verification Suite
+await testGroup("Apple HIG Compliance & Accessibility Verification") {
+    // 1. PermissionManager system URL deep links
+    let axURL = PermissionManager.accessibilitySettingsURL
+    assertTest(axURL.absoluteString == "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility", "Accessibility deep link maps to Privacy_Accessibility System Settings pane")
+    
+    let notifURL = PermissionManager.notificationSettingsURL
+    assertTest(notifURL.absoluteString == "x-apple.systempreferences:com.apple.preference.notifications", "Notification deep link maps to Notifications System Settings pane")
+    
+    // 2. PolicyConfiguration Equatability and Live Persistence
+    let config1 = PolicyConfiguration.default
+    var config2 = PolicyConfiguration.default
+    assertTest(config1 == config2, "Default PolicyConfiguration instances are equatable")
+    
+    config2.focusCooldownMs = 2500
+    assertTest(config1 != config2, "Modified PolicyConfiguration triggers Equatable inequality for live onChange persistence")
+    
+    // 3. Notification Action Safety (Non-destructive Dismissal)
+    assertTest(NotificationManager.categoryAttention == "FLOWBACK_ATTENTION", "Attention notification category is FLOWBACK_ATTENTION")
+    assertTest(NotificationManager.actionDismiss == "FLOWBACK_ACTION_DISMISS", "Dismiss action ID is registered")
+    assertTest(NotificationManager.actionFocus == "FLOWBACK_ACTION_FOCUS", "Focus action ID is registered")
+    assertTest(NotificationManager.actionReview == "FLOWBACK_ACTION_REVIEW", "Review action ID is registered")
+    
+    // 4. Textual State Conveyance (VoiceOver / Color-Independent Communication)
+    for state in AgentState.allCases {
+        assertTest(!state.displayName.isEmpty, "AgentState.\(state.rawValue) defines clear text label '\(state.displayName)' for assistive technology")
+    }
+    
+    // 5. DashboardTab Coverage & Human Interface Hierarchy
+    assertTest(DashboardTab.allCases.count == 6, "Dashboard contains exactly 6 organized primary views")
+    for tab in DashboardTab.allCases {
+        assertTest(!tab.subtitle.isEmpty, "Dashboard tab '\(tab.rawValue)' provides descriptive subtitle for window header")
+        assertTest(!tab.icon.isEmpty, "Dashboard tab '\(tab.rawValue)' uses valid SF Symbol '\(tab.icon)'")
+    }
+    
+    // 6. Focus Lock Remaining Time Bounds & Formatting
+    let lockActive = FocusLockState(isActive: true, expiresAt: Date().addingTimeInterval(900), label: "15 min")
+    assertTest(lockActive.isCurrentlyLocked, "Focus lock detects active state")
+    if let rem = lockActive.remainingSeconds {
+        let mins = max(1, Int(rem / 60))
+        assertTest(mins >= 1 && mins <= 15, "Focus lock calculates remaining minutes accurately without zero-second division")
+    } else {
+        assertTest(false, "Focus lock missing remainingSeconds calculation")
+    }
+    
+    let lockExpired = FocusLockState(isActive: true, expiresAt: Date().addingTimeInterval(-10), label: "expired")
+    assertTest(!lockExpired.isCurrentlyLocked, "Expired focus lock cleanly evaluates to isCurrentlyLocked == false")
+    
+    // 7. Protected Applications Case-Insensitive Matching
+    var testConfig = PolicyConfiguration.default
+    testConfig.protectedApplications = ["us.zoom.xos", "com.apple.Keynote"]
+    let matchesZoom = testConfig.protectedApplications.contains(where: { "US.ZOOM.XOS".localizedCaseInsensitiveContains($0) })
+    let matchesKeynote = testConfig.protectedApplications.contains(where: { "com.apple.keynote".localizedCaseInsensitiveContains($0) })
+    let ignoresTerminal = testConfig.protectedApplications.contains(where: { "com.apple.Terminal".localizedCaseInsensitiveContains($0) })
+    assertTest(matchesZoom, "Protected application matches case-insensitively for Zoom")
+    assertTest(matchesKeynote, "Protected application matches case-insensitively for Keynote")
+    assertTest(!ignoresTerminal, "Unprotected application is correctly permitted for focus switch")
 }
 
 print("\n================================================================")

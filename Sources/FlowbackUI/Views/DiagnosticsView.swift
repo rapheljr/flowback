@@ -47,10 +47,15 @@ public struct DiagnosticsView: View {
                             onTestFocus()
                             viewModel.feedbackMessage = "Triggered test focus evaluation"
                         }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("diagnostics-test-focus-button")
+                        
                         Button("Test Notification") {
                             onTestNotification()
                             viewModel.feedbackMessage = "Sent test notification"
                         }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("diagnostics-test-notification-button")
                     }
                 }
                 
@@ -58,10 +63,11 @@ public struct DiagnosticsView: View {
                     Text(msg)
                         .font(.caption)
                         .foregroundColor(.blue)
+                        .accessibilityLabel("Feedback: \(msg)")
                 }
                 
                 // Subsystem checks
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("Core Subsystems")
                         .font(.headline)
                     
@@ -69,15 +75,25 @@ public struct DiagnosticsView: View {
                         title: "macOS Accessibility Permission",
                         detail: permissionStatus.accessibilityGranted ? "Granted — exact window raising enabled" : "Not granted — degraded to application-level focus",
                         isSuccess: permissionStatus.accessibilityGranted,
-                        isWarning: !permissionStatus.accessibilityGranted
+                        isWarning: !permissionStatus.accessibilityGranted,
+                        actionTitle: permissionStatus.accessibilityGranted ? nil : "Open Settings…",
+                        onAction: {
+                            PermissionManager.shared.openAccessibilitySettings()
+                        }
                     )
+                    .accessibilityIdentifier("diagnostics-row-accessibility")
                     
                     DiagnosticRow(
                         title: "User Notifications Permission",
                         detail: permissionStatus.notificationsGranted ? "Authorized for alerts and banners" : "Not authorized — notifications disabled",
                         isSuccess: permissionStatus.notificationsGranted,
-                        isWarning: !permissionStatus.notificationsGranted
+                        isWarning: !permissionStatus.notificationsGranted,
+                        actionTitle: permissionStatus.notificationsGranted ? nil : "Open Settings…",
+                        onAction: {
+                            PermissionManager.shared.openNotificationSettings()
+                        }
                     )
+                    .accessibilityIdentifier("diagnostics-row-notifications")
                     
                     DiagnosticRow(
                         title: "Launch at Login",
@@ -85,6 +101,7 @@ public struct DiagnosticsView: View {
                         isSuccess: true,
                         isWarning: false
                     )
+                    .accessibilityIdentifier("diagnostics-row-launch-at-login")
                     
                     DiagnosticRow(
                         title: "Local Persistent Database",
@@ -92,6 +109,7 @@ public struct DiagnosticsView: View {
                         isSuccess: true,
                         isWarning: false
                     )
+                    .accessibilityIdentifier("diagnostics-row-database")
                     
                     DiagnosticRow(
                         title: "IPC Unix Domain Socket",
@@ -99,12 +117,13 @@ public struct DiagnosticsView: View {
                         isSuccess: true,
                         isWarning: false
                     )
+                    .accessibilityIdentifier("diagnostics-row-socket")
                 }
                 .padding()
                 .background(Color(NSColor.controlBackgroundColor))
                 .cornerRadius(10)
                 
-                // Provider integrations
+                // Agent Integrations
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Agent Integrations")
@@ -114,6 +133,9 @@ public struct DiagnosticsView: View {
                             onRepairAntigravity()
                             viewModel.feedbackMessage = "Updated Antigravity hook in ~/.gemini/config/hooks.json"
                         }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .accessibilityIdentifier("diagnostics-repair-hooks-button")
                     }
                     
                     ForEach(providerHealths) { h in
@@ -121,6 +143,7 @@ public struct DiagnosticsView: View {
                             Circle()
                                 .fill(h.isHealthy ? Color.green : (h.isInstalled ? Color.orange : Color.secondary))
                                 .frame(width: 8, height: 8)
+                                .accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack {
                                     Text(h.displayName).font(.headline)
@@ -140,8 +163,30 @@ public struct DiagnosticsView: View {
                         .padding(10)
                         .background(Color(NSColor.controlBackgroundColor))
                         .cornerRadius(8)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("\(h.displayName): \(h.statusMessage) (\(h.isHealthy ? "Operational" : "Attention needed"))")
+                        .accessibilityIdentifier("diagnostics-provider-\(h.id)")
                     }
                 }
+                
+                // Privacy Guarantee
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "lock.shield.fill")
+                            .foregroundColor(.blue)
+                            .accessibilityHidden(true)
+                        Text("Local-First Privacy Architecture")
+                            .font(.headline)
+                    }
+                    Text("Flowback executes 100% locally on your Mac. Agent lifecycle observation, focus evaluations, and session timeline history never leave this device. No network telemetry or prompt content is transmitted.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(10)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("diagnostics-privacy-notice")
             }
             .padding(24)
         }
@@ -153,16 +198,26 @@ struct DiagnosticRow: View {
     let detail: String
     let isSuccess: Bool
     let isWarning: Bool
+    var actionTitle: String? = nil
+    var onAction: (() -> Void)? = nil
     
     var body: some View {
         HStack {
             Image(systemName: isSuccess ? "checkmark.circle.fill" : (isWarning ? "exclamationmark.triangle.fill" : "xmark.circle.fill"))
                 .foregroundColor(isSuccess ? .green : (isWarning ? .orange : .red))
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.subheadline.bold())
                 Text(detail).font(.caption).foregroundColor(.secondary)
             }
             Spacer()
+            if let actionTitle = actionTitle, let onAction = onAction {
+                Button(actionTitle, action: onAction)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(detail)")
     }
 }

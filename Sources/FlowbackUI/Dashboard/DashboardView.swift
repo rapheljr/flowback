@@ -22,6 +22,17 @@ public enum DashboardTab: String, CaseIterable, Identifiable {
         case .settings: return "gearshape"
         }
     }
+    
+    public var subtitle: String {
+        switch self {
+        case .overview: return "Live agent activity & attention"
+        case .agents: return "Active and completed agent sessions"
+        case .timeline: return "Orchestration decision history"
+        case .applications: return "Focus protection rules"
+        case .diagnostics: return "System capabilities & integrations"
+        case .settings: return "Focus policy configuration"
+        }
+    }
 }
 
 public final class DashboardViewModel: ObservableObject {
@@ -49,9 +60,10 @@ public struct DashboardView: View {
     public var onTestNotification: () -> Void
     public var onRefresh: () -> Void
     
-    @StateObject private var viewModel = DashboardViewModel()
+    @ObservedObject public var viewModel: DashboardViewModel
     
     public init(
+        viewModel: DashboardViewModel = DashboardViewModel(),
         activeSessions: Binding<[AgentSession]>,
         allSessions: Binding<[AgentSession]>,
         attentionQueue: Binding<[AttentionRequest]>,
@@ -67,6 +79,7 @@ public struct DashboardView: View {
         onTestNotification: @escaping () -> Void,
         onRefresh: @escaping () -> Void = {}
     ) {
+        self.viewModel = viewModel
         self._activeSessions = activeSessions
         self._allSessions = allSessions
         self._attentionQueue = attentionQueue
@@ -89,6 +102,7 @@ public struct DashboardView: View {
                 NavigationLink(value: tab) {
                     Label(tab.rawValue, systemImage: tab.icon)
                 }
+                .accessibilityIdentifier("dashboard-sidebar-tab-\(tab.rawValue.lowercased())")
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
             .listStyle(.sidebar)
@@ -132,6 +146,8 @@ public struct DashboardView: View {
                     )
                 }
             }
+            .navigationTitle(viewModel.selectedTab.rawValue)
+            .navigationSubtitle(viewModel.selectedTab.subtitle)
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     Button(action: onRefresh) {
@@ -139,6 +155,17 @@ public struct DashboardView: View {
                     }
                     .help("Scan and refresh active agent sessions (⌘R)")
                     .keyboardShortcut("r", modifiers: .command)
+                    .accessibilityIdentifier("toolbar-refresh-button")
+                }
+            }
+            .background {
+                Group {
+                    Button("") { viewModel.selectedTab = .overview }.keyboardShortcut("1", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .agents }.keyboardShortcut("2", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .timeline }.keyboardShortcut("3", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .applications }.keyboardShortcut("4", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .diagnostics }.keyboardShortcut("5", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .settings }.keyboardShortcut("6", modifiers: .command).hidden()
                 }
             }
         }

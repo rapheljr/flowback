@@ -35,7 +35,7 @@ public struct OverviewView: View {
                             Text("Focus Lock Active")
                                 .font(.headline)
                             if let rem = focusLock.remainingSeconds {
-                                Text("Automatic focus switching is paused for \(Int(rem / 60)) more minutes.")
+                                Text("Automatic focus switching is paused for \(max(1, Int(rem / 60))) more minutes.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             } else {
@@ -48,10 +48,14 @@ public struct OverviewView: View {
                         Button("Disable") {
                             focusLock = FocusLockState(isActive: false)
                         }
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel("Disable focus lock")
+                        .accessibilityIdentifier("overview-disable-lock-button")
                     }
                     .padding()
                     .background(Color.orange.opacity(0.12))
                     .cornerRadius(10)
+                    .accessibilityIdentifier("overview-focus-lock-banner")
                 }
                 
                 // Stat Cards
@@ -94,6 +98,7 @@ public struct OverviewView: View {
                             .padding()
                             .background(Color(NSColor.controlBackgroundColor))
                             .cornerRadius(8)
+                            .accessibilityIdentifier("overview-attention-item-\(req.sessionID.rawValue)")
                         }
                     }
                 }
@@ -110,6 +115,7 @@ public struct OverviewView: View {
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                         .help("Scan and refresh active agent sessions")
+                        .accessibilityIdentifier("overview-refresh-button")
                     }
                     
                     if activeSessions.isEmpty {
@@ -127,6 +133,8 @@ public struct OverviewView: View {
                                     .foregroundColor(.secondary)
                             }
                             .padding(.vertical, 40)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier("overview-empty-state")
                             Spacer()
                         }
                     } else {
@@ -147,7 +155,9 @@ public struct OverviewView: View {
                                 Button("Restore Focus") {
                                     onFocusSession(session)
                                 }
-                                .buttonStyle(.borderedProminent)
+                                .buttonStyle(.bordered)
+                                .accessibilityLabel("Restore focus to \(session.projectName)")
+                                .accessibilityIdentifier("restore-focus-\(session.id.rawValue)")
                             }
                             .padding(12)
                             .background(Color(NSColor.controlBackgroundColor))
@@ -180,9 +190,13 @@ struct StatCard: View {
             Image(systemName: systemImage)
                 .font(.system(size: 24))
                 .foregroundColor(color)
+                .accessibilityHidden(true)
         }
         .padding(16)
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(12)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(value)")
+        .accessibilityIdentifier("overview-stat-\(title.lowercased().replacingOccurrences(of: " ", with: "-"))")
     }
 }

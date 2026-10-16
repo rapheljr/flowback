@@ -46,6 +46,7 @@ public struct AgentsView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 260)
+                .accessibilityIdentifier("agent-filter-picker")
             }
             .padding(.horizontal, 24)
             .padding(.top, 20)
@@ -54,8 +55,19 @@ public struct AgentsView: View {
                 Spacer()
                 HStack {
                     Spacer()
-                    Text("No agent sessions found matching filter.")
-                        .foregroundColor(.secondary)
+                    VStack(spacing: 8) {
+                        Image(systemName: "cpu")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary)
+                        Text("No agent sessions found")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text(viewModel.filter == .all ? "Flowback will automatically detect background agent activity." : "No sessions match the '\(viewModel.filter.rawValue)' filter.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("agents-empty-state")
                     Spacer()
                 }
                 Spacer()
@@ -66,6 +78,7 @@ public struct AgentsView: View {
                             .font(.system(size: 20))
                             .foregroundColor(.accentColor)
                             .frame(width: 32)
+                            .accessibilityHidden(true)
                         
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
@@ -93,6 +106,8 @@ public struct AgentsView: View {
                             onFocusSession(session)
                         }
                         .buttonStyle(.bordered)
+                        .accessibilityLabel("Focus session \(session.projectName)")
+                        .accessibilityIdentifier("agent-focus-\(session.id.rawValue)")
                     }
                     .padding(.vertical, 6)
                 }

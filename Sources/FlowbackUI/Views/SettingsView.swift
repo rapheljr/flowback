@@ -1,9 +1,15 @@
 import SwiftUI
 import FlowbackCore
 
+public final class SettingsViewModel: ObservableObject {
+    @Published public var hasSavedRecently: Bool = false
+    public init() {}
+}
+
 public struct SettingsView: View {
     @Binding var config: PolicyConfiguration
     public var onSave: (PolicyConfiguration) -> Void
+    @StateObject private var viewModel = SettingsViewModel()
     
     public init(config: Binding<PolicyConfiguration>, onSave: @escaping (PolicyConfiguration) -> Void) {
         self._config = config
@@ -11,35 +17,31 @@ public struct SettingsView: View {
     }
     
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                Text("Settings & Focus Policies")
-                    .font(.title2.bold())
-                
-                // Policy Mode
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Focus Restoration Policy")
-                        .font(.headline)
+        Form {
+            // Section 1: Focus Policy
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
                     Picker("Policy", selection: $config.focusPolicy) {
                         ForEach(FocusPolicyType.allCases, id: \.self) { policy in
                             Text(policy.displayName).tag(policy)
                         }
                     }
                     .pickerStyle(.radioGroup)
+                    .accessibilityIdentifier("settings-policy-picker")
                     
                     Text(config.focusPolicy.description)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                        .padding(.top, 4)
+                        .padding(.top, 2)
                 }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(10)
-                
-                // macOS Spaces Policy
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("macOS Spaces / Desktops")
-                        .font(.headline)
+            } header: {
+                Text("Focus Restoration Policy")
+                    .font(.headline)
+            }
+            
+            // Section 2: macOS Spaces Policy
+            Section {
+                VStack(alignment: .leading, spacing: 6) {
                     Picker("Space Policy", selection: $config.spacePolicy) {
                         ForEach(SpacePolicy.allCases, id: \.self) { p in
                             Text(p.displayName).tag(p)
@@ -47,20 +49,20 @@ public struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .frame(width: 280)
+                    .accessibilityIdentifier("settings-space-policy-picker")
                     
                     Text("Controls whether Flowback can automatically move between macOS Spaces when restoring windows.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(10)
-                
-                // Timing & Cooldowns
+            } header: {
+                Text("macOS Spaces / Desktops")
+                    .font(.headline)
+            }
+            
+            // Section 3: Timing & Cooldowns
+            Section {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Timing & Cooldowns")
-                        .font(.headline)
-                    
                     HStack {
                         Text("Focus Cooldown:")
                             .frame(width: 180, alignment: .leading)
@@ -68,8 +70,13 @@ public struct SettingsView: View {
                             get: { Double(config.focusCooldownMs) },
                             set: { config.focusCooldownMs = Int($0) }
                         ), in: 200...5000, step: 100)
+                        .accessibilityLabel("Focus Cooldown")
+                        .accessibilityValue("\(config.focusCooldownMs) milliseconds")
+                        .accessibilityIdentifier("settings-focus-cooldown-slider")
+                        
                         Text("\(config.focusCooldownMs) ms")
-                            .frame(width: 70, alignment: .trailing)
+                            .font(.system(.body, design: .monospaced))
+                            .frame(width: 75, alignment: .trailing)
                     }
                     
                     HStack {
@@ -79,44 +86,69 @@ public struct SettingsView: View {
                             get: { Double(config.attentionAggregationMs) },
                             set: { config.attentionAggregationMs = Int($0) }
                         ), in: 500...5000, step: 100)
+                        .accessibilityLabel("Attention Aggregation Window")
+                        .accessibilityValue("\(config.attentionAggregationMs) milliseconds")
+                        .accessibilityIdentifier("settings-attention-aggregation-slider")
+                        
                         Text("\(config.attentionAggregationMs) ms")
-                            .frame(width: 70, alignment: .trailing)
+                            .font(.system(.body, design: .monospaced))
+                            .frame(width: 75, alignment: .trailing)
                     }
                     
                     HStack {
                         Text("Active User Threshold:")
                             .frame(width: 180, alignment: .leading)
                         Slider(value: $config.activeInteractionThresholdSeconds, in: 1.0...30.0, step: 0.5)
+                        .accessibilityLabel("Active User Interaction Threshold")
+                        .accessibilityValue(String(format: "%.1f seconds", config.activeInteractionThresholdSeconds))
+                        .accessibilityIdentifier("settings-active-threshold-slider")
+                        
                         Text(String(format: "%.1f s", config.activeInteractionThresholdSeconds))
-                            .frame(width: 70, alignment: .trailing)
+                            .font(.system(.body, design: .monospaced))
+                            .frame(width: 75, alignment: .trailing)
                     }
                 }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(10)
-                
-                // System Startup
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("System Integration")
-                        .font(.headline)
-                    Toggle("Launch Flowback at Login", isOn: $config.launchAtLogin)
-                        .onChange(of: config.launchAtLogin) { _, newVal in
-                            try? PermissionManager.shared.setLaunchAtLogin(enabled: newVal)
-                        }
-                }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(10)
-                
+            } header: {
+                Text("Timing & Cooldowns")
+                    .font(.headline)
+            }
+            
+            // Section 4: System Integration
+            Section {
+                Toggle("Launch Flowback at Login", isOn: $config.launchAtLogin)
+                    .onChange(of: config.launchAtLogin) { _, newVal in
+                        try? PermissionManager.shared.setLaunchAtLogin(enabled: newVal)
+                    }
+                    .accessibilityIdentifier("settings-launch-at-login-toggle")
+            } header: {
+                Text("System Integration")
+                    .font(.headline)
+            }
+            
+            // Status footer: Auto-persistence confirmation
+            Section {
                 HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text("Preferences apply and save automatically.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     Spacer()
-                    Button("Save Preferences") {
+                    Button("Save Now") {
                         onSave(config)
+                        viewModel.hasSavedRecently = true
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .accessibilityIdentifier("settings-manual-save-button")
                 }
             }
-            .padding(24)
+        }
+        .formStyle(.grouped)
+        .padding(.horizontal, 20)
+        .onChange(of: config) { _, newConfig in
+            onSave(newConfig)
+            viewModel.hasSavedRecently = true
         }
     }
 }

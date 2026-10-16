@@ -41,6 +41,7 @@ public struct SessionTimelineView: View {
                         }
                     }
                     .frame(width: 300)
+                    .accessibilityIdentifier("timeline-session-picker")
                 }
             }
             .padding(.horizontal, 24)
@@ -55,8 +56,14 @@ public struct SessionTimelineView: View {
                             .font(.system(size: 32))
                             .foregroundColor(.secondary)
                         Text("No timeline entries recorded yet.")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        Text("Decisions and lifecycle events will appear as agents execute.")
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("timeline-empty-state")
                     Spacer()
                 }
                 Spacer()
@@ -93,6 +100,9 @@ public struct SessionTimelineView: View {
                         }
                     }
                     .padding(.vertical, 4)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(entry.category) at \(entry.formattedTime): \(entry.summary). \(entry.decisionExplanation.map { "Reason: \($0)" } ?? "")")
+                    .accessibilityIdentifier("timeline-entry-\(entry.id)")
                 }
             }
         }

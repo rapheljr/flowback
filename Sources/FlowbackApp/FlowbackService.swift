@@ -46,8 +46,9 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
     @Published public var configuration: PolicyConfiguration = .default
     @Published public var focusLock: FocusLockState = FocusLockState()
     
-    // Dashboard window
+    // Dashboard window & navigation model
     private var dashboardWindow: NSWindow?
+    private let dashboardViewModel = DashboardViewModel()
     
     public init() {}
     
@@ -304,20 +305,23 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
     }
     
     public func didRequestOpenDashboard() {
-        openDashboardWindow()
+        openDashboardWindow(tab: .overview)
     }
     
     public func didRequestOpenSettings() {
-        openDashboardWindow()
+        openDashboardWindow(tab: .settings)
     }
     
     public func didRequestOpenDiagnostics() {
-        openDashboardWindow()
+        openDashboardWindow(tab: .diagnostics)
     }
     
     public func didRequestQuit() {
-        socketServer.stop()
-        NSApplication.shared.terminate(nil)
+        socketServer?.stop()
+        Task {
+            await self.database?.close()
+            NSApplication.shared.terminate(nil)
+        }
     }
     
     // MARK: - NotificationActionDelegate
@@ -329,12 +333,15 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
     }
     
     public func didRequestReview() async {
-        openDashboardWindow()
+        openDashboardWindow(tab: .overview)
     }
     
     // MARK: - Dashboard Window Management
     
-    public func openDashboardWindow() {
+    public func openDashboardWindow(tab: DashboardTab = .overview) {
+        dashboardViewModel.selectedTab = tab
+        setupStandardMainMenu()
+        
         if let existing = dashboardWindow {
             existing.makeKeyAndOrderFront(nil)
             NSApplication.shared.activate(ignoringOtherApps: true)
@@ -342,6 +349,7 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
         }
         
         let dashboardView = DashboardView(
+            viewModel: dashboardViewModel,
             activeSessions: Binding(get: { self.activeSessions }, set: { self.activeSessions = $0 }),
             allSessions: Binding(get: { self.allSessions }, set: { self.allSessions = $0 }),
             attentionQueue: Binding(get: { self.attentionQueue }, set: { self.attentionQueue = $0 }),
@@ -395,6 +403,7 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
             defer: false
         )
         window.center()
+        window.setFrameAutosaveName("FlowbackDashboardWindow")
         window.title = "Flowback — AI Focus & Context Manager"
         window.contentView = NSHostingView(rootView: dashboardView)
         window.isReleasedWhenClosed = false
@@ -402,5 +411,55 @@ public final class FlowbackService: ObservableObject, MenuBarActionDelegate, Not
         self.dashboardWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+    
+    // MARK: - Native macOS Standard Main Menu
+    
+    private func setupStandardMainMenu() {
+        guard NSApp.mainMenu == nil else { return }
+        let mainMenu = NSMenu()
+        
+        // App Menu
+        let appMenuItem = NSMenuItem()
+        let appMenu = NSMenu(title: "Flowback")
+        appMenu.addItem(withTitle: "About Flowback", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(NSMenuItem.separator())
+        let hideItem = NSMenuItem(title: "Hide Flowback", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(hideItem)
+        let hideOthersItem = NSMenuItem(title: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+        hideOthersItem.keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(hideOthersItem)
+        appMenu.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
+        appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(withTitle: "Quit Flowback", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenuItem.submenu = appMenu
+        mainMenu.addItem(appMenuItem)
+        
+        // Edit Menu (Enables ⌘X, ⌘C, ⌘V, ⌘A, ⌘Z in text fields)
+        let editMenuItem = NSMenuItem()
+        let editMenu = NSMenu(title: "Edit")
+        editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        let redoItem = NSMenuItem(title: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        redoItem.keyEquivalentModifierMask = [.command, .shift]
+        editMenu.addItem(redoItem)
+        editMenu.addItem(NSMenuItem.separator())
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        editMenuItem.submenu = editMenu
+        mainMenu.addItem(editMenuItem)
+        
+        // Window Menu (Enables ⌘W to close companion window)
+        let windowMenuItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "Window")
+        let closeItem = NSMenuItem(title: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        windowMenu.addItem(closeItem)
+        let minimizeItem = NSMenuItem(title: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowMenu.addItem(minimizeItem)
+        windowMenuItem.submenu = windowMenu
+        mainMenu.addItem(windowMenuItem)
+        
+        NSApp.mainMenu = mainMenu
     }
 }

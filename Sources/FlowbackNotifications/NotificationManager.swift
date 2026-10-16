@@ -57,7 +57,7 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
         let dismissAction = UNNotificationAction(
             identifier: Self.actionDismiss,
             title: "Dismiss",
-            options: [.destructive]
+            options: []
         )
         
         let category = UNNotificationCategory(

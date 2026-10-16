@@ -1,7 +1,7 @@
 import Foundation
 
 /// Main versioned configuration for Flowback
-public struct PolicyConfiguration: Codable, Sendable {
+public struct PolicyConfiguration: Codable, Sendable, Equatable {
     public var schemaVersion: Int
     public var focusPolicy: FocusPolicyType
     public var completionBehavior: CompletionBehavior

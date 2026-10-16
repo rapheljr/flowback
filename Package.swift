@@ -121,7 +121,9 @@ var packageTargets: [Target] = [
             "FlowbackFocus",
             "FlowbackProviders",
             "FlowbackServer",
-            "FlowbackTestHarness"
+            "FlowbackTestHarness",
+            "FlowbackNotifications",
+            "FlowbackUI"
         ],
         path: "Sources/FlowbackTestRunner"
     )

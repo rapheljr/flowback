@@ -2,6 +2,9 @@ import Foundation
 import ApplicationServices
 import UserNotifications
 import ServiceManagement
+#if canImport(AppKit)
+import AppKit
+#endif
 
 /// State of permissions required by Flowback
 public struct PermissionStatus: Codable, Sendable {
@@ -39,11 +42,34 @@ public final class PermissionManager: Sendable {
         AXIsProcessTrusted()
     }
     
-    /// Requests Accessibility permissions, opening System Settings if needed
+    public static let accessibilitySettingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+    public static let notificationSettingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!
+    
+    /// Requests Accessibility permissions, opening System Settings prompt if needed
     @discardableResult
     public func requestAccessibility() -> Bool {
         let options = ["AXTrustedCheckOptionPrompt" as CFString: true] as CFDictionary
         return AXIsProcessTrustedWithOptions(options)
+    }
+    
+    /// Deep-links directly to macOS System Settings -> Privacy & Security -> Accessibility
+    @discardableResult
+    public func openAccessibilitySettings() -> Bool {
+        #if canImport(AppKit)
+        return NSWorkspace.shared.open(Self.accessibilitySettingsURL)
+        #else
+        return false
+        #endif
+    }
+    
+    /// Deep-links directly to macOS System Settings -> Notifications
+    @discardableResult
+    public func openNotificationSettings() -> Bool {
+        #if canImport(AppKit)
+        return NSWorkspace.shared.open(Self.notificationSettingsURL)
+        #else
+        return false
+        #endif
     }
     
     /// Checks Notification authorization state
