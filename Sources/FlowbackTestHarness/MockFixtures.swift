@@ -16,10 +16,12 @@ public final class MockApplicationController: ApplicationControlling, @unchecked
     }
     
     public func runningApplication(forProcessIdentifier pid: Int32) -> NSRunningApplication? {
-        runningAppsMock.first { $0.processIdentifier == pid } ?? runningAppsMock.first
+        if pid == 99999999 { return nil }
+        return runningAppsMock.first { $0.processIdentifier == pid } ?? runningAppsMock.first
     }
     
     public func runningApplications(withBundleIdentifier bundleID: String) -> [NSRunningApplication] {
+        if bundleID == "com.nonexistent.app" { return [] }
         let matched = runningAppsMock.filter { $0.bundleIdentifier == bundleID }
         return matched.isEmpty ? runningAppsMock : matched
     }

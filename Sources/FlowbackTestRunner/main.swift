@@ -23,15 +23,18 @@ func assertTest(_ condition: Bool, _ name: String, file: String = #file, line: I
         totalTestsFailed += 1
         print("  ✗ FAILED: \(name) [\(file):\(line)]")
     }
+    fflush(stdout)
 }
 
 @MainActor
 func testGroup(_ name: String, _ block: @MainActor () async throws -> Void) async {
     print("\n[TEST SUITE] \(name)")
+    fflush(stdout)
     do {
         try await block()
     } catch {
         print("  ✗ CRITICAL SUITE ERROR in \(name): \(error.localizedDescription)")
+        fflush(stdout)
         totalTestsFailed += 1
     }
 }
@@ -208,7 +211,7 @@ await testGroup("Final Acceptance Scenarios A through J") {
     let mockWin = MockWindowController()
     let mockIdle = MockIdleTracker(idleSeconds: 30.0)
     let mockSpace = MockSpaceController()
-    let intentEngine = UserIntentEngine(idleTracker: mockIdle, windowController: mockWin, spaceController: mockSpace)
+    let intentEngine = UserIntentEngine(idleTracker: mockIdle, windowController: mockWin, spaceController: mockSpace, appController: mockApp)
     let arbiter = AttentionArbiter(aggregationWindow: 1.0, cooldownDuration: 0.5)
     let focusController = FocusController(appController: mockApp, windowController: mockWin, intentEngine: intentEngine, arbiter: arbiter)
     
@@ -456,6 +459,215 @@ await testGroup("Deep Audit & Robustness Verification") {
     let generic = GenericHookProvider()
     let genericMalformed = try? generic.parseLifecyclePayload(data: "{\"bad_schema\": true}".data(using: .utf8)!)
     assertTest(genericMalformed == nil, "GenericHookProvider rejects non-conforming payloads cleanly")
+}
+
+// 13. Standalone Execution & App Bundle Safety Suite (P1-1 Fix)
+await testGroup("Standalone Execution & App Bundle Safety") {
+    let permMgr = PermissionManager()
+    assertTest(!permMgr.isAppBundle, "Standalone process correctly identifies isAppBundle == false")
+    
+    let status = await permMgr.currentStatus()
+    assertTest(!status.isAppBundle, "PermissionStatus reports isAppBundle == false")
+    assertTest(!status.notificationsGranted, "Notifications disabled safely when running outside app bundle")
+    assertTest(!status.launchAtLoginEnabled, "SMAppService launchAtLogin safely disabled outside app bundle")
+}
+
+// 14. UnixSocketServer Security & Concurrency Suite
+await testGroup("UnixSocketServer Security & Concurrency") {
+    let testSockPath = "/tmp/fb_t\(UInt32.random(in: 10000...99999)).sock"
+    
+    let dummyIPC = IPCHandler(
+        sessionManager: SessionManager(),
+        focusController: FocusController(
+            appController: MockApplicationController(),
+            windowController: MockWindowController(),
+            intentEngine: UserIntentEngine(idleTracker: MockIdleTracker(), windowController: MockWindowController(), spaceController: MockSpaceController()),
+            arbiter: AttentionArbiter()
+        ),
+        providerRegistry: ProviderRegistry(),
+        settingsRepo: SettingsRepository(db: await RecoveryManager.shared.initializeStorage(path: ":memory:"))
+    )
+    
+    let server1 = UnixSocketServer(socketPath: testSockPath, delegate: dummyIPC)
+    try server1.start()
+    assertTest(FileManager.default.fileExists(atPath: testSockPath), "UnixSocketServer creates socket file on start")
+    
+    // Duplicate instance test on same active socket
+    let server2 = UnixSocketServer(socketPath: testSockPath, delegate: dummyIPC)
+    var duplicateDetected = false
+    do {
+        try server2.start()
+    } catch {
+        duplicateDetected = true
+    }
+    assertTest(duplicateDetected, "UnixSocketServer detects active running daemon and refuses duplicate bind (EADDRINUSE)")
+    
+    server1.stop()
+    assertTest(!FileManager.default.fileExists(atPath: testSockPath), "UnixSocketServer unlinks socket file on clean stop")
+    
+    // Stale socket recovery test: create a dead socket file on disk
+    FileManager.default.createFile(atPath: testSockPath, contents: Data(), attributes: nil)
+    assertTest(FileManager.default.fileExists(atPath: testSockPath), "Dead socket file staged on disk")
+    let server3 = UnixSocketServer(socketPath: testSockPath, delegate: dummyIPC)
+    try server3.start()
+    assertTest(FileManager.default.fileExists(atPath: testSockPath), "UnixSocketServer successfully recovers from stale socket file")
+    server3.stop()
+}
+
+// 15. Normalized Events & Enriched Context Model Suite
+await testGroup("Normalized Events & Enriched Context Model") {
+    let ctxChanged = AgentEventType.sessionContextChanged
+    let disappeared = AgentEventType.sessionDisappeared
+    assertTest(!ctxChanged.isActionableForAttention, "sessionContextChanged is non-actionable for disruptive focus")
+    assertTest(!disappeared.isActionableForAttention, "sessionDisappeared is non-actionable for disruptive focus")
+    assertTest(AgentEventType.agentCompleted.isActionableForAttention, "agentCompleted is actionable")
+    assertTest(AgentEventType.agentWaiting.isActionableForAttention, "agentWaiting is actionable")
+    
+    let origin = OriginContext(
+        bundleIdentifier: "com.apple.Terminal",
+        processIdentifier: 99999,
+        windowIdentifier: 101,
+        workspacePath: "/Users/test/workspace",
+        provenance: .systemFrontmost,
+        confidence: 0.95,
+        restorationCapability: .exactWindowAndWorkspace,
+        capturedAt: Date()
+    )
+    assertTest(origin.provenance == .systemFrontmost, "OriginContext stores provenance accurately")
+    assertTest(origin.restorationCapability == .exactWindowAndWorkspace, "OriginContext stores restoration capability")
+    assertTest(origin.confidence == 0.95, "OriginContext confidence level tracked")
+    assertTest(origin.isFresh(within: 60), "OriginContext captures freshness within threshold")
+    
+    // Stale context test
+    let oldOrigin = OriginContext(
+        bundleIdentifier: "com.apple.Terminal",
+        processIdentifier: 99999,
+        capturedAt: Date().addingTimeInterval(-700)
+    )
+    assertTest(!oldOrigin.isFresh(within: 600), "OriginContext detects stale context older than threshold")
+    
+    // Provider tier verification
+    assertTest(AntigravityProvider().supportLevel == .nativeLifecycle, "AntigravityProvider tier is native-lifecycle")
+    assertTest(ClaudeCodeProvider().supportLevel == .adapter, "ClaudeCodeProvider tier is adapter")
+    assertTest(CodexProvider().supportLevel == .adapter, "CodexProvider tier is adapter")
+    assertTest(GenericHookProvider().supportLevel == .genericProtocol, "GenericHookProvider tier is generic-protocol")
+}
+
+// 16. Structured Focus Outcomes & Intent Engine Suite
+await testGroup("Structured Focus Outcomes & Intent Engine") {
+    let mockApp = MockApplicationController()
+    let mockWin = MockWindowController()
+    let mockIdle = MockIdleTracker()
+    let mockSpace = MockSpaceController()
+    let intentEngine = UserIntentEngine(idleTracker: mockIdle, windowController: mockWin, spaceController: mockSpace, appController: mockApp)
+    let focusController = FocusController(appController: mockApp, windowController: mockWin, intentEngine: intentEngine, arbiter: AttentionArbiter())
+    
+    // Terminated application test: PID 99999999 does not exist on macOS
+    let deadPIDOrigin = OriginContext(
+        bundleIdentifier: "com.nonexistent.app",
+        processIdentifier: 99999999,
+        capturedAt: Date()
+    )
+    let deadSession = AgentSession(
+        id: AgentSessionID("dead-session-1"),
+        providerID: AgentProviderID("antigravity"),
+        state: .completed,
+        originContext: deadPIDOrigin
+    )
+    
+    let deadOutcome = intentEngine.evaluate(
+        session: deadSession,
+        config: PolicyConfiguration(),
+        focusLock: FocusLockState()
+    )
+    switch deadOutcome {
+    case .notifyOnly(let reason):
+        assertTest(reason.contains("no longer running"), "Terminated origin application safely falls back to notifyOnly (reason: \(reason))")
+    default:
+        assertTest(false, "Terminated app did not produce notifyOnly")
+    }
+    
+    // Cooldown test in FocusController
+    let liveOrigin = OriginContext(
+        bundleIdentifier: "com.apple.Terminal",
+        processIdentifier: ProcessInfo.processInfo.processIdentifier,
+        capturedAt: Date()
+    )
+    let liveSession = AgentSession(
+        id: AgentSessionID("live-session-1"),
+        providerID: AgentProviderID("antigravity"),
+        state: .completed,
+        originContext: liveOrigin
+    )
+    
+    let config = PolicyConfiguration(focusPolicy: .alwaysRestore)
+    let firstAction = await focusController.handleSessionCompletion(session: liveSession, config: config, focusLock: FocusLockState())
+    assertTest(firstAction.outcome != .ignore, "First completion action handled")
+    
+    // Immediate repeat within cooldown window
+    let secondAction = await focusController.handleSessionCompletion(session: liveSession, config: config, focusLock: FocusLockState())
+    switch secondAction {
+    case .deferAction(let reason, _):
+        assertTest(reason == .cooldownActive, "Immediate second completion safely deferred with .cooldownActive")
+    default:
+        assertTest(false, "Rapid second completion was not deferred under cooldown: \(secondAction)")
+    }
+}
+
+// 17. Database Retention & Pruning Suite
+await testGroup("Database Retention & Pruning") {
+    let dbPath = NSTemporaryDirectory() + "flowback_prune_test_\(UUID().uuidString).sqlite"
+    let db = await RecoveryManager.shared.initializeStorage(path: dbPath)
+    let sessionRepo = SessionRepository(db: db)
+    let eventRepo = EventRepository(db: db)
+    
+    // Seed 10 old completed sessions and 5 recent active sessions
+    let oldDate = Date().addingTimeInterval(-40 * 86400) // 40 days ago
+    for i in 1...10 {
+        let s = AgentSession(
+            id: AgentSessionID("old-session-\(i)"),
+            providerID: AgentProviderID("test"),
+            state: .completed,
+            startedAt: oldDate,
+            updatedAt: oldDate,
+            completedAt: oldDate
+        )
+        try await sessionRepo.saveSession(s)
+        
+        let e = AgentEvent(
+            id: "old-event-\(i)",
+            timestamp: oldDate,
+            providerID: AgentProviderID("test"),
+            sessionID: s.id,
+            type: .agentCompleted
+        )
+        try await eventRepo.saveEvent(e)
+    }
+    
+    for i in 1...5 {
+        let s = AgentSession(
+            id: AgentSessionID("recent-session-\(i)"),
+            providerID: AgentProviderID("test"),
+            state: .running,
+            startedAt: Date(),
+            updatedAt: Date()
+        )
+        try await sessionRepo.saveSession(s)
+    }
+    
+    let prunedCount = try await sessionRepo.pruneCompletedSessions(olderThanDays: 30, keepMinCount: 5)
+    assertTest(prunedCount == 10, "pruneCompletedSessions pruned exactly 10 old sessions exceeding 30-day cutoff")
+    
+    let remainingSessions = try await sessionRepo.fetchRecentSessions(limit: 50)
+    assertTest(remainingSessions.count == 5, "Remaining sessions count is preserved at 5 recent active sessions")
+    
+    let eventPruned = try await eventRepo.pruneEvents(olderThanDays: 30)
+    assertTest(eventPruned >= 0, "pruneEvents executes cleanly")
+    
+    await db.close()
+    try? FileManager.default.removeItem(atPath: dbPath)
+    try? FileManager.default.removeItem(atPath: "\(dbPath)-wal")
+    try? FileManager.default.removeItem(atPath: "\(dbPath)-shm")
 }
 
 print("\n================================================================")
