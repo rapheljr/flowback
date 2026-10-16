@@ -6,11 +6,13 @@ public struct IPCRequest: Codable, Sendable {
     public let command: String
     public let argument: String?
     public let payload: Data?
+    public let authToken: String?
     
-    public init(command: String, argument: String? = nil, payload: Data? = nil) {
+    public init(command: String, argument: String? = nil, payload: Data? = nil, authToken: String? = nil) {
         self.command = command
         self.argument = argument
         self.payload = payload
+        self.authToken = authToken
     }
 }
 

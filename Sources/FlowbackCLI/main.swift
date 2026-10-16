@@ -24,6 +24,7 @@ func printHelp() {
       test-notification         Send a test macOS actionable notification
       hook <provider>           Process hook input from stdin (for Antigravity, Claude, etc.)
       emit <json>               Emit a generic agent event into Flowback
+      quit, shutdown            Request graceful daemon shutdown
       help, -h                  Display this help message
     """)
 }
@@ -41,7 +42,9 @@ case "help", "-h", "--help":
     exit(0)
 
 case "version", "-v", "--version":
-    print("flowback v1.0.0 (build 1) — CLI tool for Flowback Context & Focus Orchestrator")
+    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    print("flowback v\(version) (build \(build)) — CLI tool for Flowback Context & Focus Orchestrator")
     exit(0)
 
 case "refresh":
@@ -226,8 +229,22 @@ case "test-focus":
 
 case "test-notification":
     do {
-        let resp = try client.send(command: "test-focus")
+        let resp = try client.send(command: "test-notification")
         print("Dispatched test notification request: \(resp.message)")
+    } catch {
+        print("Error: Flowback daemon is not running.")
+        exit(1)
+    }
+
+case "quit", "shutdown":
+    do {
+        let resp = try client.send(command: "quit")
+        if !resp.success {
+            print("Error: \(resp.message)")
+            exit(1)
+        }
+        print("Flowback daemon: \(resp.message)")
+        exit(0)
     } catch {
         print("Error: Flowback daemon is not running.")
         exit(1)

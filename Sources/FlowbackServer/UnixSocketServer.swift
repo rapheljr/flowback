@@ -15,16 +15,19 @@ public final class UnixSocketServer: @unchecked Sendable {
     private var isRunning: Bool = false
     private let queue = DispatchQueue(label: "com.flowback.socketserver", attributes: .concurrent)
     private weak var delegate: IPCHandlerDelegate?
+    public private(set) var sessionToken: String?
     
     /// Maximum allowed IPC payload size (2 megabytes) to prevent unbounded memory growth / DoS
     public static let maxPayloadSize = 2 * 1024 * 1024
     
     public init(
         socketPath: String = ("~/.flowback/flowback.sock" as NSString).expandingTildeInPath,
-        delegate: IPCHandlerDelegate? = nil
+        delegate: IPCHandlerDelegate? = nil,
+        sessionToken: String? = nil
     ) {
         self.socketPath = socketPath
         self.delegate = delegate
+        self.sessionToken = sessionToken
         signal(SIGPIPE, SIG_IGN)
     }
     
@@ -60,9 +63,35 @@ public final class UnixSocketServer: @unchecked Sendable {
         return connectResult == 0
     }
     
+    public var isListening: Bool {
+        isRunning && serverFd >= 0
+    }
+    
     public func start() throws {
         let dir = (socketPath as NSString).deletingLastPathComponent
-        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let isSystemSharedDir = (dir == "/tmp" || dir == "/private/tmp" || dir == "/var/tmp" || dir.isEmpty || dir == "/")
+        if !isSystemSharedDir {
+            if !FileManager.default.fileExists(atPath: dir) {
+                try FileManager.default.createDirectory(
+                    atPath: dir,
+                    withIntermediateDirectories: true,
+                    attributes: [.posixPermissions: 0o700]
+                )
+            }
+            
+            // Strictly set 0700 on directory (whether newly created or pre-existing)
+            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir)
+            
+            // Strict verification: directory permissions must be 0700
+            let attrs = try FileManager.default.attributesOfItem(atPath: dir)
+            if let perms = attrs[.posixPermissions] as? NSNumber {
+                let mode = perms.int16Value & 0o777
+                if mode != 0o700 {
+                    logger.error("Security violation: Socket directory \(dir) permissions could not be restricted to 0700 (mode: \(String(mode, radix: 8)))")
+                    throw POSIXError(.EACCES)
+                }
+            }
+        }
         
         // Safe socket lifecycle: check if an active daemon is already listening on this socket
         if FileManager.default.fileExists(atPath: socketPath) {
@@ -110,6 +139,13 @@ public final class UnixSocketServer: @unchecked Sendable {
         // Restrict socket permissions strictly to current user (0600)
         chmod(socketPath, 0o600)
         
+        // Generate and persist ephemeral session token for authorized sensitive commands
+        let token = sessionToken ?? UUID().uuidString
+        self.sessionToken = token
+        let tokenPath = isSystemSharedDir ? (socketPath + ".token") : (dir + "/.session_token")
+        try? token.write(toFile: tokenPath, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: tokenPath)
+        
         guard listen(serverFd, 128) == 0 else {
             let err = errno
             close(serverFd)
@@ -125,12 +161,21 @@ public final class UnixSocketServer: @unchecked Sendable {
     }
     
     public func stop() {
+        guard isRunning || serverFd >= 0 else { return }
         isRunning = false
         if serverFd >= 0 {
             close(serverFd)
             serverFd = -1
         }
-        unlink(socketPath)
+        if FileManager.default.fileExists(atPath: socketPath) {
+            unlink(socketPath)
+        }
+        let dir = (socketPath as NSString).deletingLastPathComponent
+        let isSystemSharedDir = (dir == "/tmp" || dir == "/private/tmp" || dir == "/var/tmp" || dir.isEmpty || dir == "/")
+        let tokenPath = isSystemSharedDir ? (socketPath + ".token") : (dir + "/.session_token")
+        if FileManager.default.fileExists(atPath: tokenPath) {
+            unlink(tokenPath)
+        }
         logger.info("Unix socket server stopped")
     }
     

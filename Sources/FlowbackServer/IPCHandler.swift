@@ -15,6 +15,9 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
     private let providerRegistry: ProviderRegistry
     private let settingsRepo: SettingsRepository
     private var focusLock: FocusLockState
+    private let shutdownHandler: (@Sendable () -> Void)?
+    private let testNotificationHandler: (@Sendable () async -> Void)?
+    private let sessionToken: String?
     
     public init(
         eventBus: EventBus = .shared,
@@ -22,7 +25,10 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         focusController: FocusController,
         providerRegistry: ProviderRegistry = .shared,
         settingsRepo: SettingsRepository,
-        focusLock: FocusLockState = FocusLockState()
+        focusLock: FocusLockState = FocusLockState(),
+        sessionToken: String? = nil,
+        shutdownHandler: (@Sendable () -> Void)? = nil,
+        testNotificationHandler: (@Sendable () async -> Void)? = nil
     ) {
         self.eventBus = eventBus
         self.sessionManager = sessionManager
@@ -30,6 +36,9 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         self.providerRegistry = providerRegistry
         self.settingsRepo = settingsRepo
         self.focusLock = focusLock
+        self.sessionToken = sessionToken
+        self.shutdownHandler = shutdownHandler
+        self.testNotificationHandler = testNotificationHandler
     }
     
     public func setFocusLock(_ state: FocusLockState) {
@@ -73,6 +82,12 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
             
         case "test-focus":
             return await handleTestFocus()
+            
+        case "test-notification":
+            return await handleTestNotification()
+            
+        case "quit", "shutdown":
+            return handleShutdown(request: request)
             
         default:
             return IPCResponse(success: false, message: "Unknown command '\(request.command)'")
@@ -313,5 +328,30 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         )
         
         return IPCResponse(success: true, message: "Test focus evaluated: \(decision.explanation)")
+    }
+    
+    private func handleTestNotification() async -> IPCResponse {
+        logger.info("Triggering test notification via delegate")
+        if let handler = testNotificationHandler {
+            await handler()
+            return IPCResponse(success: true, message: "Test notification dispatched")
+        } else {
+            return IPCResponse(success: false, message: "Notification handler not configured")
+        }
+    }
+    
+    private func handleShutdown(request: IPCRequest) -> IPCResponse {
+        if let required = sessionToken {
+            guard let provided = request.authToken, provided == required else {
+                logger.error("Security alert: Unauthorized quit/shutdown attempt rejected (invalid or missing session token)")
+                return IPCResponse(success: false, message: "Unauthorized: quit/shutdown command requires valid local session token")
+            }
+        }
+        
+        logger.info("Service shutdown authorized and initiated over IPC")
+        if let handler = shutdownHandler {
+            handler()
+        }
+        return IPCResponse(success: true, message: "Flowback shutdown initiated")
     }
 }

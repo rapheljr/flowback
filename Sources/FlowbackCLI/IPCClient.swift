@@ -20,7 +20,7 @@ public struct IPCClient: Sendable {
         self.socketPath = socketPath
     }
     
-    public func send(command: String, argument: String? = nil, payload: Data? = nil) throws -> IPCClientResult {
+    public func send(command: String, argument: String? = nil, payload: Data? = nil, authToken: String? = nil) throws -> IPCClientResult {
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else {
             throw POSIXError(.init(rawValue: errno) ?? .EIO)
@@ -52,8 +52,16 @@ public struct IPCClient: Sendable {
             throw POSIXError(.init(rawValue: err) ?? .ECONNREFUSED)
         }
         
+        // Auto-load local session auth token if not explicitly provided
+        let effectiveToken = authToken ?? {
+            let dir = (socketPath as NSString).deletingLastPathComponent
+            let isSystemSharedDir = (dir == "/tmp" || dir == "/private/tmp" || dir == "/var/tmp" || dir.isEmpty || dir == "/")
+            let tokenPath = isSystemSharedDir ? (socketPath + ".token") : (dir + "/.session_token")
+            return try? String(contentsOfFile: tokenPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+        }()
+        
         // Encode and send IPCRequest
-        let req = IPCRequestDTO(command: command, argument: argument, payload: payload)
+        let req = IPCRequestDTO(command: command, argument: argument, payload: payload, authToken: effectiveToken)
         let reqData = try JSONEncoder().encode(req)
         
         reqData.withUnsafeBytes { raw in
@@ -99,6 +107,7 @@ private struct IPCRequestDTO: Codable {
     let command: String
     let argument: String?
     let payload: Data?
+    let authToken: String?
 }
 
 private struct IPCResponseDTO: Codable {
