@@ -61,7 +61,7 @@ public actor FocusController {
                     category: "Cooldown",
                     summary: cooldownReason
                 )
-                return .notifyOnly(reason: cooldownReason)
+                return .deferAction(reasonCode: .cooldownActive, explanation: cooldownReason)
             }
             
             let restored = await restoreContext(origin)
@@ -92,7 +92,7 @@ public actor FocusController {
             }
             return .notifyOnly(reason: reason)
             
-        case .notifyOnly, .suppress:
+        case .notifyOnly, .deferAction, .suppress:
             return decision
         }
     }
