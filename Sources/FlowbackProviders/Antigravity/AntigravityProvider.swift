@@ -156,6 +156,7 @@ public final class AntigravityProvider: AgentProvider, Sendable {
         )
     }
     
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
     public func discoverActiveSessions() async -> [AgentSession] {
         let fm = FileManager.default
         let searchRoots = [

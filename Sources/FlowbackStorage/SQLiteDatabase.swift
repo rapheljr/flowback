@@ -133,7 +133,7 @@ public actor SQLiteDatabase {
     }
     
     /// Prepares and executes a statement with parameter binding
-    public func execute(sql: String, bindings: [Any?]) throws {
+    public func execute(sql: String, bindings: [(any Sendable)?] = []) throws {
         guard let db = db else { throw SQLiteError.connectionFailed("Database not open") }
         var stmt: OpaquePointer?
         defer { sqlite3_finalize(stmt) }
@@ -153,7 +153,11 @@ public actor SQLiteDatabase {
     }
     
     /// Queries rows and maps them with a closure
-    public func query<T: Sendable>(sql: String, bindings: [Any?] = [], mapRow: @Sendable (OpaquePointer) throws -> T) throws -> [T] {
+    public func query<T: Sendable>(
+        sql: String,
+        bindings: [(any Sendable)?] = [],
+        mapRow: @Sendable (OpaquePointer) throws -> T
+    ) throws -> [T] {
         guard let db = db else { throw SQLiteError.connectionFailed("Database not open") }
         var stmt: OpaquePointer?
         defer { sqlite3_finalize(stmt) }
@@ -173,7 +177,7 @@ public actor SQLiteDatabase {
         }
         return results
     }
-    private func bind(statement: OpaquePointer?, values: [Any?]) throws {
+    private func bind(statement: OpaquePointer?, values: [(any Sendable)?]) throws {
         for (index, val) in values.enumerated() {
             let idx = Int32(index + 1)
             if val == nil {

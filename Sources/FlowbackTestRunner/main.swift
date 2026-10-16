@@ -410,7 +410,7 @@ await testGroup("Deep Audit & Robustness Verification") {
     } catch {
         // Expected throw, verify record was rolled back
         let rows = try? await auditDb.query(sql: "SELECT id FROM sessions WHERE id = 'atomic-test';") { _ in true }
-        if (rows?.isEmpty ?? false) {
+        if rows?.isEmpty ?? false {
             rollbackVerified = true
         }
     }
