@@ -6,41 +6,53 @@ The Flowback Focus Engine is a deterministic arbitration system that decides whe
 
 ---
 
-## 1. Deterministic Decision Algorithm
+## 1. 12-Step Deterministic Decision Pipeline
+
+Flowback processes lifecycle events through an explicit, 12-step deterministic decision sequence:
 
 ```text
-                                 [Agent Event Received]
-                                            ↓
-                               [Focus Lock Active?]
-                                   ├── YES ──► [Notify Only]
-                                   └── NO
-                                            ↓
-                              [Effective Policy == Never?]
-                                   ├── YES ──► [Suppress Focus & Notification]
-                                   └── NO
-                                            ↓
-                         [Protected App Frontmost? (Zoom/Slack/Game)]
-                                   ├── YES ──► [Notify Only]
-                                   └── NO
-                                            ↓
-                             [Frontmost App in Fullscreen?]
-                                   ├── YES ──► [Notify Only]
-                                   └── NO
-                                            ↓
-                        [User Actively Interacting Elsewhere? (<5s)]
-                                   ├── YES ──► [Notify Only (Do Not Steal Focus)]
-                                   └── NO
-                                            ↓
-                       [Origin Window on Different macOS Space?]
-                                   ├── YES (and SpacePolicy != Allow) ──► [Notify Only]
-                                   └── NO
-                                            ↓
-                             [Focus Cooldown Active? (<1000ms)]
-                                   ├── YES ──► [Defer to Attention Queue / Notify]
-                                   └── NO
-                                            ↓
-                           [Restore Origin Context (Section 14)]
+ 1. Event Validation & Authenticity    ──► Reject malformed / unauthorized peer UID
+ 2. Deduplication Check                ──► Suppress identical event within 500ms
+ 3. Stale & Out-of-Order Check         ──► Suppress event older than session update time
+ 4. Actionability Evaluation           ──► Only evaluate focus for actionable states
+ 5. Focus Lock State                   ──► Suppress focus switch; Notify only
+ 6. Policy Resolution & Precedence     ──► Workspace > App > Provider > Global
+ 7. Protected Application Check        ──► If frontmost app is protected (Zoom/Teams), Notify only
+ 8. Presentation / Fullscreen Check    ──► If frontmost window is fullscreen, Notify only
+ 9. Origin Liveness & Validity Check   ──► If target app/PID terminated, Notify only (.originProcessTerminated)
+10. User Intent & Active Input Sensing ──► If user actively typing elsewhere (<5s), Notify only
+11. macOS Space Policy Check           ──► If window on another Space & disallowed, Notify only
+12. Focus Cooldown & Restoration       ──► If within 1000ms cooldown, Defer (.cooldownActive); Else Restore Origin
 ```
+
+---
+
+## 1.1 Structured Focus Outcomes & Reason Codes
+
+Every decision emits one of four canonical focus outcomes accompanied by a typed `FocusReasonCode` and human-readable explanation:
+
+| Canonical Outcome | Internal Enum | Description |
+|---|---|---|
+| `restore` | `FocusOutcome.restore` | Restores originating application window and workspace |
+| `notify` | `FocusOutcome.notify` | Dispatches actionable macOS user notification |
+| `defer` | `FocusOutcome.defer` | Postpones action until cooldown expires or condition is met |
+| `ignore` | `FocusOutcome.ignore` | Safely drops irrelevant, duplicate, or stale events |
+
+### Structured Reason Codes (`FocusReasonCode`)
+* `.focusLockActive`: Focus Lock prevents automatic window switching.
+* `.userActivelyInteracting`: User typing/mouse active in another window within threshold (<5s).
+* `.protectedApplicationFrontmost`: Protected software (e.g. video conferencing) is frontmost.
+* `.fullscreenPresentationMode`: Display is in macOS fullscreen presentation.
+* `.originProcessTerminated`: Target application or process ID has terminated.
+* `.cooldownActive`: Restoration deferred because another focus switch occurred recently (<1000ms).
+* `.spaceSwitchProhibited`: Target window resides on a different macOS Space.
+* `.policyNeverInterrupt`: User configured `.neverInterrupt` policy.
+* `.policyNotificationOnly`: User configured `.notificationOnly` policy.
+* `.restorationSucceeded`: Context restoration completed successfully.
+* `.restorationFailedFallback`: Restoration failed, safely degrading to notification banner.
+* `.eventStaleOrOutOfOrder`: Dropped due to expired timestamp or skew.
+* `.eventNotActionable`: Background lifecycle event that does not request user attention.
+* `.manualUserTrigger`: Focus manually requested via CLI or Menu Bar.
 
 ---
 

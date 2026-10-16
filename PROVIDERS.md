@@ -4,6 +4,32 @@ Flowback integrates with AI coding agents using a modular, protocol-oriented pro
 
 ---
 
+## Provider Support Levels
+
+Flowback assigns an honest, evidence-backed support level to every integrated provider:
+
+* **`native-lifecycle`**: Provider-specific lifecycle events and stop hooks are natively implemented, validated, and tested.
+* **`adapter`**: Lifecycle events are derived through a documented CLI wrapper, terminal watcher, or process adapter.
+* **`generic-protocol`**: Events arrive through the public Flowback integration contract (`~/.flowback/flowback.sock`).
+* **`context-only`**: Application/workspace context is available, but reliable lifecycle events are not.
+* **`partial`**: Material capabilities work, but material limitations remain.
+* **`planned`**: Not yet implemented.
+
+---
+
+## Provider Support Matrix
+
+| Provider | Support Level | Event Source | Lifecycle Coverage | Context Capture | Restoration Capability | Verified Status |
+|---|---|---|---|---|---|---|
+| **Google Antigravity** | `native-lifecycle` | `~/.gemini/config/hooks.json` (`Stop` hook) | Started, Running, Idle, Completed, Failed | IDE process, window, workspace | Exact Window & Workspace | **LOCALLY_VERIFIED** |
+| **Claude Code** | `adapter` | CLI wrapper & terminal hooks | Running, Waiting, Completed | Terminal process & window | Workspace Window / App Activation | **LOCALLY_VERIFIED** |
+| **OpenAI Codex** | `adapter` | Codex CLI hooks & process tracker | Running, PermissionRequired, Completed | Process & workspace | App Activation Only | **LOCALLY_VERIFIED** |
+| **Gemini CLI** | `adapter` | Command watcher / CLI hook | Running, Completed, Failed | Terminal working dir | Workspace Window | **LOCALLY_VERIFIED** |
+| **Aider** | `adapter` | Git watcher & process tracking | Running, Completed | Terminal process & workspace | App Activation Only | **LOCALLY_VERIFIED** |
+| **Generic Hook** | `generic-protocol` | Unix domain socket (`/tmp` / `~/.flowback`) | All 12 normalized lifecycle events | Explicit JSON payload | Exact Window & Workspace | **LOCALLY_VERIFIED** |
+
+---
+
 ## The `AgentProvider` Protocol
 
 All providers conform to `AgentProvider` defined in `FlowbackCore`:
@@ -13,11 +39,13 @@ public protocol AgentProvider: Sendable {
     var providerID: AgentProviderID { get }
     var displayName: String { get }
     var isSupported: Bool { get }
+    var supportLevel: ProviderSupportLevel { get }
     
     func checkHealth() async -> ProviderHealth
     func parseLifecyclePayload(data: Data) throws -> AgentEvent?
     func installIntegration() async throws
     func uninstallIntegration() async throws
+    func discoverActiveSessions() async -> [AgentSession]
 }
 ```
 

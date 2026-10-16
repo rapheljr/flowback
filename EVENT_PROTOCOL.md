@@ -46,7 +46,9 @@ The socket is accessible only to processes running under the current user's UID 
         "agent.failed",
         "agent.cancelled",
         "agent.stopped",
-        "agent.idle"
+        "agent.idle",
+        "session.context_changed",
+        "session.disappeared"
       ]
     },
     "provider": {
@@ -69,7 +71,22 @@ The socket is accessible only to processes running under the current user's UID 
         "bundleId": { "type": "string" },
         "pid": { "type": "integer" },
         "windowId": { "type": "integer" },
-        "windowTitle": { "type": "string" }
+        "windowTitle": { "type": "string" },
+        "workspacePath": { "type": "string" },
+        "provenance": {
+          "type": "string",
+          "enum": ["native_hook", "provider_transcript", "system_frontmost", "ipc_explicit", "inferred"]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "restorationCapability": {
+          "type": "string",
+          "enum": ["exact_window_and_workspace", "workspace_window", "app_activation_only", "notification_fallback_only", "unsupported"]
+        },
+        "capturedAt": { "type": "string", "format": "date-time" }
       }
     },
     "timestamp": {
@@ -88,27 +105,34 @@ The socket is accessible only to processes running under the current user's UID 
 
 ## Event Normalization Mapping
 
-| Protocol Event String | Normalized Internal `AgentEventType` | Default Focus Impact |
-|---|---|---|
-| `agent.started` | `.agentStarted` | Origin context captured |
-| `agent.running` | `.agentRunning` | Session marked active |
-| `agent.waiting` | `.agentWaiting` | Priority: waiting |
-| `agent.permission_required` | `.agentPermissionRequired` | Priority: permissionRequired (high) |
-| `agent.progress` | `.agentProgress` | Timeline progress record |
-| `agent.completed` | `.agentCompleted` | Focus evaluation evaluated |
-| `agent.failed` | `.agentFailed` | Priority: failure (high) |
-| `agent.cancelled` | `.agentCancelled` | Session cleanly closed |
-| `agent.stopped` | `.agentStopped` | Check for `fullyIdle` |
-| `agent.idle` | `.agentIdle` | Provider idle signal |
+| Protocol Event String | Normalized Internal `AgentEventType` | Default Focus Impact | Actionable for Attention |
+|---|---|---|---|
+| `agent.started` | `.agentStarted` | Origin context captured | No |
+| `agent.running` | `.agentRunning` | Session marked active | No |
+| `agent.waiting` | `.agentWaiting` | Priority: waiting (user input required) | **Yes** |
+| `agent.permission_required` | `.agentPermissionRequired` | Priority: permissionRequired (high) | **Yes** |
+| `agent.progress` | `.agentProgress` | Timeline progress record | No |
+| `agent.completed` | `.agentCompleted` | Focus evaluation evaluated | **Yes** |
+| `agent.failed` | `.agentFailed` | Priority: failure (high) | **Yes** |
+| `agent.cancelled` | `.agentCancelled` | Session cleanly closed | No |
+| `agent.stopped` | `.agentStopped` | Check for `fullyIdle` | No |
+| `agent.idle` | `.agentIdle` | Provider idle signal | **Yes** |
+| `session.context_changed` | `.sessionContextChanged` | Updates session active window/path | No |
+| `session.disappeared` | `.sessionDisappeared` | Cleanly marks session dead | No |
 
 ---
 
-## Validation & Safety Rules
+## Security, Validation & Safety Rules
 
-1. **Schema Version Check:** If `schemaVersion != 1`, the event is rejected with `INVALID_SCHEMA_VERSION`.
-2. **Deduplication:** Events with identical hash (`provider + sessionID + event + timestamp_bucket`) arriving within 500ms are safely discarded.
-3. **Idempotence:** Sending multiple `agent.completed` events will not trigger multiple focus switches.
-4. **Sanitization:** Metadata strings containing binary data or exceeding 64KB are rejected.
+1. **Peer Authentication (`getpeereid`):** The Unix socket enforces that connecting client process UID matches `getuid()` of the running Flowback daemon. Non-matching UIDs receive immediate access denial.
+2. **Strict Payload Bounds:** Maximum IPC payload size is strictly capped at **2MB** (`maxPayloadSize = 2 * 1024 * 1024`) to eliminate memory exhaustion and buffer overflow risks.
+3. **Socket Timeouts:** Both `SO_RCVTIMEO` and `SO_SNDTIMEO` are enforced at 5.0 seconds.
+4. **Duplicate Daemon Protection:** Prior to binding, Flowback probes for an active listening socket. If an instance is alive, bind fails with `EADDRINUSE`. Stale socket files from ungraceful host power cuts are safely removed.
+5. **Schema Version Check:** If `schemaVersion != 1`, the event is rejected with an explanatory error.
+6. **Deduplication:** Events with identical hash (`provider + sessionID + event + timestamp_bucket`) arriving within 500ms are safely discarded.
+7. **Stale/Out-of-Order Rejection:** Events carrying timestamps older than the session's recorded update time (with a 2-second skew tolerance) are dropped to prevent stale focus switches.
+8. **Idempotence:** Sending multiple `agent.completed` events will not trigger multiple focus switches.
+9. **Sanitization:** Metadata strings containing binary data or exceeding 64KB are rejected.
 
 ---
 
