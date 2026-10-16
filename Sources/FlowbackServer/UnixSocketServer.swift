@@ -16,24 +16,64 @@ public final class UnixSocketServer: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.flowback.socketserver", attributes: .concurrent)
     private weak var delegate: IPCHandlerDelegate?
     
+    /// Maximum allowed IPC payload size (2 megabytes) to prevent unbounded memory growth / DoS
+    public static let maxPayloadSize = 2 * 1024 * 1024
+    
     public init(
         socketPath: String = ("~/.flowback/flowback.sock" as NSString).expandingTildeInPath,
         delegate: IPCHandlerDelegate? = nil
     ) {
         self.socketPath = socketPath
         self.delegate = delegate
+        signal(SIGPIPE, SIG_IGN)
     }
     
     public func setDelegate(_ delegate: IPCHandlerDelegate) {
         self.delegate = delegate
     }
     
+    /// Checks whether an existing Flowback daemon is actively listening on a socket path
+    public static func isDaemonListening(
+        socketPath: String = ("~/.flowback/flowback.sock" as NSString).expandingTildeInPath
+    ) -> Bool {
+        guard FileManager.default.fileExists(atPath: socketPath) else { return false }
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        
+        var addr = sockaddr_un()
+        addr.sun_family = sa_family_t(AF_UNIX)
+        let pathBytes = socketPath.utf8CString
+        guard pathBytes.count <= MemoryLayout.size(ofValue: addr.sun_path) else { return false }
+        
+        withUnsafeMutablePointer(to: &addr.sun_path.0) { ptr in
+            _ = pathBytes.withUnsafeBufferPointer { buf in
+                memcpy(ptr, buf.baseAddress, buf.count)
+            }
+        }
+        
+        let connectResult = withUnsafePointer(to: &addr) { ptr in
+            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { saPtr in
+                connect(fd, saPtr, socklen_t(MemoryLayout<sockaddr_un>.size))
+            }
+        }
+        return connectResult == 0
+    }
+    
     public func start() throws {
         let dir = (socketPath as NSString).deletingLastPathComponent
         try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         
-        // Remove stale socket if present
-        unlink(socketPath)
+        // Safe socket lifecycle: check if an active daemon is already listening on this socket
+        if FileManager.default.fileExists(atPath: socketPath) {
+            if Self.isDaemonListening(socketPath: socketPath) {
+                logger.error("Another Flowback daemon instance is already active and listening at \(self.socketPath)")
+                throw POSIXError(.EADDRINUSE)
+            }
+            // Socket file exists but no process is listening — clean up stale socket
+            logger.info("Removing stale socket file at \(self.socketPath)")
+            unlink(socketPath)
+        }
         
         serverFd = socket(AF_UNIX, SOCK_STREAM, 0)
         guard serverFd >= 0 else {
@@ -67,7 +107,7 @@ public final class UnixSocketServer: @unchecked Sendable {
             throw POSIXError(.init(rawValue: err) ?? .EIO)
         }
         
-        // Restrict socket permissions to user only (0600)
+        // Restrict socket permissions strictly to current user (0600)
         chmod(socketPath, 0o600)
         
         guard listen(serverFd, 128) == 0 else {
@@ -111,10 +151,35 @@ public final class UnixSocketServer: @unchecked Sendable {
     private func handleClient(_ clientFd: Int32) async {
         defer { close(clientFd) }
         
-        // Set receive timeout to prevent hanging connections
+        // Prevent SIGPIPE on write to broken socket
+        var nosigpipe: Int32 = 1
+        setsockopt(clientFd, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, socklen_t(MemoryLayout<Int32>.size))
+        
+        // 1. Peer Authentication / Trust Boundary Check
+        var peerUid: uid_t = 0
+        var peerGid: gid_t = 0
+        if getpeereid(clientFd, &peerUid, &peerGid) == 0 {
+            let currentUid = getuid()
+            if peerUid != currentUid && currentUid != 0 {
+                logger.error("Security alert: connection rejected from unauthorized UID \(peerUid) (current user is \(currentUid))")
+                let forbidden = IPCResponse(success: false, message: "Access denied: unauthorized peer UID")
+                if let forbiddenData = try? JSONEncoder().encode(forbidden) {
+                    forbiddenData.withUnsafeBytes { raw in
+                        if let base = raw.baseAddress {
+                            _ = write(clientFd, base, forbiddenData.count)
+                        }
+                    }
+                }
+                return
+            }
+        }
+        
+        // 2. Set socket read/write timeouts (5 seconds)
         var timeout = timeval(tv_sec: 5, tv_usec: 0)
         setsockopt(clientFd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(clientFd, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
         
+        // 3. Read request data with strict payload bounds
         var requestData = Data()
         var buffer = [UInt8](repeating: 0, count: 16384)
         let decoder = JSONDecoder()
@@ -124,6 +189,20 @@ public final class UnixSocketServer: @unchecked Sendable {
             let bytesRead = read(clientFd, &buffer, buffer.count)
             if bytesRead <= 0 { break }
             requestData.append(buffer, count: bytesRead)
+            
+            // Enforce upper limit to avoid memory exhaustion
+            if requestData.count > Self.maxPayloadSize {
+                logger.warning("Rejecting oversized IPC request (\(requestData.count) bytes > \(Self.maxPayloadSize) bytes)")
+                let response = IPCResponse(success: false, message: "Payload exceeds maximum allowed size (2MB)")
+                if let responseData = try? JSONEncoder().encode(response) {
+                    responseData.withUnsafeBytes { raw in
+                        if let base = raw.baseAddress {
+                            _ = write(clientFd, base, responseData.count)
+                        }
+                    }
+                }
+                return
+            }
             
             if let req = try? decoder.decode(IPCRequest.self, from: requestData) {
                 decodedRequest = req
@@ -135,6 +214,12 @@ public final class UnixSocketServer: @unchecked Sendable {
             decodedRequest = try? decoder.decode(IPCRequest.self, from: requestData)
         }
         
+        // Liveness probe check: client disconnected immediately without sending payload
+        guard !requestData.isEmpty else {
+            return
+        }
+        
+        // 4. Delegate execution
         let response: IPCResponse
         if let request = decodedRequest, let del = self.delegate {
             response = await del.handleRequest(request)
@@ -142,6 +227,7 @@ public final class UnixSocketServer: @unchecked Sendable {
             response = IPCResponse(success: false, message: "Malformed IPC request")
         }
         
+        // 5. Write response
         if let responseData = try? JSONEncoder().encode(response) {
             responseData.withUnsafeBytes { raw in
                 guard let base = raw.baseAddress else { return }

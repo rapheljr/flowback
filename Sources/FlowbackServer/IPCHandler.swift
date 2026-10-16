@@ -131,6 +131,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
                 "name": h.displayName,
                 "installed": h.isInstalled,
                 "hookInstalled": h.hookInstalled,
+                "supportLevel": h.supportLevel.rawValue,
                 "status": h.statusMessage
             ])
         }
@@ -289,17 +290,18 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         guard let front = NSWorkspace.shared.frontmostApplication else {
             return IPCResponse(success: false, message: "No frontmost application detected")
         }
+        let testWs = (NSHomeDirectory() as NSString).appendingPathComponent("workspace/projects/focus-switcher")
         let testOrigin = OriginContext(
             bundleIdentifier: front.bundleIdentifier ?? "com.apple.finder",
             applicationPath: front.bundleURL?.path,
             processIdentifier: front.processIdentifier,
-            workspacePath: "/Users/abin/workspace/projects/focus-switcher"
+            workspacePath: testWs
         )
         let config = await settingsRepo.loadConfiguration()
         let testSession = AgentSession(
             providerID: .antigravity,
             state: .completed,
-            workspace: "/Users/abin/workspace/projects/focus-switcher",
+            workspace: testWs,
             originContext: testOrigin
         )
         
