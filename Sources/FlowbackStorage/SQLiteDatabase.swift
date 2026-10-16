@@ -50,6 +50,10 @@ public actor SQLiteDatabase {
         self.path = path
     }
     
+    public var isDurable: Bool {
+        path != ":memory:"
+    }
+    
     public func open() throws {
         guard box == nil else { return }
         
@@ -57,7 +61,14 @@ public actor SQLiteDatabase {
         if path != ":memory:" {
             let dir = (path as NSString).deletingLastPathComponent
             if !dir.isEmpty {
-                try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+                if !FileManager.default.fileExists(atPath: dir) {
+                    try FileManager.default.createDirectory(
+                        atPath: dir,
+                        withIntermediateDirectories: true,
+                        attributes: [.posixPermissions: 0o700]
+                    )
+                }
+                try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir)
             }
         }
         

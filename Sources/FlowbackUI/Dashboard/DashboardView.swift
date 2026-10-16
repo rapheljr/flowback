@@ -59,6 +59,10 @@ public struct DashboardView: View {
     public var onTestFocus: () -> Void
     public var onTestNotification: () -> Void
     public var onRefresh: () -> Void
+    public var isDatabaseReady: Bool = true
+    public var isStorageDurable: Bool = true
+    public var storageRecoveryNotice: String? = nil
+    public var isIPCReady: Bool = true
     
     @ObservedObject public var viewModel: DashboardViewModel
     
@@ -72,6 +76,10 @@ public struct DashboardView: View {
         permissionStatusBinding: Binding<PermissionStatus>,
         config: Binding<PolicyConfiguration>,
         focusLock: Binding<FocusLockState>,
+        isDatabaseReady: Bool = true,
+        isStorageDurable: Bool = true,
+        storageRecoveryNotice: String? = nil,
+        isIPCReady: Bool = true,
         onFocusSession: @escaping (AgentSession) -> Void,
         onSaveConfig: @escaping (PolicyConfiguration) -> Void,
         onRepairAntigravity: @escaping () -> Void,
@@ -88,6 +96,11 @@ public struct DashboardView: View {
         self._permissionStatus = permissionStatusBinding
         self._config = config
         self._focusLock = focusLock
+        self.isDatabaseReady = isDatabaseReady
+        self.isDatabaseReady = isDatabaseReady
+        self.isStorageDurable = isStorageDurable
+        self.storageRecoveryNotice = storageRecoveryNotice
+        self.isIPCReady = isIPCReady
         self.onFocusSession = onFocusSession
         self.onSaveConfig = onSaveConfig
         self.onRepairAntigravity = onRepairAntigravity
@@ -107,43 +120,62 @@ public struct DashboardView: View {
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
             .listStyle(.sidebar)
         } detail: {
-            Group {
-                switch viewModel.selectedTab {
-                case .overview:
-                    OverviewView(
-                        activeSessions: $activeSessions,
-                        attentionQueue: $attentionQueue,
-                        focusLock: $focusLock,
-                        onFocusSession: onFocusSession,
-                        onRefresh: onRefresh
-                    )
-                case .agents:
-                    AgentsView(
-                        sessions: allSessions,
-                        onFocusSession: onFocusSession
-                    )
-                case .timeline:
-                    SessionTimelineView(
-                        sessions: allSessions,
-                        timelineEntries: timelineEntries
-                    )
-                case .applications:
-                    ApplicationsView(
-                        protectedApps: $config.protectedApplications
-                    )
-                case .diagnostics:
-                    DiagnosticsView(
-                        providerHealths: providerHealths,
-                        permissionStatus: permissionStatus,
-                        onRepairAntigravity: onRepairAntigravity,
-                        onTestFocus: onTestFocus,
-                        onTestNotification: onTestNotification
-                    )
-                case .settings:
-                    SettingsView(
-                        config: $config,
-                        onSave: onSaveConfig
-                    )
+            VStack(spacing: 0) {
+                if !isStorageDurable {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(storageRecoveryNotice ?? "Operating in transient in-memory database fallback (changes will not persist to disk).")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Spacer()
+                    }
+                    .padding(8)
+                    .background(Color.orange.opacity(0.15))
+                }
+                
+                Group {
+                    switch viewModel.selectedTab {
+                    case .overview:
+                        OverviewView(
+                            activeSessions: $activeSessions,
+                            attentionQueue: $attentionQueue,
+                            focusLock: $focusLock,
+                            onFocusSession: onFocusSession,
+                            onRefresh: onRefresh
+                        )
+                    case .agents:
+                        AgentsView(
+                            sessions: allSessions,
+                            onFocusSession: onFocusSession
+                        )
+                    case .timeline:
+                        SessionTimelineView(
+                            sessions: allSessions,
+                            timelineEntries: timelineEntries
+                        )
+                    case .applications:
+                        ApplicationsView(
+                            protectedApps: $config.protectedApplications
+                        )
+                    case .diagnostics:
+                        DiagnosticsView(
+                            providerHealths: providerHealths,
+                            permissionStatus: permissionStatus,
+                            isDatabaseReady: isDatabaseReady,
+                            isStorageDurable: isStorageDurable,
+                            storageRecoveryNotice: storageRecoveryNotice,
+                            isIPCReady: isIPCReady,
+                            onRepairAntigravity: onRepairAntigravity,
+                            onTestFocus: onTestFocus,
+                            onTestNotification: onTestNotification
+                        )
+                    case .settings:
+                        SettingsView(
+                            config: $config,
+                            onSave: onSaveConfig
+                        )
+                    }
                 }
             }
             .navigationTitle(viewModel.selectedTab.rawValue)

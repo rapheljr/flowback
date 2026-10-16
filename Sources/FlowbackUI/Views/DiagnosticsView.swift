@@ -10,6 +10,10 @@ public final class DiagnosticsViewModel: ObservableObject {
 public struct DiagnosticsView: View {
     public let providerHealths: [ProviderHealth]
     public let permissionStatus: PermissionStatus
+    public let isDatabaseReady: Bool
+    public let isStorageDurable: Bool
+    public let storageRecoveryNotice: String?
+    public let isIPCReady: Bool
     public var onRepairAntigravity: () -> Void
     public var onTestFocus: () -> Void
     public var onTestNotification: () -> Void
@@ -19,12 +23,20 @@ public struct DiagnosticsView: View {
     public init(
         providerHealths: [ProviderHealth],
         permissionStatus: PermissionStatus,
+        isDatabaseReady: Bool = true,
+        isStorageDurable: Bool = true,
+        storageRecoveryNotice: String? = nil,
+        isIPCReady: Bool = true,
         onRepairAntigravity: @escaping () -> Void,
         onTestFocus: @escaping () -> Void,
         onTestNotification: @escaping () -> Void
     ) {
         self.providerHealths = providerHealths
         self.permissionStatus = permissionStatus
+        self.isDatabaseReady = isDatabaseReady
+        self.isStorageDurable = isStorageDurable
+        self.storageRecoveryNotice = storageRecoveryNotice
+        self.isIPCReady = isIPCReady
         self.onRepairAntigravity = onRepairAntigravity
         self.onTestFocus = onTestFocus
         self.onTestNotification = onTestNotification
@@ -97,27 +109,40 @@ public struct DiagnosticsView: View {
                     )
                     .accessibilityIdentifier("diagnostics-row-notifications")
                     
+                    let loginStatus = permissionStatus.launchAtLoginStatus
                     DiagnosticRow(
                         title: "Launch at Login",
-                        detail: permissionStatus.launchAtLoginEnabled ? "Enabled via ServiceManagement" : "Disabled",
-                        isSuccess: true,
-                        isWarning: false
+                        detail: loginStatus.displayName,
+                        isSuccess: loginStatus == .enabled,
+                        isWarning: loginStatus == .requiresApproval || loginStatus == .disabled,
+                        actionTitle: loginStatus == .requiresApproval ? "Open Settings…" : nil,
+                        onAction: loginStatus == .requiresApproval ? {
+                            #if canImport(AppKit)
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension") {
+                                NSWorkspace.shared.open(url)
+                            }
+                            #endif
+                        } : nil
                     )
                     .accessibilityIdentifier("diagnostics-row-launch-at-login")
                     
                     DiagnosticRow(
                         title: "Local Persistent Database",
-                        detail: "SQLite WAL Mode operational",
-                        isSuccess: true,
-                        isWarning: false
+                        detail: !isDatabaseReady
+                            ? "Database offline or initialization failed"
+                            : (!isStorageDurable
+                                ? (storageRecoveryNotice ?? "Degraded: Operating in transient in-memory database fallback (non-durable)")
+                                : "SQLite WAL Mode operational (~/.flowback/flowback.sqlite)"),
+                        isSuccess: isDatabaseReady && isStorageDurable,
+                        isWarning: !isDatabaseReady || !isStorageDurable
                     )
                     .accessibilityIdentifier("diagnostics-row-database")
                     
                     DiagnosticRow(
                         title: "IPC Unix Domain Socket",
-                        detail: "Listening at ~/.flowback/flowback.sock",
-                        isSuccess: true,
-                        isWarning: false
+                        detail: isIPCReady ? "Listening at ~/.flowback/flowback.sock" : "Socket listener offline or failed to bind",
+                        isSuccess: isIPCReady,
+                        isWarning: !isIPCReady
                     )
                     .accessibilityIdentifier("diagnostics-row-socket")
                 }
