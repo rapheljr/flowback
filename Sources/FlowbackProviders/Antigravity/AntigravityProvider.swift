@@ -14,13 +14,16 @@ public final class AntigravityProvider: AgentProvider, Sendable {
     
     private let globalConfigPath: String
     private let appBundlePath: String
+    private let brainPaths: [String]?
     
     public init(
         globalConfigPath: String = ("~/.gemini/config" as NSString).expandingTildeInPath,
-        appBundlePath: String = "/Applications/Antigravity IDE.app"
+        appBundlePath: String = "/Applications/Antigravity IDE.app",
+        brainPaths: [String]? = nil
     ) {
         self.globalConfigPath = globalConfigPath
         self.appBundlePath = appBundlePath
+        self.brainPaths = brainPaths
     }
     
     public func checkHealth() async -> ProviderHealth {
@@ -159,7 +162,7 @@ public final class AntigravityProvider: AgentProvider, Sendable {
     // swiftlint:disable:next function_body_length cyclomatic_complexity
     public func discoverActiveSessions() async -> [AgentSession] {
         let fm = FileManager.default
-        let searchRoots = [
+        let searchRoots = brainPaths ?? [
             ("~/.gemini/antigravity-ide/brain" as NSString).expandingTildeInPath,
             ("~/.gemini/antigravity/brain" as NSString).expandingTildeInPath,
             ("~/.gemini/antigravity-cli/brain" as NSString).expandingTildeInPath

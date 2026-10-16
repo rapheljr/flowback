@@ -18,7 +18,7 @@ final class GenericHookProviderTests: XCTestCase {
             }
         }
         """
-        guard let data = json.data(using: .utf8) else { return XCTFail() }
+        guard let data = json.data(using: .utf8) else { return XCTFail("Failed to encode UTF8 data") }
         
         let event = try provider.parseLifecyclePayload(data: data)
         XCTAssertNotNil(event)

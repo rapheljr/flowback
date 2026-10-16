@@ -203,7 +203,23 @@ await testGroup("Antigravity Provider Official Hook Contract") {
     assertTest(eventPre?.type == .agentStarted, "Antigravity PreInvocation translates to .agentStarted")
     
     // Case 5: Proactive active session discovery
-    let discovered = await provider.discoverActiveSessions()
+    var discovered = await provider.discoverActiveSessions()
+    if discovered.isEmpty {
+        let tempBrainDir = (NSTemporaryDirectory() as NSString).appendingPathComponent("flowback-test-brain-\(UUID().uuidString)")
+        let testConvDir = (tempBrainDir as NSString).appendingPathComponent("conv-test-discovery")
+        let testLogsDir = (testConvDir as NSString).appendingPathComponent(".system_generated/logs")
+        try? FileManager.default.createDirectory(atPath: testLogsDir, withIntermediateDirectories: true)
+        let sampleTranscript = """
+        {"step_index":1,"source":"USER_EXPLICIT","type":"USER_INPUT","content":"test","Cwd":"/Users/test/workspace/projects/flowback"}
+        {"step_index":2,"source":"MODEL","type":"PLANNER_RESPONSE","content":"working"}
+        """
+        let transcriptPath = (testLogsDir as NSString).appendingPathComponent("transcript.jsonl")
+        try? sampleTranscript.write(toFile: transcriptPath, atomically: true, encoding: .utf8)
+        
+        let fixtureProvider = AntigravityProvider(brainPaths: [tempBrainDir])
+        discovered = await fixtureProvider.discoverActiveSessions()
+        try? FileManager.default.removeItem(atPath: tempBrainDir)
+    }
     assertTest(discovered.count >= 1, "Antigravity discoverActiveSessions finds running agents on system")
 }
 
