@@ -53,9 +53,11 @@ while IFS= read -r line; do
     HASH=$(echo "$line" | awk '{print $1}')
     FILE=$(echo "$line" | awk '{print $2}')
     
-    ARCH="arm64"
+    ARCH="$(uname -m)"
     if [[ "$FILE" =~ "x86_64" ]]; then
         ARCH="x86_64"
+    elif [[ "$FILE" =~ "arm64" ]]; then
+        ARCH="arm64"
     elif [[ "$FILE" =~ "universal" ]]; then
         ARCH="universal"
     fi
