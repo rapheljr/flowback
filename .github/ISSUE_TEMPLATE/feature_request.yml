@@ -1,0 +1,34 @@
+name: 💡 Feature Request
+description: Propose an enhancement, new capability, or workflow improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We appreciate feature ideas! Please focus on the problem you are experiencing and how a new capability would help your daily workflow.
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: What problem are you trying to solve?
+      description: A clear and concise description of the limitation or friction you encounter in your agent workflow.
+      placeholder: "e.g., When I have two displays, Flowback sometimes restores my editor on the secondary display while my cursor remains on the primary display..."
+    validations:
+      required: true
+  - type: textarea
+    id: desired_behavior
+    attributes:
+      label: Describe the desired behavior or solution
+      description: What would the ideal experience look like from a user perspective?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives_considered
+    attributes:
+      label: Alternatives or workarounds considered
+      description: Have you tried any existing settings (e.g. Focus Lock, notification policies) or other tools to solve this?
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any screenshots, mockups, or relevant references.

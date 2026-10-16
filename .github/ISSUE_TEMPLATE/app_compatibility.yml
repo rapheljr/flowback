@@ -1,0 +1,37 @@
+name: 🖥️ Application Compatibility Request
+description: Request window restoration support for an editor, terminal, or macOS desktop application.
+title: "[App Compatibility]: "
+labels: ["adapter", "compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Flowback uses specialized application adapters to locate and raise specific project windows.
+  - type: input
+    id: app_name
+    attributes:
+      label: Application Name
+      description: What application would you like Flowback to adapt?
+      placeholder: "e.g., Nova IDE, Sublime Text 4, Zed, WezTerm"
+    validations:
+      required: true
+  - type: input
+    id: bundle_id
+    attributes:
+      label: macOS Bundle Identifier (if known)
+      description: Run `osascript -e 'id of app "AppName"'` to find the bundle ID.
+      placeholder: "e.g., com.panic.Nova, dev.zed.Zed"
+  - type: textarea
+    id: window_title_format
+    attributes:
+      label: How does the app format its window titles?
+      description: Does it show the project folder name, active file, or full path in the title bar?
+      placeholder: "e.g., 'ProjectName — filename.py — Nova'"
+  - type: dropdown
+    id: applescript_support
+    attributes:
+      label: Does the application have AppleScript / Apple Events dictionary support?
+      options:
+        - "Yes, supports standard AppleScript windows and documents"
+        - "No / Unknown"
+        - "Electron / Web-based"

@@ -1,0 +1,98 @@
+name: Release Automation
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release Artifacts
+    runs-on: macos-14
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer || true
+          swift --version
+
+      - name: Extract & Validate Version Tag
+        id: version_step
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          VERSION="${TAG_NAME#v}"
+          echo "Tag: $TAG_NAME, Version: $VERSION"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "Error: Tag '$TAG_NAME' does not adhere to Semantic Versioning."
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+      - name: Run Full Verification Suite
+        run: |
+          swift run FlowbackTestRunner
+
+      - name: Build Release Mode Binaries
+        run: |
+          bash Scripts/build.sh
+
+      - name: Package Application Bundle
+        run: |
+          bash Scripts/package_app.sh
+
+      - name: Optional Developer ID Signing & Notarization
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_ID" ]; then
+            echo "Configuring Apple Developer ID Certificate..."
+            # Setup keychain, import cert, sign with Hardened Runtime, and submit to notarytool
+            bash Scripts/sign_and_notarize.sh "$APPLE_TEAM_ID"
+          else
+            echo "Apple Developer ID credentials not configured. Applying verified ad-hoc local signature."
+          fi
+
+      - name: Create DMG Disk Image
+        run: |
+          bash Scripts/create_dmg.sh
+          VERSION="${{ steps.version_step.outputs.version }}"
+          cp dist/Flowback.dmg "dist/Flowback-${VERSION}-arm64.dmg"
+
+      - name: Create ZIP Distribution
+        run: |
+          VERSION="${{ steps.version_step.outputs.version }}"
+          cd dist
+          zip -r -y "Flowback-${VERSION}-arm64.zip" Flowback.app
+
+      - name: Generate Release Manifest & SHA256SUMS
+        run: |
+          VERSION="${{ steps.version_step.outputs.version }}"
+          bash Scripts/generate_manifest.sh "$VERSION"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Flowback v${{ steps.version_step.outputs.version }}
+          tag_name: ${{ steps.version_step.outputs.tag_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/Flowback-${{ steps.version_step.outputs.version }}-arm64.dmg
+            dist/Flowback-${{ steps.version_step.outputs.version }}-arm64.zip
+            dist/SHA256SUMS
+            dist/release-manifest.json

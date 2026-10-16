@@ -1,0 +1,96 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build & Test (macOS)
+    runs-on: macos-14
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer || true
+          swift --version
+
+      - name: Swift Package Resolution
+        run: swift package resolve
+
+      - name: Compile Release Binaries
+        run: swift build -c release
+
+      - name: Run Standalone Verification Test Suite (61 tests)
+        run: swift run FlowbackTestRunner
+
+      - name: Run Unit & Integration Tests (XCTest)
+        env:
+          ENABLE_XCTEST: "1"
+        run: swift test --parallel
+
+  code-quality:
+    name: Lint & Code Quality
+    runs-on: macos-14
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run SwiftLint
+        run: |
+          if command -v swiftlint >/dev/null 2>&1; then
+            swiftlint --strict
+          else
+            echo "Installing swiftlint via brew..."
+            brew install swiftlint
+            swiftlint --strict
+          fi
+
+  website-and-docs:
+    name: Validate Website & Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate Website Static Assets & Links
+        run: bash Scripts/test_website.sh
+
+      - name: Validate Markdown Links in Documentation
+        run: |
+          python3 -c "
+          import os, re
+          files = [f for f in os.listdir('.') if f.endswith('.md')]
+          print(f'Checking {len(files)} root markdown documents...')
+          for f in files:
+              content = open(f).read()
+              # verify all local markdown links resolve
+              links = re.findall(r'\[.*?\]\((?!http|#|mailto:)(.*?)\)', content)
+              for link in links:
+                  target = link.split('#')[0]
+                  if target and not os.path.exists(target):
+                      raise SystemExit(f'Broken link in {f}: {target}')
+          print('All root documentation links valid!')
+          "

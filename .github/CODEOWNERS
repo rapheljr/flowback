@@ -1,0 +1,21 @@
+# Flowback Code Owners
+# Default owners for all files in the repository
+* @rapheljr
+
+# Provider integrations
+/Sources/FlowbackProviders/ @rapheljr
+
+# Focus and window restoration engine
+/Sources/FlowbackFocus/ @rapheljr
+
+# Core architecture and IPC
+/Sources/FlowbackCore/ @rapheljr
+/Sources/FlowbackServer/ @rapheljr
+
+# CI & Release workflows
+/.github/workflows/ @rapheljr
+/Scripts/ @rapheljr
+
+# Documentation and Website
+/Website/ @rapheljr
+/Docs/ @rapheljr

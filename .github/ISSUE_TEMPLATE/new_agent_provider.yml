@@ -1,0 +1,38 @@
+name: 🤖 New Agent Provider Integration
+description: Propose first-class integration for a new AI coding agent or CLI assistant.
+title: "[Provider Request]: "
+labels: ["provider", "integration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Flowback can integrate with any coding agent via lifecycle hooks, process monitoring, or the Generic JSON Hook Protocol.
+  - type: input
+    id: agent_name
+    attributes:
+      label: Agent Name & Project URL
+      description: Name of the AI agent and link to official repository or documentation.
+      placeholder: "e.g., OpenCode (https://github.com/example/opencode)"
+    validations:
+      required: true
+  - type: textarea
+    id: lifecycle_hooks
+    attributes:
+      label: Does the agent expose lifecycle hooks or event callbacks?
+      description: Does the agent have configuration for pre/post invocation commands, notification hooks, exit handlers, or transcripts?
+      placeholder: "e.g., The agent supports ~/.config/agent/hooks.json or has a --on-finish flag..."
+    validations:
+      required: true
+  - type: textarea
+    id: execution_environment
+    attributes:
+      label: Execution Environment
+      description: Does the agent run in a terminal (CLI), an IDE extension, a web view, or as a standalone app?
+    validations:
+      required: true
+  - type: textarea
+    id: sample_payload
+    attributes:
+      label: Sample Event Output or CLI Session
+      description: If available, provide sample output, transcript snippet, or hook environment variables.
+      render: json

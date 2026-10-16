@@ -1,0 +1,40 @@
+name: 📦 Installation or Release Issue
+description: Report difficulties downloading, verifying checksums, installing DMG, or Gatekeeper prompts.
+title: "[Install Issue]: "
+labels: ["installation", "release"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please report any problems installing or running official release artifacts.
+  - type: input
+    id: artifact_name
+    attributes:
+      label: Release Artifact
+      description: Exact file downloaded or installation method used.
+      placeholder: "e.g., Flowback-1.0.0-arm64.dmg, Homebrew cask, built from source"
+    validations:
+      required: true
+  - type: dropdown
+    id: macos_version
+    attributes:
+      label: macOS Version
+      options:
+        - "macOS 15.x Sequoia"
+        - "macOS 14.x Sonoma"
+        - "Other / Older"
+    validations:
+      required: true
+  - type: textarea
+    id: error_message
+    attributes:
+      label: Error Message or Gatekeeper Dialog
+      description: Include exact text from macOS alert (e.g., "Apple could not verify", "Permission denied", "Code signature invalid").
+    validations:
+      required: true
+  - type: textarea
+    id: checksum_verification
+    attributes:
+      label: Checksum Output (`shasum -a 256 <file>`)
+      description: If you checked the hash against SHA256SUMS, paste the output here.
+      render: shell

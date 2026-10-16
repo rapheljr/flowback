@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/rapheljr/flowback/discussions
+    about: Ask questions, share workflows, and discuss ideas with the community.
+  - name: 🔒 Report a Security Vulnerability
+    url: https://github.com/rapheljr/flowback/security/advisories/new
+    about: Privately report potential security vulnerabilities to project maintainers.

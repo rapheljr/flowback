@@ -1,0 +1,81 @@
+name: 🐛 Bug Report
+description: Report unexpected behavior, crashes, or focus restoration issues.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem with Flowback! Please fill out the form below.
+
+        > [!CAUTION]
+        > **DO NOT** upload API keys, access tokens, proprietary source code, or private workspace paths.
+  - type: input
+    id: version
+    attributes:
+      label: Flowback Version
+      description: What version of Flowback are you using? (Check via `flowback --version` or Menu Bar Dashboard)
+      placeholder: "e.g., 1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: macos_version
+    attributes:
+      label: macOS Version
+      description: Which version of macOS is running?
+      options:
+        - "macOS 15.x Sequoia"
+        - "macOS 14.x Sonoma"
+        - "Older / Other (Unsupported)"
+    validations:
+      required: true
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Mac Architecture
+      description: What chip is your Mac powered by?
+      options:
+        - "Apple Silicon (M1 / M2 / M3 / M4)"
+        - "Intel (x86_64)"
+    validations:
+      required: true
+  - type: input
+    id: agent_provider
+    attributes:
+      label: Agent / Provider & Version
+      description: Which agent is involved in this session?
+      placeholder: "e.g., Antigravity, Claude Code v0.2.9, Codex CLI, Aider v0.50"
+    validations:
+      required: true
+  - type: input
+    id: target_editor
+    attributes:
+      label: Active Editor / Terminal Application
+      description: Which IDE, terminal, or browser window was expected to receive focus?
+      placeholder: "e.g., Visual Studio Code 1.93, Cursor 0.40, Ghostty, iTerm2"
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Steps to Reproduce
+      description: Describe the exact sequence of actions that leads to the bug.
+      placeholder: |
+        1. Open VS Code in workspace /path/to/project
+        2. Start agent session in terminal
+        3. Switch to Brave browser and begin typing
+        4. Agent finishes
+        5. Observe unexpected focus behavior
+    validations:
+      required: true
+  - type: textarea
+    id: expected_vs_actual
+    attributes:
+      label: Expected vs. Actual Behavior
+      description: What did you expect Flowback to do, and what actually happened?
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics_output
+    attributes:
+      label: Sanitized Diagnostic Output (`flowback doctor`)
+      description: Run `flowback doctor` in your terminal and paste the output here (please sanitize any private filepaths).
+      render: shell
