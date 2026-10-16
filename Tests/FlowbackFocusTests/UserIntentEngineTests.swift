@@ -8,6 +8,7 @@ final class UserIntentEngineTests: XCTestCase {
     var mockIdleTracker: MockIdleTracker!
     var mockWindowController: MockWindowController!
     var mockSpaceController: MockSpaceController!
+    var mockAppController: MockApplicationController!
     var intentEngine: UserIntentEngine!
     
     override func setUp() {
@@ -15,10 +16,12 @@ final class UserIntentEngineTests: XCTestCase {
         mockIdleTracker = MockIdleTracker(idleSeconds: 30.0) // user idle by default
         mockWindowController = MockWindowController()
         mockSpaceController = MockSpaceController()
+        mockAppController = MockApplicationController()
         intentEngine = UserIntentEngine(
             idleTracker: mockIdleTracker,
             windowController: mockWindowController,
-            spaceController: mockSpaceController
+            spaceController: mockSpaceController,
+            appController: mockAppController
         )
     }
     

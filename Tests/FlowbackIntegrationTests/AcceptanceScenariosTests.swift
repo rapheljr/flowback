@@ -28,7 +28,8 @@ final class AcceptanceScenariosTests: XCTestCase {
         intentEngine = UserIntentEngine(
             idleTracker: mockIdleTracker,
             windowController: mockWindowController,
-            spaceController: mockSpaceController
+            spaceController: mockSpaceController,
+            appController: mockAppController
         )
         arbiter = AttentionArbiter(aggregationWindow: 1.0, cooldownDuration: 0.5)
         focusController = FocusController(

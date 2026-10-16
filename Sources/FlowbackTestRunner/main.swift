@@ -444,7 +444,7 @@ await testGroup("Deep Audit & Robustness Verification") {
     let ipcSessionMgr = SessionManager(storageDelegate: SessionRepository(db: ipcDb))
     let mockApp = MockApplicationController()
     let mockWin = MockWindowController()
-    let intentEngine = UserIntentEngine(idleTracker: MockIdleTracker(), windowController: mockWin, spaceController: MockSpaceController())
+    let intentEngine = UserIntentEngine(idleTracker: MockIdleTracker(), windowController: mockWin, spaceController: MockSpaceController(), appController: mockApp)
     let ipcFocusCtrl = FocusController(appController: mockApp, windowController: mockWin, intentEngine: intentEngine, arbiter: AttentionArbiter())
     let testRegistry = ProviderRegistry()
     await testRegistry.register(provider: AntigravityProvider())
@@ -505,12 +505,18 @@ await testGroup("Standalone Execution & App Bundle Safety") {
 await testGroup("UnixSocketServer Security & Concurrency") {
     let testSockPath = "/tmp/fb_t\(UInt32.random(in: 10000...99999)).sock"
     
+    let mockAppIPC = MockApplicationController()
     let dummyIPC = IPCHandler(
         sessionManager: SessionManager(),
         focusController: FocusController(
-            appController: MockApplicationController(),
+            appController: mockAppIPC,
             windowController: MockWindowController(),
-            intentEngine: UserIntentEngine(idleTracker: MockIdleTracker(), windowController: MockWindowController(), spaceController: MockSpaceController()),
+            intentEngine: UserIntentEngine(
+                idleTracker: MockIdleTracker(),
+                windowController: MockWindowController(),
+                spaceController: MockSpaceController(),
+                appController: mockAppIPC
+            ),
             arbiter: AttentionArbiter()
         ),
         providerRegistry: ProviderRegistry(),
