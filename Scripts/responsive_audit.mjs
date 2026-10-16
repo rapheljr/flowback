@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const ARTIFACTS_DIR = '/Users/abin/.gemini/antigravity-ide/brain/786ff2a2-a357-4bf9-a73f-65446ab37fb7';
-const MODE = process.argv[2] || 'before'; // 'before' or 'after'
+const ARTIFACTS_DIR = process.env.ARTIFACTS_DIR || path.resolve(import.meta.dirname, '../dist/screenshots');
+const MODE = process.argv[2] || 'audit';
 const OUTPUT_DIR = path.join(ARTIFACTS_DIR, `screenshots_${MODE}`);
 
 if (!fs.existsSync(OUTPUT_DIR)) {
