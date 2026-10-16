@@ -1,4 +1,5 @@
 import XCTest
+import SQLite3
 @testable import FlowbackCore
 @testable import FlowbackStorage
 
