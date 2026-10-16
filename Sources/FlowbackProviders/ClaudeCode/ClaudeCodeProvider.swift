@@ -33,7 +33,8 @@ public final class ClaudeCodeProvider: AgentProvider, Sendable {
             hookExecutable: true,
             configurationPath: homeClaudeDir,
             statusMessage: msg,
-            isSupported: true
+            isSupported: true,
+            supportLevel: .adapter
         )
     }
     

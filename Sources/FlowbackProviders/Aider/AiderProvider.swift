@@ -15,7 +15,8 @@ public final class AiderProvider: AgentProvider, Sendable {
             displayName: displayName,
             isInstalled: false,
             statusMessage: "Aider notification command integration available",
-            isSupported: true
+            isSupported: true,
+            supportLevel: .adapter
         )
     }
     

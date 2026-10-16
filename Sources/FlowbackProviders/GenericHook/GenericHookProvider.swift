@@ -39,6 +39,7 @@ public final class GenericHookProvider: AgentProvider, Sendable {
     public let providerID = AgentProviderID.genericHook
     public let displayName = "Generic Hook Receiver"
     public let isSupported = true
+    public let supportLevel = ProviderSupportLevel.genericProtocol
     
     public init() {}
     
@@ -50,7 +51,8 @@ public final class GenericHookProvider: AgentProvider, Sendable {
             hookInstalled: true,
             hookExecutable: true,
             statusMessage: "Universal JSON hook endpoint ready on Unix socket",
-            isSupported: true
+            isSupported: true,
+            supportLevel: .genericProtocol
         )
     }
     

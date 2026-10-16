@@ -7,6 +7,7 @@ public protocol AgentProvider: Sendable {
     var providerID: AgentProviderID { get }
     var displayName: String { get }
     var isSupported: Bool { get }
+    var supportLevel: ProviderSupportLevel { get }
     
     func checkHealth() async -> ProviderHealth
     func parseLifecyclePayload(data: Data) throws -> AgentEvent?
@@ -16,6 +17,10 @@ public protocol AgentProvider: Sendable {
 }
 
 public extension AgentProvider {
+    var supportLevel: ProviderSupportLevel {
+        .adapter
+    }
+    
     func discoverActiveSessions() async -> [AgentSession] {
         []
     }

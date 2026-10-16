@@ -10,6 +10,7 @@ public final class AntigravityProvider: AgentProvider, Sendable {
     public let providerID = AgentProviderID.antigravity
     public let displayName = "Google Antigravity"
     public let isSupported = true
+    public let supportLevel = ProviderSupportLevel.nativeLifecycle
     
     private let globalConfigPath: String
     private let appBundlePath: String
@@ -65,7 +66,8 @@ public final class AntigravityProvider: AgentProvider, Sendable {
             hookExecutable: hookExecutable,
             configurationPath: hooksPath,
             statusMessage: statusMessage,
-            isSupported: true
+            isSupported: true,
+            supportLevel: .nativeLifecycle
         )
     }
     
@@ -229,13 +231,14 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                 
                 // Extract workspace path
                 var workspacePath: String? = nil
+                let userHome = NSHomeDirectory()
                 
                 // Pattern 1: /workspace/projects/<name>
                 if let projRange = chunkStr.range(of: "/workspace/projects/([A-Za-z0-9_-]+)", options: .regularExpression) {
                     let matched = String(chunkStr[projRange])
                     let comps = matched.components(separatedBy: "/workspace/projects/")
                     if comps.count > 1, let proj = comps.last?.components(separatedBy: "/").first, !proj.isEmpty {
-                        workspacePath = "/Users/abin/workspace/projects/\(proj)"
+                        workspacePath = (userHome as NSString).appendingPathComponent("workspace/projects/\(proj)")
                     }
                 }
                 
@@ -256,27 +259,27 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                         let fullPath = String(pathPart[firstSlash...])
                         let comps = fullPath.components(separatedBy: "/workspace/projects/")
                         if comps.count > 1, let proj = comps.last?.components(separatedBy: "/").first {
-                            workspacePath = "/Users/abin/workspace/projects/\(proj)"
+                            workspacePath = (userHome as NSString).appendingPathComponent("workspace/projects/\(proj)")
                         } else {
                             workspacePath = (fullPath as NSString).deletingLastPathComponent
                         }
                     }
                 }
                 
-                // Pattern 4: -> /Users/abin/... mapping
-                if workspacePath == nil, let uriRange = chunkStr.range(of: "->\\s*(/Users/[^\\n\\s]+)", options: .regularExpression) {
+                // Pattern 4: -> /Users/... mapping
+                if workspacePath == nil, let uriRange = chunkStr.range(of: "->\\s*(/[^\\n\\s]+)", options: .regularExpression) {
                     let uriLine = String(chunkStr[uriRange])
                     let pathPart = uriLine.replacingOccurrences(of: "->", with: "").trimmingCharacters(in: .whitespaces)
                     workspacePath = pathPart
                 }
                 
                 // Pattern 5: file:///Users/...
-                if workspacePath == nil, let fileUriRange = chunkStr.range(of: "file://(/Users/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+)", options: .regularExpression) {
+                if workspacePath == nil, let fileUriRange = chunkStr.range(of: "file://(/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+)", options: .regularExpression) {
                     let fileLine = String(chunkStr[fileUriRange])
                     let pathPart = fileLine.replacingOccurrences(of: "file://", with: "").trimmingCharacters(in: .whitespaces)
                     let comps = pathPart.components(separatedBy: "/workspace/projects/")
                     if comps.count > 1, let proj = comps.last?.components(separatedBy: "/").first {
-                        workspacePath = "/Users/abin/workspace/projects/\(proj)"
+                        workspacePath = (userHome as NSString).appendingPathComponent("workspace/projects/\(proj)")
                     }
                 }
                 

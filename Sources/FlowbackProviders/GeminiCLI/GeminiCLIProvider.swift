@@ -15,7 +15,8 @@ public final class GeminiCLIProvider: AgentProvider, Sendable {
             displayName: displayName,
             isInstalled: false,
             statusMessage: "Gemini CLI integration ready via Flowback hook",
-            isSupported: true
+            isSupported: true,
+            supportLevel: .adapter
         )
     }
     

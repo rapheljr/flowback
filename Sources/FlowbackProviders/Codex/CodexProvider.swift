@@ -18,7 +18,8 @@ public final class CodexProvider: AgentProvider, Sendable {
             hookInstalled: false,
             hookExecutable: false,
             statusMessage: "Codex CLI integration ready via hook dispatcher",
-            isSupported: true
+            isSupported: true,
+            supportLevel: .adapter
         )
     }
     
