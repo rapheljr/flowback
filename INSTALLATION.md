@@ -39,11 +39,24 @@ This guide walks you through installing, configuring, verifying, and uninstallin
 
 ---
 
-### Method 2: Homebrew Cask (Upcoming)
+### Method 2: Homebrew Cask
 
+To install Flowback via Homebrew Cask:
 ```bash
 brew tap rapheljr/flowback
 brew install --cask flowback
+```
+
+To upgrade via Homebrew:
+```bash
+brew upgrade --cask flowback
+```
+
+To uninstall via Homebrew:
+```bash
+brew uninstall --cask flowback
+# Or to additionally remove local database and preferences:
+brew uninstall --cask --zap flowback
 ```
 
 ---
