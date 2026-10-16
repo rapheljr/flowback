@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#030712"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <linearGradient id="tagGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+    <linearGradient id="iconGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="12" stdDeviation="24" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="1200" height="480" fill="url(#bg)"/>
+
+  <!-- Subtle Ambient Glow -->
+  <circle cx="280" cy="240" r="220" fill="#38bdf8" opacity="0.06" filter="blur(60px)"/>
+  <circle cx="950" cy="240" r="260" fill="#6366f1" opacity="0.05" filter="blur(80px)"/>
+
+  <!-- Grid lines -->
+  <line x1="0" y1="120" x2="1200" y2="120" stroke="#1e293b" stroke-width="1" opacity="0.4"/>
+  <line x1="0" y1="240" x2="1200" y2="240" stroke="#1e293b" stroke-width="1" opacity="0.4"/>
+  <line x1="0" y1="360" x2="1200" y2="360" stroke="#1e293b" stroke-width="1" opacity="0.4"/>
+
+  <!-- Icon Section (Left) -->
+  <g transform="translate(100, 110)">
+    <rect width="260" height="260" rx="60" fill="#1e1b4b" stroke="#334155" stroke-width="2" filter="url(#shadow)"/>
+    <circle cx="130" cy="130" r="95" fill="none" stroke="#334155" stroke-width="2" stroke-dasharray="4 6" opacity="0.6"/>
+    <path d="M 65 130 A 65 65 0 1 1 130 195" fill="none" stroke="url(#iconGlow)" stroke-width="12" stroke-linecap="round"/>
+    <path d="M 115 182 L 132 195 L 115 208" fill="none" stroke="#38bdf8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="110" y="110" width="40" height="40" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="3"/>
+    <circle cx="130" cy="130" r="6" fill="#38bdf8"/>
+  </g>
+
+  <!-- Typography (Right) -->
+  <g transform="translate(420, 155)">
+    <!-- Title -->
+    <text x="0" y="45" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif" font-size="58" font-weight="800" fill="url(#titleGrad)" letter-spacing="-1">Flowback</text>
+    <rect x="270" y="12" width="76" height="28" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2"/>
+    <text x="308" y="31" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="700" fill="#38bdf8" text-anchor="middle">v1.0.0</text>
+
+    <!-- Tagline -->
+    <text x="0" y="98" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="600" fill="url(#tagGrad)" letter-spacing="-0.3">Your agents work. Your context comes back.</text>
+
+    <!-- Subtitle description -->
+    <text x="0" y="138" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="18" fill="#94a3b8" font-weight="400">Native macOS context and focus manager for AI coding agents.</text>
+    <text x="0" y="164" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="18" fill="#94a3b8" font-weight="400">Restores origin windows, protects active typing, and arbitrates multi-agent attention.</text>
+
+    <!-- Badges / Tech Highlights -->
+    <g transform="translate(0, 195)">
+      <!-- Badge 1 -->
+      <rect x="0" y="0" width="138" height="34" rx="17" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+      <text x="69" y="22" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#cbd5e1" text-anchor="middle">100% Swift 6</text>
+
+      <!-- Badge 2 -->
+      <rect x="150" y="0" width="160" height="34" rx="17" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+      <text x="230" y="22" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#cbd5e1" text-anchor="middle">Zero Focus Stealing</text>
+
+      <!-- Badge 3 -->
+      <rect x="322" y="0" width="154" height="34" rx="17" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+      <text x="399" y="22" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#cbd5e1" text-anchor="middle">Local SQLite WAL</text>
+
+      <!-- Badge 4 -->
+      <rect x="488" y="0" width="136" height="34" rx="17" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+      <text x="556" y="22" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#38bdf8" text-anchor="middle">Zero Telemetry</text>
+    </g>
+  </g>
+</svg>
