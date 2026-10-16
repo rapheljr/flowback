@@ -92,4 +92,22 @@ public actor EventBus {
     private func removeAttentionSubscription(id: UUID) {
         attentionContinuations.removeValue(forKey: id)
     }
+    
+    /// Finishes all active stream continuations and resets subscriber tables for clean shutdown
+    public func finishAll() {
+        for continuation in agentContinuations.values {
+            continuation.finish()
+        }
+        agentContinuations.removeAll()
+        
+        for continuation in focusContinuations.values {
+            continuation.finish()
+        }
+        focusContinuations.removeAll()
+        
+        for continuation in attentionContinuations.values {
+            continuation.finish()
+        }
+        attentionContinuations.removeAll()
+    }
 }

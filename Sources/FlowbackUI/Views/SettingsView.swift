@@ -3,6 +3,7 @@ import FlowbackCore
 
 public final class SettingsViewModel: ObservableObject {
     @Published public var hasSavedRecently: Bool = false
+    @Published public var errorMessage: String? = nil
     public init() {}
 }
 
@@ -117,9 +118,21 @@ public struct SettingsView: View {
             Section {
                 Toggle("Launch Flowback at Login", isOn: $config.launchAtLogin)
                     .onChange(of: config.launchAtLogin) { _, newVal in
-                        try? PermissionManager.shared.setLaunchAtLogin(enabled: newVal)
+                        do {
+                            try PermissionManager.shared.setLaunchAtLogin(enabled: newVal)
+                            viewModel.errorMessage = nil
+                        } catch {
+                            viewModel.errorMessage = error.localizedDescription
+                            config.launchAtLogin = !newVal
+                        }
                     }
                     .accessibilityIdentifier("settings-launch-at-login-toggle")
+                
+                if let err = viewModel.errorMessage {
+                    Text(err)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
             } header: {
                 Text("System Integration")
                     .font(.headline)

@@ -6,23 +6,46 @@ import ServiceManagement
 import AppKit
 #endif
 
+/// Granular status of macOS ServiceManagement launch-at-login registration
+public enum LaunchAtLoginStatus: String, Codable, Sendable {
+    case enabled = "enabled"
+    case disabled = "disabled"
+    case requiresApproval = "requires_approval"
+    case notFound = "not_found"
+    case unsupported = "unsupported"
+    
+    public var displayName: String {
+        switch self {
+        case .enabled: return "Enabled"
+        case .disabled: return "Disabled"
+        case .requiresApproval: return "Approval Required (System Settings)"
+        case .notFound: return "Application Not Found"
+        case .unsupported: return "Not Available in Standalone Mode"
+        }
+    }
+}
+
 /// State of permissions required by Flowback
 public struct PermissionStatus: Codable, Sendable {
     public var accessibilityGranted: Bool
     public var notificationsGranted: Bool
     public var launchAtLoginEnabled: Bool
     public var isAppBundle: Bool
+    public var launchAtLoginStatus: LaunchAtLoginStatus
     
     public init(
         accessibilityGranted: Bool = false,
         notificationsGranted: Bool = false,
         launchAtLoginEnabled: Bool = false,
-        isAppBundle: Bool = (Bundle.main.bundleIdentifier != nil)
+        isAppBundle: Bool = (Bundle.main.bundleIdentifier != nil),
+        launchAtLoginStatus: LaunchAtLoginStatus? = nil
     ) {
         self.accessibilityGranted = accessibilityGranted
         self.notificationsGranted = notificationsGranted
-        self.launchAtLoginEnabled = launchAtLoginEnabled
         self.isAppBundle = isAppBundle
+        let resolved = launchAtLoginStatus ?? (launchAtLoginEnabled ? .enabled : (isAppBundle ? .disabled : .unsupported))
+        self.launchAtLoginStatus = resolved
+        self.launchAtLoginEnabled = (resolved == .enabled)
     }
 }
 
@@ -91,15 +114,43 @@ public final class PermissionManager: Sendable {
         }
     }
     
-    /// Checks if Launch at Login is enabled via ServiceManagement
-    public func isLaunchAtLoginEnabled() -> Bool {
-        guard isAppBundle else { return false }
-        return SMAppService.mainApp.status == .enabled
+    /// Maps SMAppService status into testable LaunchAtLoginStatus
+    public static func mapSMStatus(_ status: SMAppService.Status, isAppBundle: Bool) -> LaunchAtLoginStatus {
+        guard isAppBundle else { return .unsupported }
+        switch status {
+        case .enabled:
+            return .enabled
+        case .requiresApproval:
+            return .requiresApproval
+        case .notRegistered:
+            return .disabled
+        case .notFound:
+            return .notFound
+        @unknown default:
+            return .disabled
+        }
     }
     
-    /// Configures Launch at Login state
+    /// Returns granular Launch at Login status via ServiceManagement
+    public func launchAtLoginStatus() -> LaunchAtLoginStatus {
+        guard isAppBundle else { return .unsupported }
+        return Self.mapSMStatus(SMAppService.mainApp.status, isAppBundle: isAppBundle)
+    }
+    
+    /// Checks if Launch at Login is enabled via ServiceManagement
+    public func isLaunchAtLoginEnabled() -> Bool {
+        launchAtLoginStatus() == .enabled
+    }
+    
+    /// Configures Launch at Login state with informative error handling
     public func setLaunchAtLogin(enabled: Bool) throws {
-        guard isAppBundle else { return }
+        guard isAppBundle else {
+            throw NSError(
+                domain: "com.flowback.app",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Launch at Login is only available when running inside a packaged macOS application bundle."]
+            )
+        }
         if enabled {
             if SMAppService.mainApp.status != .enabled {
                 try SMAppService.mainApp.register()
@@ -115,13 +166,14 @@ public final class PermissionManager: Sendable {
     public func currentStatus() async -> PermissionStatus {
         let ax = isAccessibilityGranted()
         let notif = await checkNotificationStatus()
-        let login = isLaunchAtLoginEnabled()
+        let status = launchAtLoginStatus()
         let inBundle = isAppBundle
         return PermissionStatus(
             accessibilityGranted: ax,
             notificationsGranted: notif,
-            launchAtLoginEnabled: login,
-            isAppBundle: inBundle
+            launchAtLoginEnabled: status == .enabled,
+            isAppBundle: inBundle,
+            launchAtLoginStatus: status
         )
     }
 }
