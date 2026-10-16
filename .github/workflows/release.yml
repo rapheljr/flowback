@@ -24,6 +24,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.inputs.tag_name || github.ref }}
           fetch-depth: 0
 
       - name: Select Xcode
@@ -49,6 +50,19 @@ jobs:
             echo "Error: Tag '$TAG_NAME' does not adhere to Semantic Versioning."
             exit 1
           fi
+
+          # Prevent manual workflow_dispatch from building a mismatched commit if tag exists
+          if git rev-parse "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
+            TAG_COMMIT="$(git rev-parse "refs/tags/$TAG_NAME^{commit}")"
+            HEAD_COMMIT="$(git rev-parse HEAD)"
+            if [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
+              echo "Error: Tag '$TAG_NAME' points to commit $TAG_COMMIT, but checked out HEAD is $HEAD_COMMIT."
+              echo "Manual release dispatch cannot retag or publish an unvetted commit."
+              exit 1
+            fi
+            echo "Verified HEAD commit matches tag $TAG_NAME ($HEAD_COMMIT)"
+          fi
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
 
@@ -56,15 +70,7 @@ jobs:
         run: |
           swift run FlowbackTestRunner
 
-      - name: Build Release Mode Binaries
-        run: |
-          bash Scripts/build.sh
-
-      - name: Package Application Bundle
-        run: |
-          bash Scripts/package_app.sh
-
-      - name: Optional Developer ID Signing & Notarization
+      - name: Package Release Artifacts (Universal & Dedicated arm64)
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
@@ -72,30 +78,48 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_ID" ]; then
-            echo "Configuring Apple Developer ID Certificate..."
-            # Setup keychain, import cert, sign with Hardened Runtime, and submit to notarytool
-            bash Scripts/sign_and_notarize.sh "$APPLE_TEAM_ID"
-          else
-            echo "Apple Developer ID credentials not configured. Applying verified ad-hoc local signature."
+          VERSION="${{ steps.version_step.outputs.version }}"
+          IS_PRERELEASE=false
+          if [[ "$VERSION" =~ - ]]; then
+            IS_PRERELEASE=true
           fi
 
-      - name: Create DMG Disk Image
-        run: |
-          bash Scripts/create_dmg.sh
-          VERSION="${{ steps.version_step.outputs.version }}"
-          cp dist/Flowback.dmg "dist/Flowback-${VERSION}-arm64.dmg"
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_ID" ]; then
+            echo "Apple Developer credentials detected. Enforcing STRICT_SIGNING and STRICT_NOTARIZATION."
+            export STRICT_SIGNING=1
+            export STRICT_NOTARIZATION=1
+          else
+            if [ "$IS_PRERELEASE" = "false" ]; then
+              echo "Error: Stable production release v$VERSION requires Developer ID signing and Apple notarization." >&2
+              echo "Missing APPLE_CERTIFICATE or APPLE_ID repository secrets. Stable releases fail closed." >&2
+              exit 1
+            fi
+            echo "Apple Developer credentials not present in repository secrets."
+            echo "Packaging development preview artifacts with verified ad-hoc signatures."
+          fi
+          bash Scripts/package_release_artifacts.sh "$VERSION" universal
 
-      - name: Create ZIP Distribution
+      - name: Run Automated Release Validation
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
         run: |
           VERSION="${{ steps.version_step.outputs.version }}"
-          cd dist
-          zip -r -y "Flowback-${VERSION}-arm64.zip" Flowback.app
+          if [ -n "$APPLE_CERTIFICATE" ]; then
+            bash Scripts/validate_release.sh --release "$VERSION"
+          else
+            bash Scripts/validate_release.sh --local "$VERSION"
+          fi
 
-      - name: Generate Release Manifest & SHA256SUMS
-        run: |
-          VERSION="${{ steps.version_step.outputs.version }}"
-          bash Scripts/generate_manifest.sh "$VERSION"
+      - name: Upload Release Artifacts & Cask
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowback-release-${{ steps.version_step.outputs.version }}
+          path: |
+            dist/*.zip
+            dist/*.dmg
+            dist/SHA256SUMS
+            dist/release-manifest.json
+            Casks/flowback.rb
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -103,10 +127,13 @@ jobs:
           name: Flowback v${{ steps.version_step.outputs.version }}
           tag_name: ${{ steps.version_step.outputs.tag_name }}
           draft: false
-          prerelease: false
+          prerelease: ${{ secrets.APPLE_CERTIFICATE == '' }}
           generate_release_notes: true
           files: |
-            dist/Flowback-${{ steps.version_step.outputs.version }}-arm64.dmg
+            dist/Flowback-${{ steps.version_step.outputs.version }}-macos.zip
             dist/Flowback-${{ steps.version_step.outputs.version }}-arm64.zip
+            dist/Flowback-${{ steps.version_step.outputs.version }}.dmg
+            dist/Flowback-${{ steps.version_step.outputs.version }}-arm64.dmg
             dist/SHA256SUMS
             dist/release-manifest.json
+            Casks/flowback.rb
