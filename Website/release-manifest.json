@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "channel": "stable",
   "releaseDate": "2026-10-16",
-  "gitCommit": "3b2c4543d9da855c1ab18cb768bc1f268560a232",
+  "gitCommit": "34286331b96323b96f42eca7e76f8e9d59b0c050",
   "buildConfiguration": "release",
   "minimumMacOS": "14.0",
   "signatureStatus": "ad-hoc",
