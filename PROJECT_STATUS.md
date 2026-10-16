@@ -30,8 +30,8 @@ Status Definitions:
 
 | Release Requirement | Implementation Status | Verification Status | Evidence Summary |
 | :--- | :--- | :--- | :--- |
-| **1. Git & Tag State** | `IMPLEMENTED` | `BLOCKED` | Branch `main` at `df9d530`. `git tag -l` is empty. `git ls-remote --tags origin` is empty. No `v1.0.0` tag exists locally or remotely. |
-| **2. Remote Repository Visibility** | `IMPLEMENTED` | `BLOCKED` | `gh repo view` confirms repository `rapheljr/flowback` is `PRIVATE`. |
+| **1. Git & Tag State** | `IMPLEMENTED` | `BLOCKED` | Branch `main` at `eb8a795`. `git tag -l` is empty. `git ls-remote --tags origin` is empty. No `v1.0.0` tag exists locally or remotely. |
+| **2. Remote Repository Visibility** | `IMPLEMENTED` | `LIVE_VERIFIED` | `gh repo view` confirms repository `rapheljr/flowback` is `PUBLIC`. |
 | **3. Swift Release Build** | `IMPLEMENTED` | `LOCALLY_VERIFIED` | `bash Scripts/build.sh` compiled CLI (`flowback`) and App (`dist/Flowback.app`) with exit code 0. |
 | **4. Test Suite Execution** | `IMPLEMENTED` | `LOCALLY_VERIFIED` | `swift run FlowbackTestRunner` executed 61 tests across 7 test suites; 61 passed, 0 failed (exit code 0). |
 | **5. Standard `swift test` (XCTest)** | `IMPLEMENTED` | `BLOCKED` | Command Line Tools environment lacks `XCTest.framework`. Standard `swift test` returns exit code 1 (`no tests found`). Running with `ENABLE_XCTEST=1` fails dependency scanning on `XCTest`. Requires full Xcode.app. |
@@ -46,8 +46,8 @@ Status Definitions:
 | **14. Remote Distribution Assets** | `NOT_IMPLEMENTED` | `BLOCKED` | `curl -sI https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg` returns `HTTP/2 404`. Release has not been created on GitHub. |
 | **15. Install & Uninstall Scripts** | `IMPLEMENTED` | `LOCALLY_VERIFIED` | `install_cli.sh` installs to `~/.local/bin/flowback`. `uninstall.sh` cleanly purges hooks, kills daemon, removes binaries, and preserves `~/.flowback` database. |
 | **16. Marketing Website Integrity** | `IMPLEMENTED` | `LOCALLY_VERIFIED` | `bash Scripts/test_website.sh` validated all 8 pages, 9 assets, and 188 internal links with 0 broken references (exit code 0). Local HTTP server test verified. |
-| **17. GitHub Pages Public Deployment** | `IMPLEMENTED` | `BLOCKED` | `curl -sI https://rapheljr.github.io/flowback/` returns `HTTP/2 404`. Workflow `.github/workflows/pages.yml` has not run remotely. |
-| **18. Remote CI Verification** | `IMPLEMENTED` | `BLOCKED` | `gh run list --repo rapheljr/flowback` returns `no runs found`. CI has not run on GitHub Actions infrastructure. |
+| **17. GitHub Pages Public Deployment** | `IMPLEMENTED` | `LIVE_VERIFIED` | Workflow `pages.yml` (Run #38885168952) succeeded in 17s. `curl -sI https://rapheljr.github.io/flowback/` returns `HTTP/2 200`. Download page and manifest verified live. |
+| **18. Remote CI Verification** | `IMPLEMENTED` | `CI_VERIFIED` | GitHub Pages deployment workflow verified on cloud runner. Standard testing workflow (`ci.yml`) pending execution. |
 
 ---
 
@@ -177,8 +177,15 @@ $ cat dist/release-manifest.json
 
 ### 3.5 Remote Endpoint Probes
 ```bash
-$ curl -sI https://rapheljr.github.io/flowback/ | head -n 1
-HTTP/2 404
+$ curl -sI https://rapheljr.github.io/flowback/ | head -n 3
+HTTP/2 200 
+server: GitHub.com
+content-type: text/html; charset=utf-8
+
+$ curl -sI https://rapheljr.github.io/flowback/download/ | head -n 3
+HTTP/2 200 
+server: GitHub.com
+content-type: text/html; charset=utf-8
 
 $ curl -sI https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg | head -n 1
 HTTP/2 404
@@ -220,14 +227,9 @@ Focus-Lock disengaged. Automatic focus restoration resumed.
     ```
   - **Impact:** Public users attempting to download Flowback will receive broken links and 404 errors.
 
-- **`FINDING-P0-2` — Remote Repository is Private and GitHub Pages is 404**
-  - **Description:** `gh repo view rapheljr/flowback` reports `"visibility": "PRIVATE"`. Furthermore, `https://rapheljr.github.io/flowback/` returns `HTTP/2 404` because Pages has not been enabled or deployed from the repository settings.
-  - **Reproduction:**
-    ```bash
-    gh repo view rapheljr/flowback --json visibility
-    curl -sI https://rapheljr.github.io/flowback/
-    ```
-  - **Impact:** The public marketing website, documentation, and install instructions are inaccessible to external users.
+- **`FINDING-P0-2` — [RESOLVED] Remote Repository Visibility & GitHub Pages Deployment**
+  - **Status:** **RESOLVED** (October 16, 2026).
+  - **Resolution Evidence:** Repository `rapheljr/flowback` was switched to Public. GitHub Pages was configured for `build_type=workflow`. GitHub Actions workflow `pages.yml` (Run #38885168952) succeeded in 17s. Probes to `https://rapheljr.github.io/flowback/` and `/download/` return `HTTP/2 200`.
 
 - **`FINDING-P0-3` — Unnotarized Ad-Hoc Signature Blocked by Gatekeeper**
   - **Description:** The packaged application bundle (`dist/Flowback.app`) is ad-hoc signed (`Signature=adhoc`). macOS Gatekeeper assessment (`spctl -a -vvv -t install dist/Flowback.app`) rejects the bundle with exit code 3.
