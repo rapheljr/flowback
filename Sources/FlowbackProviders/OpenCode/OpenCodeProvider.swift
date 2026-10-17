@@ -11,12 +11,12 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
     public let displayName = "OpenCode"
     public let isSupported = true
     public let supportLevel = ProviderSupportLevel.nativeLifecycle
-    
+
     private let configDir: String
     private let pluginInstallDir: String
     private let appBundlePath: String
     private let cliPath: String
-    
+
     public init(
         configDir: String = ("~/.config/opencode" as NSString).expandingTildeInPath,
         pluginInstallDir: String = ("~/.config/opencode/plugins" as NSString).expandingTildeInPath,
@@ -28,18 +28,18 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
         self.appBundlePath = appBundlePath
         self.cliPath = cliPath
     }
-    
+
     public func checkHealth() async -> ProviderHealth {
         let fm = FileManager.default
         let appExists = fm.fileExists(atPath: appBundlePath)
         let cliExists = fm.fileExists(atPath: cliPath)
         let configExists = fm.fileExists(atPath: configDir)
         let isInstalled = appExists || cliExists || configExists
-        
+
         let targetPluginPath = (pluginInstallDir as NSString).appendingPathComponent("flowback.js")
         let hookInstalled = fm.fileExists(atPath: targetPluginPath)
         let hookExecutable = hookInstalled
-        
+
         var version: String?
         if appExists {
             let infoPlistPath = (appBundlePath as NSString).appendingPathComponent("Contents/Info.plist")
@@ -48,7 +48,7 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
                 version = plist["CFBundleShortVersionString"] as? String
             }
         }
-        
+
         let statusMessage: String
         if !isInstalled {
             statusMessage = "OpenCode not detected on system"
@@ -57,7 +57,7 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
         } else {
             statusMessage = "OpenCode native plugin integration active and healthy"
         }
-        
+
         return ProviderHealth(
             providerID: providerID,
             displayName: displayName,
@@ -71,18 +71,18 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
             supportLevel: .nativeLifecycle
         )
     }
-    
+
     public func parseLifecyclePayload(data: Data) throws -> AgentEvent? {
         let decoder = JSONDecoder()
         guard let payload = try? decoder.decode(OpenCodeHookPayload.self, from: data) else {
             logger.warning("Could not decode OpenCode hook payload")
             return nil
         }
-        
+
         let sId = payload.sessionId ?? payload.session_id ?? UUID().uuidString
         let rawEvent = payload.event?.lowercased() ?? "session.running"
         let workspace = payload.workspace ?? payload.directory
-        
+
         var metadata: [String: String] = [
             "sessionId": sId,
             "rawEvent": rawEvent
@@ -100,11 +100,11 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
         if let customMeta = payload.metadata {
             for (k, v) in customMeta { metadata[k] = v }
         }
-        
+
         // Custom deduplication key
         let toolId = payload.tool?.callId ?? ""
         metadata["deduplicationKey"] = "opencode:\(sId):\(rawEvent):\(toolId)"
-        
+
         let eventType: AgentEventType
         if let err = metadata["error"], !err.isEmpty {
             eventType = .agentFailed
@@ -112,7 +112,9 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
             switch rawEvent {
             case "session.created", "agent.started":
                 eventType = .agentStarted
-            case "session.idle", "session.completed", "agent.completed":
+            case "session.idle", "agent.waiting":
+                eventType = .agentWaiting
+            case "session.completed", "agent.completed":
                 eventType = .agentCompleted
             case "session.deleted", "agent.cancelled":
                 eventType = .agentCancelled
@@ -130,7 +132,7 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
                 eventType = .agentRunning
             }
         }
-        
+
         // Resolve Origin Context
         var origin: OriginContext?
         if let ws = workspace {
@@ -166,7 +168,7 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
                 )
             }
         }
-        
+
         return AgentEvent(
             timestamp: Date(),
             providerID: providerID,
@@ -177,53 +179,30 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
             metadata: metadata
         )
     }
-    
+
     public func installIntegration() async throws {
         let fm = FileManager.default
         try fm.createDirectory(atPath: pluginInstallDir, withIntermediateDirectories: true)
-        
+
         let targetPluginPath = (pluginInstallDir as NSString).appendingPathComponent("flowback.js")
         if fm.fileExists(atPath: targetPluginPath) {
             let backupPath = "\(targetPluginPath).bak.\(Int(Date().timeIntervalSince1970))"
             try? fm.copyItem(atPath: targetPluginPath, toPath: backupPath)
         }
-        
+
         let pluginCode = OpenCodeProvider.embeddedPluginSource
         try pluginCode.write(to: URL(fileURLWithPath: targetPluginPath), atomically: true, encoding: .utf8)
-        
-        // Also register in opencode.json if configuration file exists or directory exists
-        let configPath = (configDir as NSString).appendingPathComponent("opencode.json")
-        var configDict: [String: Any] = [:]
-        if fm.fileExists(atPath: configPath),
-           let data = try? Data(contentsOf: URL(fileURLWithPath: configPath)),
-           let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            configDict = existing
-        }
-        
-        var pluginsList = configDict["plugins"] as? [String] ?? []
-        if !pluginsList.contains("flowback") {
-            pluginsList.append("flowback")
-            configDict["plugins"] = pluginsList
-            if let outputData = try? JSONSerialization.data(withJSONObject: configDict, options: [.prettyPrinted, .sortedKeys]) {
-                try? outputData.write(to: URL(fileURLWithPath: configPath))
-            }
-        }
-        
-        logger.info("Successfully installed OpenCode Flowback plugin at \(targetPluginPath)")
-    }
-    
-    public func uninstallIntegration() async throws {
-        let fm = FileManager.default
-        let targetPluginPath = (pluginInstallDir as NSString).appendingPathComponent("flowback.js")
-        if fm.fileExists(atPath: targetPluginPath) {
-            try? fm.removeItem(atPath: targetPluginPath)
-        }
-        
+
+        // Ensure opencode.json is not polluted with a bare package reference.
+        // If an old install left an invalid "flowback" package entry in opencode.json, clean it up safely.
         let configPath = (configDir as NSString).appendingPathComponent("opencode.json")
         if fm.fileExists(atPath: configPath),
            let data = try? Data(contentsOf: URL(fileURLWithPath: configPath)),
            var configDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           var pluginsList = configDict["plugins"] as? [String] {
+           var pluginsList = configDict["plugins"] as? [String],
+           pluginsList.contains("flowback") {
+            let backupPath = "\(configPath).bak.\(Int(Date().timeIntervalSince1970))"
+            try? fm.copyItem(atPath: configPath, toPath: backupPath)
             pluginsList.removeAll { $0 == "flowback" }
             if pluginsList.isEmpty {
                 configDict.removeValue(forKey: "plugins")
@@ -234,17 +213,44 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
                 try? outputData.write(to: URL(fileURLWithPath: configPath))
             }
         }
-        
+
+        logger.info("Successfully installed OpenCode Flowback plugin at \(targetPluginPath)")
+    }
+
+    public func uninstallIntegration() async throws {
+        let fm = FileManager.default
+        let targetPluginPath = (pluginInstallDir as NSString).appendingPathComponent("flowback.js")
+        if fm.fileExists(atPath: targetPluginPath) {
+            try? fm.removeItem(atPath: targetPluginPath)
+        }
+
+        let configPath = (configDir as NSString).appendingPathComponent("opencode.json")
+        if fm.fileExists(atPath: configPath),
+           let data = try? Data(contentsOf: URL(fileURLWithPath: configPath)),
+           var configDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           var pluginsList = configDict["plugins"] as? [String],
+           pluginsList.contains("flowback") {
+            pluginsList.removeAll { $0 == "flowback" }
+            if pluginsList.isEmpty {
+                configDict.removeValue(forKey: "plugins")
+            } else {
+                configDict["plugins"] = pluginsList
+            }
+            if let outputData = try? JSONSerialization.data(withJSONObject: configDict, options: [.prettyPrinted, .sortedKeys]) {
+                try? outputData.write(to: URL(fileURLWithPath: configPath))
+            }
+        }
+
         logger.info("Removed Flowback OpenCode plugin from \(targetPluginPath)")
     }
-    
+
     public func discoverActiveSessions() async -> [AgentSession] {
         // Fallback observation: check running OpenCode instances
         let running = NSWorkspace.shared.runningApplications.filter {
             guard let b = $0.bundleIdentifier else { return false }
             return b == "ai.opencode.app" || b == "com.opencode"
         }
-        
+
         var sessions: [AgentSession] = []
         for app in running {
             let pid = app.processIdentifier
@@ -267,7 +273,7 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
         }
         return sessions
     }
-    
+
     public static let embeddedPluginSource: String = """
     // Flowback Universal Focus Orchestrator — OpenCode Plugin
     const net = require("net");
@@ -275,7 +281,9 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
     const path = require("path");
     const os = require("os");
 
-    const SOCKET_PATH = process.env.FLOWBACK_SOCKET || path.join(os.homedir(), ".flowback", "flowback.sock");
+    function getSocketPath() {
+      return process.env.FLOWBACK_SOCKET || path.join(os.homedir(), ".flowback", "flowback.sock");
+    }
     const TOKEN_PATH = path.join(os.homedir(), ".flowback", ".session_token");
 
     function getSessionToken() {
@@ -296,7 +304,7 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
         authToken: token
       };
       try {
-        const client = net.createConnection({ path: SOCKET_PATH }, () => {
+        const client = net.createConnection({ path: getSocketPath() }, () => {
           client.write(JSON.stringify(request) + "\\n");
         });
         client.on("data", () => client.end());
@@ -334,8 +342,10 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
                     emitLifecycle("session.created", event.session || event);
                     break;
                   case "session.idle":
-                  case "session.completed":
                     emitLifecycle("session.idle", event.session || event);
+                    break;
+                  case "session.completed":
+                    emitLifecycle("session.completed", event.session || event);
                     break;
                   case "session.deleted":
                     emitLifecycle("session.deleted", event.session || event);

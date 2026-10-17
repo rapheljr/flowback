@@ -6,16 +6,18 @@ import OSLog
 
 private let logger = Logger(subsystem: "com.flowback.app", category: "WindsurfProvider")
 
-public final class WindsurfProvider: AgentProvider, Sendable {
+public final class WindsurfProvider: AgentProvider, @unchecked Sendable {
     public let providerID = AgentProviderID.windsurf
     public let displayName = "Windsurf"
     public let isSupported = true
     public let supportLevel = ProviderSupportLevel.nativeLifecycle
-    
+
     private let globalConfigDir: String
     private let appBundlePath: String
     private let transcriptsDirs: [String]?
-    
+    private let trajectoryLock = NSLock()
+    private var knownTrajectories: Set<String> = []
+
     public init(
         globalConfigDir: String = ("~/.codeium/windsurf" as NSString).expandingTildeInPath,
         appBundlePath: String = "/Applications/Windsurf.app",
@@ -25,17 +27,23 @@ public final class WindsurfProvider: AgentProvider, Sendable {
         self.appBundlePath = appBundlePath
         self.transcriptsDirs = transcriptsDirs
     }
-    
+
+    public func resetKnownTrajectories() {
+        trajectoryLock.lock()
+        knownTrajectories.removeAll()
+        trajectoryLock.unlock()
+    }
+
     public func checkHealth() async -> ProviderHealth {
         let fm = FileManager.default
         let appExists = fm.fileExists(atPath: appBundlePath)
         let configExists = fm.fileExists(atPath: globalConfigDir)
         let isInstalled = appExists || configExists
-        
+
         let hooksPath = (globalConfigDir as NSString).appendingPathComponent("hooks.json")
         var hookInstalled = false
         let hookExecutable = true
-        
+
         if fm.fileExists(atPath: hooksPath),
            let data = try? Data(contentsOf: URL(fileURLWithPath: hooksPath)),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -50,7 +58,7 @@ public final class WindsurfProvider: AgentProvider, Sendable {
                 }
             }
         }
-        
+
         var version: String?
         if appExists {
             let infoPlistPath = (appBundlePath as NSString).appendingPathComponent("Contents/Info.plist")
@@ -59,7 +67,7 @@ public final class WindsurfProvider: AgentProvider, Sendable {
                 version = plist["CFBundleShortVersionString"] as? String
             }
         }
-        
+
         let statusMessage: String
         if !isInstalled {
             statusMessage = "Windsurf not detected on system"
@@ -68,7 +76,7 @@ public final class WindsurfProvider: AgentProvider, Sendable {
         } else {
             statusMessage = "Native Cascade hook integration active and healthy"
         }
-        
+
         return ProviderHealth(
             providerID: providerID,
             displayName: displayName,
@@ -82,25 +90,25 @@ public final class WindsurfProvider: AgentProvider, Sendable {
             supportLevel: .nativeLifecycle
         )
     }
-    
+
     public func parseLifecyclePayload(data: Data) throws -> AgentEvent? {
         let decoder = JSONDecoder()
         guard let payload = try? decoder.decode(WindsurfHookPayload.self, from: data) else {
             logger.warning("Could not decode Windsurf Cascade hook payload")
             return nil
         }
-        
+
         let trajectoryId = payload.trajectory_id ?? UUID().uuidString
         let actionName = payload.agent_action_name ?? "unknown"
         let execId = payload.execution_id
         let workspaceRoot = payload.workspace_root ?? payload.tool_info?.workspace
-        
+
         var metadata: [String: String] = [
             "trajectoryId": trajectoryId,
             "actionName": actionName,
             "modelName": payload.model_name ?? "cascade"
         ]
-        
+
         if let eid = execId {
             metadata["executionId"] = eid
         }
@@ -113,17 +121,34 @@ public final class WindsurfProvider: AgentProvider, Sendable {
         if let cmd = payload.tool_info?.command {
             metadata["command"] = String(cmd.prefix(120))
         }
-        
-        // Custom deduplication key for Cascade hooks: trajectory:action:execId
-        metadata["deduplicationKey"] = "windsurf:\(trajectoryId):\(actionName):\(execId ?? "")"
-        
+
+        // Trajectory tracking: check if trajectory is already known
+        let isKnownTrajectory: Bool
+        trajectoryLock.lock()
+        isKnownTrajectory = knownTrajectories.contains(trajectoryId)
+        if !isKnownTrajectory {
+            knownTrajectories.insert(trajectoryId)
+        }
+        trajectoryLock.unlock()
+
+        // Custom deduplication key for Cascade hooks
+        let promptSnippet = payload.tool_info?.prompt?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let promptHash = promptSnippet.map { "\($0.hashValue)" } ?? ""
+        let stepPart = payload.step_index.map { "\($0)" } ?? ""
+        let dedupeToken = execId ?? "\(stepPart)_\(promptHash)"
+        metadata["deduplicationKey"] = "windsurf:\(trajectoryId):\(actionName):\(dedupeToken)"
+
         let eventType: AgentEventType
         let actionLower = actionName.lowercased()
-        
+
         if let err = metadata["error"], !err.isEmpty {
             eventType = .agentFailed
         } else if actionLower == "pre_user_prompt" {
-            eventType = (payload.step_index == nil || payload.step_index == 1) ? .agentStarted : .agentRunning
+            if let step = payload.step_index {
+                eventType = (step == 1) ? .agentStarted : .agentRunning
+            } else {
+                eventType = isKnownTrajectory ? .agentRunning : .agentStarted
+            }
         } else if actionLower == "post_cascade_response" || actionLower == "post_cascade_response_with_transcript" {
             eventType = .agentCompleted
         } else if payload.tool_info?.requires_confirmation == true {
@@ -133,7 +158,7 @@ public final class WindsurfProvider: AgentProvider, Sendable {
         } else {
             eventType = .agentRunning
         }
-        
+
         // Resolve Origin Context for Windsurf (bundle: com.codeium.windsurf)
         var origin: OriginContext?
         let targetBundle = "com.codeium.windsurf"
@@ -165,7 +190,7 @@ public final class WindsurfProvider: AgentProvider, Sendable {
                 )
             }
         }
-        
+
         return AgentEvent(
             timestamp: Date(),
             providerID: providerID,
@@ -176,32 +201,32 @@ public final class WindsurfProvider: AgentProvider, Sendable {
             metadata: metadata
         )
     }
-    
+
     public func installIntegration() async throws {
         let fm = FileManager.default
         let hooksPath = (globalConfigDir as NSString).appendingPathComponent("hooks.json")
-        
+
         try fm.createDirectory(atPath: globalConfigDir, withIntermediateDirectories: true)
-        
+
         var rootDict: [String: Any] = [:]
         if fm.fileExists(atPath: hooksPath) {
             let backupPath = "\(hooksPath).bak.\(Int(Date().timeIntervalSince1970))"
             try? fm.copyItem(atPath: hooksPath, toPath: backupPath)
-            
+
             if let data = try? Data(contentsOf: URL(fileURLWithPath: hooksPath)),
                let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 rootDict = existing
             }
         }
-        
+
         var hooksDict = rootDict["hooks"] as? [String: Any] ?? [:]
-        
-        let hookCommand = "export PATH=\"$HOME/.local/bin:/usr/local/bin:$PATH\"; flowback hook windsurf"
+
+        let hookCommand = "export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; flowback hook windsurf"
         let hookEntry: [String: Any] = [
             "command": hookCommand,
             "show_output": false
         ]
-        
+
         let lifecycleEvents = [
             "pre_user_prompt",
             "post_cascade_response",
@@ -213,7 +238,7 @@ public final class WindsurfProvider: AgentProvider, Sendable {
             "pre_mcp_tool_use",
             "post_mcp_tool_use"
         ]
-        
+
         for event in lifecycleEvents {
             var existingList = hooksDict[event] as? [[String: Any]] ?? []
             let alreadyInstalled = existingList.contains { ($0["command"] as? String)?.contains("flowback hook windsurf") == true }
@@ -222,24 +247,24 @@ public final class WindsurfProvider: AgentProvider, Sendable {
                 hooksDict[event] = existingList
             }
         }
-        
+
         rootDict["hooks"] = hooksDict
         let outputData = try JSONSerialization.data(withJSONObject: rootDict, options: [.prettyPrinted, .sortedKeys])
         try outputData.write(to: URL(fileURLWithPath: hooksPath))
         logger.info("Successfully installed Windsurf Cascade hooks into \(hooksPath)")
     }
-    
+
     public func uninstallIntegration() async throws {
         let fm = FileManager.default
         let hooksPath = (globalConfigDir as NSString).appendingPathComponent("hooks.json")
         guard fm.fileExists(atPath: hooksPath) else { return }
-        
+
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: hooksPath)),
               var rootDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               var hooksDict = rootDict["hooks"] as? [String: Any] else {
             return
         }
-        
+
         for (event, value) in hooksDict {
             if var hookList = value as? [[String: Any]] {
                 hookList.removeAll { ($0["command"] as? String)?.contains("flowback hook windsurf") == true }
@@ -250,48 +275,48 @@ public final class WindsurfProvider: AgentProvider, Sendable {
                 }
             }
         }
-        
+
         if hooksDict.isEmpty {
             rootDict.removeValue(forKey: "hooks")
         } else {
             rootDict["hooks"] = hooksDict
         }
-        
+
         let outputData = try JSONSerialization.data(withJSONObject: rootDict, options: [.prettyPrinted, .sortedKeys])
         try outputData.write(to: URL(fileURLWithPath: hooksPath))
         logger.info("Removed Flowback Windsurf hooks from \(hooksPath)")
     }
-    
+
     public func discoverActiveSessions() async -> [AgentSession] {
         let fm = FileManager.default
         let searchRoots = transcriptsDirs ?? [
             ((globalConfigDir as NSString).appendingPathComponent("transcripts")),
             ("~/.windsurf/transcripts" as NSString).expandingTildeInPath
         ]
-        
+
         let now = Date()
         var discovered: [AgentSession] = []
         let windsurfApps = NSWorkspace.shared.runningApplications.filter {
             $0.bundleIdentifier == "com.codeium.windsurf"
         }
-        
+
         for root in searchRoots {
             guard fm.fileExists(atPath: root),
                   let files = try? fm.contentsOfDirectory(atPath: root) else {
                 continue
             }
-            
+
             for file in files where file.hasSuffix(".jsonl") {
                 let filePath = (root as NSString).appendingPathComponent(file)
                 let attrs = (try? fm.attributesOfItem(atPath: filePath)) ?? [:]
                 let modDate = attrs[.modificationDate] as? Date ?? Date.distantPast
                 let createDate = attrs[.creationDate] as? Date ?? modDate
-                
+
                 // Only consider transcripts updated within the last 20 minutes
                 guard now.timeIntervalSince(modDate) < 1200 else { continue }
-                
+
                 let trajId = (file as NSString).deletingPathExtension
-                
+
                 // Read last line without capturing full transcript text (Privacy rule adherence)
                 guard let fileHandle = FileHandle(forReadingAtPath: filePath) else { continue }
                 let fileSize = fileHandle.seekToEndOfFile()
@@ -299,11 +324,11 @@ public final class WindsurfProvider: AgentProvider, Sendable {
                 fileHandle.seek(toFileOffset: offset)
                 let tailData = fileHandle.readDataToEndOfFile()
                 fileHandle.closeFile()
-                
+
                 let tailStr = String(data: tailData, encoding: .utf8) ?? ""
                 let lines = tailStr.components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
                 guard let lastLine = lines.last else { continue }
-                
+
                 // Determine state
                 var state: AgentState = .running
                 if lastLine.contains("\"post_cascade_response\"") || lastLine.contains("\"completed\"") {
@@ -311,7 +336,7 @@ public final class WindsurfProvider: AgentProvider, Sendable {
                 } else if lastLine.contains("\"error\"") {
                     state = .failed
                 }
-                
+
                 // Extract workspace if present in JSON line
                 var wsPath: String?
                 if let wsRange = lastLine.range(of: "\"workspace_root\":\\s*\"([^\"]+)\"", options: .regularExpression) {
@@ -321,7 +346,7 @@ public final class WindsurfProvider: AgentProvider, Sendable {
                         wsPath = comps[3].replacingOccurrences(of: "\\/", with: "/")
                     }
                 }
-                
+
                 // Resolve Origin
                 var origin: OriginContext?
                 if let ws = wsPath, let app = windsurfApps.first {
@@ -337,7 +362,7 @@ public final class WindsurfProvider: AgentProvider, Sendable {
                         restorationCapability: .workspaceWindow
                     )
                 }
-                
+
                 let session = AgentSession(
                     id: AgentSessionID(trajId),
                     providerID: .windsurf,
@@ -351,7 +376,7 @@ public final class WindsurfProvider: AgentProvider, Sendable {
                 discovered.append(session)
             }
         }
-        
+
         return discovered
     }
 }

@@ -6,7 +6,9 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 
-const SOCKET_PATH = process.env.FLOWBACK_SOCKET || path.join(os.homedir(), ".flowback", "flowback.sock");
+function getSocketPath() {
+  return process.env.FLOWBACK_SOCKET || path.join(os.homedir(), ".flowback", "flowback.sock");
+}
 const TOKEN_PATH = path.join(os.homedir(), ".flowback", ".session_token");
 
 function getSessionToken() {
@@ -30,7 +32,7 @@ function sendIPCEvent(eventData) {
   };
 
   try {
-    const client = net.createConnection({ path: SOCKET_PATH }, () => {
+    const client = net.createConnection({ path: getSocketPath() }, () => {
       client.write(JSON.stringify(request) + "\n");
     });
     client.on("data", () => {
@@ -80,8 +82,10 @@ async function setup(ctx) {
                 emitLifecycle("session.created", event.session || event);
                 break;
               case "session.idle":
-              case "session.completed":
                 emitLifecycle("session.idle", event.session || event);
+                break;
+              case "session.completed":
+                emitLifecycle("session.completed", event.session || event);
                 break;
               case "session.deleted":
                 emitLifecycle("session.deleted", event.session || event);
