@@ -142,7 +142,7 @@ jobs:
 
       - name: Publish GitHub Release
         if: success() && (steps.version_step.outputs.is_prerelease == 'true' || steps.version_step.outputs.has_apple_certificate == 'true')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Flowback v${{ steps.version_step.outputs.version }}
           tag_name: ${{ steps.version_step.outputs.tag_name }}
