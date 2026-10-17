@@ -21,6 +21,7 @@ const PAGES = [
   '/changelog/',
   '/contributing/',
   '/privacy/',
+  '/support/',
   '/404.html'
 ];
 

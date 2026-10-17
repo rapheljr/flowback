@@ -29,6 +29,7 @@ const PAGES = [
   { name: 'changelog', path: '/changelog/' },
   { name: 'contributing', path: '/contributing/' },
   { name: 'privacy', path: '/privacy/' },
+  { name: 'support', path: '/support/' },
   { name: '404', path: '/404.html' }
 ];
 

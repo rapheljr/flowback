@@ -20,6 +20,7 @@ PAGES=(
   "contributing/index.html"
   "changelog/index.html"
   "privacy/index.html"
+  "support/index.html"
   "404.html"
 )
 
@@ -40,6 +41,7 @@ ASSETS=(
   "assets/flowback-banner.svg"
   "assets/architecture-diagram.svg"
   "assets/dashboard-preview.svg"
+  "assets/bmc-logo.svg"
   "release-manifest.json"
   "sitemap.xml"
   "robots.txt"

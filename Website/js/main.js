@@ -1,12 +1,28 @@
 // Flowback Website Client Logic
 
+// Centralized external URL configuration
+const FLOWBACK_LINKS = {
+  buyMeACoffee: "https://buymeacoffee.com/flowback",
+  github: "https://github.com/rapheljr/flowback",
+  githubIssues: "https://github.com/rapheljr/flowback/issues",
+  securityAdvisories: "https://github.com/rapheljr/flowback/security/advisories/new",
+  license: "https://github.com/rapheljr/flowback/blob/main/LICENSE"
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initMobileMenu();
   initFAQ();
   initCopyButtons();
   initDownloadManifest();
+  initExternalLinks();
 });
+
+function initExternalLinks() {
+  document.querySelectorAll("[data-bmc-link]").forEach(el => {
+    el.setAttribute("href", FLOWBACK_LINKS.buyMeACoffee);
+  });
+}
 
 // Theme Management
 function initTheme() {
