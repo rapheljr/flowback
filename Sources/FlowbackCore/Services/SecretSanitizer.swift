@@ -47,8 +47,11 @@ public enum SecretSanitizer: Sendable {
             )
         }
         
-        // 2. Common API key patterns (e.g. sk-..., ghp_..., xox...)
-        if let keyRegex = try? NSRegularExpression(pattern: "\\b(sk-[a-zA-Z0-9_-]{12,}|ghp_[a-zA-Z0-9]{12,}|xox[baprs]-[a-zA-Z0-9-]{10,})\\b", options: []) {
+        // 2. Common API key patterns (e.g. sk-..., ghp_..., github_pat_..., xox...)
+        if let keyRegex = try? NSRegularExpression(
+            pattern: "\\b(sk-[a-zA-Z0-9_-]{12,}|ghp_[a-zA-Z0-9]{12,}|github_pat_[a-zA-Z0-9_]{22,}|xox[baprs]-[a-zA-Z0-9-]{10,})\\b",
+            options: []
+        ) {
             sanitized = keyRegex.stringByReplacingMatches(
                 in: sanitized,
                 range: NSRange(location: 0, length: sanitized.utf16.count),
@@ -65,8 +68,18 @@ public enum SecretSanitizer: Sendable {
             )
         }
 
-        // 4. PEM private-key blocks
-        if let pemRegex = try? NSRegularExpression(pattern: "-----BEGIN[A-Za-z0-9_ -]*PRIVATE KEY-----[\\s\\S]*?-----END[A-Za-z0-9_ -]*PRIVATE KEY-----", options: []) {
+        // 4. URL basic auth credentials (e.g. https://user:secretpassword@host)
+        if let urlAuthRegex = try? NSRegularExpression(pattern: "(https?://)([^:\\s/@]+):([^@\\s/]+)@", options: .caseInsensitive) {
+            sanitized = urlAuthRegex.stringByReplacingMatches(
+                in: sanitized,
+                range: NSRange(location: 0, length: sanitized.utf16.count),
+                withTemplate: "$1$2:[REDACTED_PASSWORD]@"
+            )
+        }
+
+        // 5. PEM private-key blocks
+        let pemPattern = "-----BEGIN[A-Za-z0-9_ -]*PRIVATE KEY-----[\\s\\S]*?-----END[A-Za-z0-9_ -]*PRIVATE KEY-----"
+        if let pemRegex = try? NSRegularExpression(pattern: pemPattern, options: []) {
             sanitized = pemRegex.stringByReplacingMatches(
                 in: sanitized,
                 range: NSRange(location: 0, length: sanitized.utf16.count),
@@ -74,8 +87,9 @@ public enum SecretSanitizer: Sendable {
             )
         }
 
-        // 5. Sensitive URL query parameters
-        if let queryRegex = try? NSRegularExpression(pattern: "([?&](?:api[_-]?key|token|access_token|secret|client_secret|password)=)[^&\\s#]+", options: .caseInsensitive) {
+        // 6. Sensitive URL query parameters
+        let queryPattern = "([?&](?:api[_-]?key|token|access_token|secret|client_secret|password|auth|authorization)=)[^&\\s#]+"
+        if let queryRegex = try? NSRegularExpression(pattern: queryPattern, options: .caseInsensitive) {
             sanitized = queryRegex.stringByReplacingMatches(
                 in: sanitized,
                 range: NSRange(location: 0, length: sanitized.utf16.count),

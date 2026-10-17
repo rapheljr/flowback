@@ -35,22 +35,44 @@ public enum FocusPolicyType: String, Codable, Sendable, CaseIterable {
 }
 
 /// Action to take on successful agent completion
-public enum CompletionBehavior: String, Codable, Sendable {
+public enum CompletionBehavior: String, Codable, Sendable, CaseIterable {
     case restoreOrigin = "restore-origin"
     case notificationOnly = "notification-only"
     case askUser = "ask-user"
+
+    public var displayName: String {
+        switch self {
+        case .restoreOrigin: return "Restore Origin Window (Default)"
+        case .notificationOnly: return "Notification Only"
+        case .askUser: return "Ask with Actionable Notification"
+        }
+    }
 }
 
 /// Action to take when an agent requires user permission
-public enum PermissionBehavior: String, Codable, Sendable {
+public enum PermissionBehavior: String, Codable, Sendable, CaseIterable {
     case focusAgent = "focus-agent"
     case notificationOnly = "notification-only"
+
+    public var displayName: String {
+        switch self {
+        case .focusAgent: return "Focus Agent Window (Default)"
+        case .notificationOnly: return "Notification Only"
+        }
+    }
 }
 
 /// Action to take when an agent fails
-public enum FailureBehavior: String, Codable, Sendable {
+public enum FailureBehavior: String, Codable, Sendable, CaseIterable {
     case focusAgent = "focus-agent"
     case notificationOnly = "notification-only"
+
+    public var displayName: String {
+        switch self {
+        case .focusAgent: return "Focus Agent Window (Default)"
+        case .notificationOnly: return "Notification Only"
+        }
+    }
 }
 
 /// Policy for handling macOS Spaces / Virtual Desktops
