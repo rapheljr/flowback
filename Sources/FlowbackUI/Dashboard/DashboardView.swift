@@ -2,13 +2,17 @@ import SwiftUI
 import FlowbackCore
 import FlowbackProviders
 
-public enum DashboardTab: String, CaseIterable, Identifiable {
+public enum DashboardTab: String, CaseIterable, Identifiable, Sendable {
     case overview = "Overview"
     case agents = "Agents"
     case timeline = "Timeline"
     case applications = "Applications"
     case diagnostics = "Diagnostics"
     case settings = "Settings"
+    case advanced = "Advanced"
+    case whatsNew = "What's New"
+    case support = "Support"
+    case about = "About Flowback"
     
     public var id: String { rawValue }
     
@@ -20,6 +24,10 @@ public enum DashboardTab: String, CaseIterable, Identifiable {
         case .applications: return "macwindow"
         case .diagnostics: return "stethoscope"
         case .settings: return "gearshape"
+        case .advanced: return "slider.horizontal.3"
+        case .whatsNew: return "sparkles"
+        case .support: return "questionmark.circle"
+        case .about: return "info.circle"
         }
     }
     
@@ -31,8 +39,32 @@ public enum DashboardTab: String, CaseIterable, Identifiable {
         case .applications: return "Focus protection rules"
         case .diagnostics: return "System capabilities & integrations"
         case .settings: return "Focus policy configuration"
+        case .advanced: return "Specialized orchestration controls & configuration"
+        case .whatsNew: return "Recent release highlights and improvements"
+        case .support: return "Troubleshooting, documentation & diagnostics export"
+        case .about: return "App details, licensing & project resources"
         }
     }
+
+    public var accessibilityKey: String {
+        rawValue.lowercased().replacingOccurrences(of: " ", with: "-").replacingOccurrences(of: "'", with: "")
+    }
+
+    public static let workspaceTabs: [DashboardTab] = [
+        .overview,
+        .agents,
+        .applications,
+        .timeline,
+        .diagnostics
+    ]
+
+    public static let preferencesAndHelpTabs: [DashboardTab] = [
+        .settings,
+        .advanced,
+        .whatsNew,
+        .support,
+        .about
+    ]
 }
 
 public final class DashboardViewModel: ObservableObject {
@@ -181,11 +213,24 @@ public struct DashboardView: View {
     
     public var body: some View {
         NavigationSplitView {
-            List(DashboardTab.allCases, selection: $viewModel.selectedTab) { tab in
-                NavigationLink(value: tab) {
-                    Label(tab.rawValue, systemImage: tab.icon)
+            List(selection: $viewModel.selectedTab) {
+                Section("Workspace") {
+                    ForEach(DashboardTab.workspaceTabs) { tab in
+                        NavigationLink(value: tab) {
+                            Label(tab.rawValue, systemImage: tab.icon)
+                        }
+                        .accessibilityIdentifier("dashboard-sidebar-tab-\(tab.accessibilityKey)")
+                    }
                 }
-                .accessibilityIdentifier("dashboard-sidebar-tab-\(tab.rawValue.lowercased())")
+
+                Section("Preferences & Help") {
+                    ForEach(DashboardTab.preferencesAndHelpTabs) { tab in
+                        NavigationLink(value: tab) {
+                            Label(tab.rawValue, systemImage: tab.icon)
+                        }
+                        .accessibilityIdentifier("dashboard-sidebar-tab-\(tab.accessibilityKey)")
+                    }
+                }
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
             .listStyle(.sidebar)
@@ -248,6 +293,38 @@ public struct DashboardView: View {
                             config: configBinding,
                             onSave: onSaveConfig
                         )
+                    case .advanced:
+                        AdvancedView(
+                            config: configBinding,
+                            isStorageDurable: isStorageDurable,
+                            isIPCReady: isIPCReady,
+                            onSave: onSaveConfig
+                        )
+                    case .whatsNew:
+                        WhatsNewView()
+                    case .support:
+                        SupportView(
+                            diagnosticContext: DiagnosticReportContext(
+                                appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
+                                appBuild: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1",
+                                permissionStatus: permissionStatus,
+                                isDatabaseReady: isDatabaseReady,
+                                isStorageDurable: isStorageDurable,
+                                storageNotice: storageRecoveryNotice,
+                                isIPCReady: isIPCReady,
+                                providerHealths: providerHealths,
+                                configuration: configBinding.wrappedValue,
+                                recentTimeline: timelineEntries
+                            ),
+                            onNavigateToDiagnostics: {
+                                viewModel.selectedTab = .diagnostics
+                            }
+                        )
+                    case .about:
+                        AboutView(
+                            appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
+                            buildNumber: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+                        )
                     }
                 }
             }
@@ -268,10 +345,14 @@ public struct DashboardView: View {
                 Group {
                     Button("") { viewModel.selectedTab = .overview }.keyboardShortcut("1", modifiers: .command).hidden()
                     Button("") { viewModel.selectedTab = .agents }.keyboardShortcut("2", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .timeline }.keyboardShortcut("3", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .applications }.keyboardShortcut("4", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .applications }.keyboardShortcut("3", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .timeline }.keyboardShortcut("4", modifiers: .command).hidden()
                     Button("") { viewModel.selectedTab = .diagnostics }.keyboardShortcut("5", modifiers: .command).hidden()
                     Button("") { viewModel.selectedTab = .settings }.keyboardShortcut("6", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .advanced }.keyboardShortcut("7", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .whatsNew }.keyboardShortcut("8", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .support }.keyboardShortcut("9", modifiers: .command).hidden()
+                    Button("") { viewModel.selectedTab = .about }.keyboardShortcut("0", modifiers: .command).hidden()
                 }
             }
         }

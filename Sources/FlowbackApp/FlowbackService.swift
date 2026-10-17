@@ -744,7 +744,9 @@ extension FlowbackService: NSWindowDelegate {
         // App Menu
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "Flowback")
-        appMenu.addItem(withTitle: "About Flowback", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let aboutItem = NSMenuItem(title: "About Flowback", action: #selector(didSelectAboutMenuTab), keyEquivalent: "")
+        aboutItem.target = self
+        appMenu.addItem(aboutItem)
         appMenu.addItem(NSMenuItem.separator())
         let hideItem = NSMenuItem(title: "Hide Flowback", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(hideItem)
@@ -772,27 +774,50 @@ extension FlowbackService: NSWindowDelegate {
         editMenuItem.submenu = editMenu
         mainMenu.addItem(editMenuItem)
 
-        // View Menu (Enables ⌘1-⌘6 navigation and ⌘R refresh)
+        // View Menu (Enables ⌘1-⌘0 navigation and ⌘R refresh)
         let viewMenuItem = NSMenuItem()
         let viewMenu = NSMenu(title: "View")
+
         let overviewItem = NSMenuItem(title: "Overview", action: #selector(didSelectOverviewMenuTab), keyEquivalent: "1")
         overviewItem.target = self
         viewMenu.addItem(overviewItem)
+
         let agentsItem = NSMenuItem(title: "Agent Sessions", action: #selector(didSelectAgentsMenuTab), keyEquivalent: "2")
         agentsItem.target = self
         viewMenu.addItem(agentsItem)
-        let timelineItem = NSMenuItem(title: "Timeline", action: #selector(didSelectTimelineMenuTab), keyEquivalent: "3")
-        timelineItem.target = self
-        viewMenu.addItem(timelineItem)
-        let appsItem = NSMenuItem(title: "Protected Applications", action: #selector(didSelectApplicationsMenuTab), keyEquivalent: "4")
+
+        let appsItem = NSMenuItem(title: "Protected Applications", action: #selector(didSelectApplicationsMenuTab), keyEquivalent: "3")
         appsItem.target = self
         viewMenu.addItem(appsItem)
+
+        let timelineItem = NSMenuItem(title: "Timeline", action: #selector(didSelectTimelineMenuTab), keyEquivalent: "4")
+        timelineItem.target = self
+        viewMenu.addItem(timelineItem)
+
         let diagItem = NSMenuItem(title: "Diagnostics", action: #selector(didSelectDiagnosticsMenuTab), keyEquivalent: "5")
         diagItem.target = self
         viewMenu.addItem(diagItem)
+
         let settingsItem = NSMenuItem(title: "Settings", action: #selector(didSelectSettingsMenuTab), keyEquivalent: "6")
         settingsItem.target = self
         viewMenu.addItem(settingsItem)
+
+        let advancedItem = NSMenuItem(title: "Advanced Preferences", action: #selector(didSelectAdvancedMenuTab), keyEquivalent: "7")
+        advancedItem.target = self
+        viewMenu.addItem(advancedItem)
+
+        let whatsNewItem = NSMenuItem(title: "What's New", action: #selector(didSelectWhatsNewMenuTab), keyEquivalent: "8")
+        whatsNewItem.target = self
+        viewMenu.addItem(whatsNewItem)
+
+        let supportItem = NSMenuItem(title: "Support & Troubleshooting", action: #selector(didSelectSupportMenuTab), keyEquivalent: "9")
+        supportItem.target = self
+        viewMenu.addItem(supportItem)
+
+        let aboutViewItem = NSMenuItem(title: "About Flowback", action: #selector(didSelectAboutMenuTab), keyEquivalent: "0")
+        aboutViewItem.target = self
+        viewMenu.addItem(aboutViewItem)
+
         viewMenu.addItem(NSMenuItem.separator())
         let refreshItem = NSMenuItem(title: "Refresh Sessions", action: #selector(didSelectRefreshMenu), keyEquivalent: "r")
         refreshItem.target = self
@@ -814,27 +839,43 @@ extension FlowbackService: NSWindowDelegate {
     }
 
     @objc private func didSelectOverviewMenuTab() {
-        dashboardViewModel.selectedTab = .overview
+        openDashboardWindow(tab: .overview)
     }
 
     @objc private func didSelectAgentsMenuTab() {
-        dashboardViewModel.selectedTab = .agents
-    }
-
-    @objc private func didSelectTimelineMenuTab() {
-        dashboardViewModel.selectedTab = .timeline
+        openDashboardWindow(tab: .agents)
     }
 
     @objc private func didSelectApplicationsMenuTab() {
-        dashboardViewModel.selectedTab = .applications
+        openDashboardWindow(tab: .applications)
+    }
+
+    @objc private func didSelectTimelineMenuTab() {
+        openDashboardWindow(tab: .timeline)
     }
 
     @objc private func didSelectDiagnosticsMenuTab() {
-        dashboardViewModel.selectedTab = .diagnostics
+        openDashboardWindow(tab: .diagnostics)
     }
 
     @objc private func didSelectSettingsMenuTab() {
-        dashboardViewModel.selectedTab = .settings
+        openDashboardWindow(tab: .settings)
+    }
+
+    @objc private func didSelectAdvancedMenuTab() {
+        openDashboardWindow(tab: .advanced)
+    }
+
+    @objc private func didSelectWhatsNewMenuTab() {
+        openDashboardWindow(tab: .whatsNew)
+    }
+
+    @objc private func didSelectSupportMenuTab() {
+        openDashboardWindow(tab: .support)
+    }
+
+    @objc private func didSelectAboutMenuTab() {
+        openDashboardWindow(tab: .about)
     }
 
     @objc private func didSelectRefreshMenu() {
