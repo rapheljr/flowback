@@ -19,7 +19,7 @@ Status Legend:
   * Antigravity provider with proactive active transcript scanning, lifecycle hook execution (`fullyIdle=true`), and refresh triggers.
   * Claude Code provider with session detection.
   * OpenAI Codex provider.
-  * Gemini CLI & Aider integrations.
+  * Antigravity CLI (formerly Gemini CLI) & Aider integrations.
   * Generic JSON Hook Protocol v1 over Unix socket (`~/.flowback/flowback.sock`).
 * 🟢 **Editor & Terminal Adapters:**
   * VS Code, VS Code Insiders, Code OSS, Windsurf, VSCodium, Positron, Trae, and Cursor.

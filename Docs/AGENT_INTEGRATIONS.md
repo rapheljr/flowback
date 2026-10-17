@@ -14,7 +14,7 @@ Flowback tracks coding agent sessions using dedicated provider adapters and the 
 | **Cursor Background Agent** | **Supported** | Cloud Agents API + Window Adapter | Remote `api.cursor.com/v1/agents` tracking, subagent hierarchy, repo/branch tracking + local window restoration |
 | **Claude Code** | **Supported** | Process & Hook | Terminal process monitoring & hook callbacks |
 | **OpenAI Codex** | **Supported** | Process & IPC | CLI process monitoring & status mapping |
-| **Gemini CLI** | **Supported** | Command Hook | Shell wrapper & post-execution callback |
+| **Antigravity CLI** | **Supported** | Native Lifecycle Hooks (`agy`) | `~/.gemini/config/hooks.json` (`PreInvocation`, `PostInvocation`, `Stop`) + terminal restoration (formerly Gemini CLI) |
 | **Aider** | **Supported** | Git / Terminal Hook | Notification & terminal watcher |
 | **Generic Hook Protocol** | **Supported** | Unix Domain Socket | Emits schema v1 JSON over `~/.flowback/flowback.sock` |
 
@@ -54,7 +54,18 @@ In addition to hook events, Flowback includes proactive transcript scanning:
 
 ---
 
-## 2. Windsurf Integration (Cascade Hooks)
+## 2. Antigravity CLI Integration (`agy`)
+
+> **Note:** Google's Gemini CLI (`gemini`) is now the official Antigravity CLI (`agy`). Flowback provides first-class native lifecycle integration while maintaining full backward-compatibility for existing aliases (`gemini-cli`, `gemini`, `agy`).
+
+* **Binary Detection:** Automatically detects `agy` (or `gemini`) in `/opt/homebrew/bin`, `/usr/local/bin`, and `PATH`.
+* **Hooks Integration:** Shares lifecycle hook definitions in `~/.gemini/config/hooks.json` (`PreInvocation`, `PostInvocation`, `Stop`) with command: `flowback hook antigravity-cli`.
+* **Proactive Discovery:** Scans active transcripts in `~/.gemini/antigravity-cli/brain/` and active lockfiles in `~/.gemini/antigravity-cli/presence/`.
+* **Terminal Focus Restoration:** Restores focus directly to the terminal emulator running the session (Ghostty, Apple Terminal, iTerm2, Warp, Hyper, etc.) matching the workspace directory.
+
+---
+
+## 3. Windsurf Integration (Cascade Hooks)
 
 Flowback integrates natively with Windsurf via official Cascade Hooks configured in `~/.codeium/windsurf/hooks.json`:
 
@@ -89,7 +100,7 @@ Flowback integrates natively with Windsurf via official Cascade Hooks configured
 
 ---
 
-## 3. OpenCode Integration (Plugin Architecture)
+## 4. OpenCode Integration (Plugin Architecture)
 
 Flowback provides a native OpenCode plugin installed to `~/.config/opencode/plugins/flowback.js`:
 
@@ -99,7 +110,7 @@ Flowback provides a native OpenCode plugin installed to `~/.config/opencode/plug
 
 ---
 
-## 4. Cursor Background Agent Integration
+## 5. Cursor Background Agent Integration
 
 Flowback decouples local Cursor windows from cloud-hosted background agents:
 
@@ -112,7 +123,7 @@ Flowback decouples local Cursor windows from cloud-hosted background agents:
 
 ---
 
-## 5. Generic Hook Protocol (v1 Schema)
+## 6. Generic Hook Protocol (v1 Schema)
 
 Any custom CLI agent, CI runner, or developer script can integrate with Flowback by piping JSON events into `flowback emit`:
 

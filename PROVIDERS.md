@@ -34,7 +34,7 @@ To ensure technical accuracy, Flowback distinguishes four verification states:
 | **Cursor Background Agent** | `adapter` / `native-lifecycle` | `https://api.cursor.com/v1/agents` + Local Window | Running, Waiting, PermissionRequired, Completed, Failed, Cancelled, Subagents | Cloud API, Git repo/branch, PR URL, local workspace | Workspace Window / PR Browser Fallback | **Integration-Tested** (Injectable Transport & Mock API) |
 | **Claude Code** | `adapter` | CLI wrapper & terminal hooks | Running, Waiting, Completed | Terminal process & window | Workspace Window / App Activation | **Integration-Tested** |
 | **OpenAI Codex** | `adapter` | Codex CLI hooks & process tracker | Running, PermissionRequired, Completed | Process & workspace | App Activation Only | **Integration-Tested** |
-| **Gemini CLI** | `adapter` | Command watcher / CLI hook | Running, Completed, Failed | Terminal working dir | Workspace Window | **Integration-Tested** |
+| **Antigravity CLI** | `native-lifecycle` | `~/.gemini/config/hooks.json` / `agy` lifecycle hooks | Started, Running, Progress, Completed, Failed, PermissionRequired | Terminal process & window, workspace | Exact Window & Workspace (Terminal) | **Integration-Tested** (Mock & Native Hooks) |
 | **Aider** | `adapter` | Git watcher & process tracking | Running, Completed | Terminal process & workspace | App Activation Only | **Integration-Tested** |
 | **Generic Hook** | `generic-protocol` | Unix domain socket (`/tmp` / `~/.flowback`) | All 12 normalized lifecycle events | Explicit JSON payload | Exact Window & Workspace | **Integration-Tested** |
 
@@ -119,9 +119,21 @@ Before modifying `~/.gemini/config/hooks.json`:
 
 ---
 
-## 4. Gemini CLI Provider (`GeminiCLIProvider`)
+## 4. Antigravity CLI Provider (`AntigravityCLIProvider`)
 
-* **Integration Mechanism:** Detects `gemini` command line tool and listens for completion hooks.
+> **Note:** Formerly known as *Gemini CLI* (`gemini`). Rebranded to Google's official *Antigravity CLI* (`agy`) while preserving backwards compatibility aliases (`gemini-cli`, `gemini`, `agy`).
+
+* **Integration Mechanism:** Detects `agy` binary (`/opt/homebrew/bin/agy`, `/usr/local/bin/agy`, or in PATH) and hooks configured in `~/.gemini/config/hooks.json` (as well as `~/.gemini/antigravity-cli`).
+* **Supported Lifecycle Events:**
+  * `PreInvocation` (turn 1): Normalizes to `.agentStarted`.
+  * `PreInvocation` (subsequent turns): Normalizes to `.agentRunning`.
+  * `PostInvocation`: Normalizes to `.agentProgress`.
+  * `Stop` (`fullyIdle: true`): Normalizes to `.agentCompleted`.
+  * `Stop` (`fullyIdle: false`): Normalizes to `.agentRunning`.
+  * Error status / process failure: Normalizes to `.agentFailed`.
+  * Tool confirmation prompts: Normalizes to `.agentPermissionRequired`.
+* **Proactive Discovery:** Scans `~/.gemini/antigravity-cli/brain/` for active transcripts and `presence/*.lock` for active terminal session tracking with `history.jsonl` workspace correlation.
+* **Window Restoration:** Restores focus directly to the terminal emulator running `agy` (Ghostty, Apple Terminal, iTerm2, Warp, Hyper, etc.) matching the workspace directory.
 
 ---
 
@@ -244,7 +256,7 @@ Or by sending JSON directly to `~/.flowback/flowback.sock`:
        AntigravityProvider(),
        ClaudeCodeProvider(),
        CodexProvider(),
-       GeminiCLIProvider(),
+       AntigravityCLIProvider(),
        AiderProvider(),
        WindsurfProvider(),
        OpenCodeProvider(),

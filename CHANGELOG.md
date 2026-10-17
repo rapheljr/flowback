@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Proactive background agent discovery scanning running agent transcripts and live sessions.
   * Claude Code provider with terminal session lifecycle integration.
   * OpenAI Codex provider with process observation and status translation.
-  * Gemini CLI and Aider integrations.
+  * Antigravity CLI (formerly Gemini CLI, binary `agy`) with native lifecycle hooks and Aider integration.
   * Generic JSON Hook Protocol (v1 schema) communicating over local Unix domain socket (`~/.flowback/flowback.sock`).
 * **Editor & Terminal Adapters:**
   * VS Code family adapter supporting standard VS Code (`com.microsoft.VSCode`), VS Code Insiders (`com.microsoft.VSCodeInsiders`), VSCodium (`com.vscodium`), Positron (`co.posit.positron`), Windsurf (`com.codeium.windsurf`), and Trae (`com.byteplus.trae`).

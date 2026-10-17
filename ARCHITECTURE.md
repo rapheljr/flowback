@@ -75,7 +75,7 @@ Flowback is divided into clean Swift Package Manager libraries:
 * **AntigravityProvider:** Native hook installer for `~/.gemini/config/hooks.json`. Subscribes to `Stop` hook, prioritizing `fullyIdle = true`.
 * **ClaudeCodeProvider:** Detects CLI installation, manages hook registration.
 * **CodexProvider:** OpenAI Codex session monitor.
-* **GeminiCLIProvider:** Gemini CLI session monitor.
+* **AntigravityCLIProvider:** Antigravity CLI (`agy`, formerly Gemini CLI) session monitor and native lifecycle hook adapter.
 * **AiderProvider:** Aider git-based session monitor.
 * **GenericHookProvider:** JSON schema v1 receiver for custom agents and scripts.
 

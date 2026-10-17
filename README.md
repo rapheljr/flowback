@@ -25,7 +25,7 @@
 
 ## 2. The Problem
 
-AI coding agents (Google Antigravity, Claude Code, OpenAI Codex, Gemini CLI, Aider) execute multi-minute background tasks: refactoring files, installing dependencies, running integration tests, or searching large codebases. 
+AI coding agents (Google Antigravity, Antigravity CLI, Claude Code, OpenAI Codex, Aider) execute multi-minute background tasks: refactoring files, installing dependencies, running integration tests, or searching large codebases. 
 
 While the agent works, you switch context—reviewing a PR on GitHub, reading documentation in Brave, or communicating on Slack. When the agent finishes:
 
@@ -71,7 +71,7 @@ Flowback runs as a lightweight native menu bar application accompanied by a nati
 | **Google Antigravity** | **Supported** | Official JSON Hooks + Transcript Scan | `~/.gemini/config/hooks.json` (`PreInvocation`, `PostInvocation`, `Stop` with `fullyIdle=true` prioritization) |
 | **Claude Code** | **Supported** | Process & Terminal Hooks | Automatic hook detection and terminal session lifecycle |
 | **OpenAI Codex** | **Supported** | Process & CLI Hooks | Process monitoring and state translation |
-| **Gemini CLI** | **Supported** | CLI Hook Integration | Post-execution hook callback |
+| **Antigravity CLI** | **Supported** | Native Lifecycle Hooks (`agy`) | `~/.gemini/config/hooks.json` lifecycle hooks + terminal workspace restoration (formerly Gemini CLI) |
 | **Aider** | **Supported** | Git & Terminal Integration | File watcher and terminal notification |
 | **Windsurf** | **Supported** | Official Cascade JSON Hooks + Transcripts | `~/.codeium/windsurf/hooks.json` (`pre_user_prompt`, `post_cascade_response`, `pre_run_command`, etc.) + `~/.codeium/windsurf/transcripts/` |
 | **OpenCode** | **Supported** | Official Plugin Architecture | `~/.config/opencode/plugins/flowback.js` event subscriptions (`session.*`, `tool.execute.*`) over local IPC |

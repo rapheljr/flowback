@@ -47,7 +47,7 @@
     <text x="100" y="99" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Claude Code &amp; Codex</text>
 
     <rect x="20" y="114" width="160" height="26" rx="6" fill="#0f172a" stroke="#1e293b"/>
-    <text x="100" y="131" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Gemini CLI &amp; Aider</text>
+    <text x="100" y="131" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Antigravity CLI &amp; Aider</text>
 
     <rect x="20" y="146" width="160" height="26" rx="6" fill="#0f172a" stroke="#1e293b"/>
     <text x="100" y="163" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Generic Hook Protocol</text>
