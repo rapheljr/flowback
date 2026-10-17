@@ -24,21 +24,28 @@ To ensure technical accuracy, Flowback distinguishes four verification states:
 
 ---
 
-## Provider Support Matrix
+## Provider Conversation Capability Matrix
 
-| Provider | Support Level | Event Source | Lifecycle Coverage | Context Capture | Restoration Capability | Verified Status |
-|---|---|---|---|---|---|---|
-| **Google Antigravity** | `native-lifecycle` | `~/.gemini/config/hooks.json` (`Stop` hook) | Started, Running, Idle, Completed, Failed | IDE process, window, workspace | Exact Window & Workspace | **Integration-Tested** (Mock & Transcripts) |
-| **Windsurf** | `native-lifecycle` | `~/.codeium/windsurf/hooks.json` (Cascade Hooks) | Started, Running, Progress, PermissionRequired, Completed, Failed | Process, window, workspace | Exact Window & Workspace | **Integration-Tested** (Mock Cascade Hooks) |
-| **OpenCode** | `native-lifecycle` | `~/.config/opencode/plugins/flowback.js` (Plugin API) | Started, Running, PermissionRequired, Progress, Completed, Cancelled, Failed | Process, workspace | Workspace Window / App Activation | **Integration-Tested** (Mock Context & Socket IPC) |
-| **Cursor Background Agent** | `adapter` / `native-lifecycle` | `https://api.cursor.com/v1/agents` + Local Window | Running, Waiting, PermissionRequired, Completed, Failed, Cancelled, Subagents | Cloud API, Git repo/branch, PR URL, local workspace | Workspace Window / PR Browser Fallback | **Integration-Tested** (Injectable Transport & Mock API) |
-| **Claude Code** | `adapter` | CLI wrapper & terminal hooks | Running, Waiting, Completed | Terminal process & window | Workspace Window / App Activation | **Integration-Tested** |
-| **OpenAI Codex** | `adapter` | Codex CLI hooks & process tracker | Running, PermissionRequired, Completed | Process & workspace | App Activation Only | **Integration-Tested** |
-| **Antigravity CLI** | `native-lifecycle` | `~/.gemini/config/hooks.json` / `agy` lifecycle hooks | Started, Running, Progress, Completed, Failed, PermissionRequired | Terminal process & window, workspace | Exact Window & Workspace (Terminal) | **Integration-Tested** (Mock & Native Hooks) |
-| **Aider** | `adapter` | Git watcher & process tracking | Running, Completed | Terminal process & workspace | App Activation Only | **Integration-Tested** |
-| **Generic Hook** | `generic-protocol` | Unix domain socket (`/tmp` / `~/.flowback`) | All 12 normalized lifecycle events | Explicit JSON payload | Exact Window & Workspace | **Integration-Tested** |
+Flowback evaluates conversation identity and restoration capabilities independently. A provider can expose a reliable conversation ID and title without exposing a mechanism to deep-link into that conversation.
 
-> **Note on Runtime Verification:** Live runtime verification of Windsurf, OpenCode, and Cursor Cloud Agents requires running live third-party applications and providing live API keys (`CURSOR_API_KEY`). Flowback tests these integrations through deterministic mock harnesses and socket boundaries without exposing live credentials or touching user environments during automated testing.
+| Provider | Native ID Source | Title Discovery Source | Focus Capability | Verification Level | Restoration Mechanism & Fallback |
+|---|---|---|---|---|---|
+| **Google Antigravity** | `conversation_id` (hook payload & brain directory) | Extracted from session transcript (`<USER_REQUEST>` / `### USER Objective:`) | `windowOnly` | **Integration-Tested** (Mocks & Transcripts) | Activates Antigravity window & workspace (`.workspaceActivatedOnly` / `.windowActivatedOnly`). |
+| **Antigravity CLI (`agy`)** | `conversationId` (native CLI hook & session storage) | Read-only SQLite query to `conversation_summaries.db` (`summary` column) or transcript first line | `workspaceAndConversation` | **Integration-Tested** (Native Hooks & Storage) | Focuses Terminal window, navigates to workspace, and presents resume command hint `agy --conversation <id>` (`.resumeHintPresented`). |
+| **Cursor Background Agent** | Cloud agent `id` (`bc-...`) | `summary` field from Cloud API / Pull Request title | `externalURL` | **Integration-Tested** (Injectable Transport & Mock API) | Directly opens verified PR URL or `https://cursor.com/agents/<id>` in default browser (`.providerURLOpened`). Never claims local conversation restoration. |
+| **Claude Code** | Session ID from prompt hooks / transcripts | Hook `title` or first line of prompt | `workspaceAndConversation` | **Integration-Tested** | Focuses Terminal workspace; presents `claude resume <id>` hint (`.resumeHintPresented`). |
+| **Windsurf** | `trajectory_id` / `session_id` in Cascade hooks | Initial prompt / Cascade user objective | `windowOnly` | **Integration-Tested** (Mock Cascade Hooks) | Activates Windsurf editor window (`.windowActivatedOnly`). Cascade exposes no public deep-linking URL scheme. |
+| **OpenCode** | `sessionID` from Plugin API | Plugin payload `title` or task prompt | `windowOnly` | **Integration-Tested** (Mock Context & Socket IPC) | Activates OpenCode application window and workspace (`.workspaceActivatedOnly` / `.windowActivatedOnly`). |
+| **OpenAI Codex** | Thread / Session ID | User prompt first line | `windowOnly` | **Integration-Tested** (Lifecycles & Hooks) | Activates containing application or terminal window (`.windowActivatedOnly`). Does not fabricate unsupported CLI resume commands. |
+| **Aider** | Git branch / session ID | Git branch description or initial instruction | `windowOnly` | **Integration-Tested** (Lifecycles & Adapters) | Activates terminal window (`.windowActivatedOnly`). Normalizes recognized lifecycle events; unknown events default to running rather than completion. |
+| **Generic Hook** | `conversation_id` in socket payload | `conversation_title` or `task_id` in JSON | `windowOnly` / Dynamic | **Integration-Tested** | Dynamic: opens `conversation_url` if present, otherwise activates registered window/workspace. |
+
+> **Capability Legend:**
+> - `exactConversation`: Documented and implemented ability to directly focus the specific conversation.
+> - `workspaceAndConversation`: Able to focus the workspace and resume the conversation via documented command.
+> - `externalURL`: Direct web browser navigation to provider dashboard, session view, or pull request.
+> - `windowOnly`: Activates the correct application/window, but cannot select the individual conversation within the GUI.
+> - `unavailable`: Insufficient identity or restoration data to guarantee a safe target.
 
 ---
 

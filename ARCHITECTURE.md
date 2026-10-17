@@ -103,3 +103,48 @@ Flowback is divided into clean Swift Package Manager libraries:
 
 ### 9. `FlowbackCLI`
 * **Native Executable:** Standalone CLI tool `flowback` communicating over the local Unix domain socket.
+
+---
+
+## Conversation-Aware Identity & Exact Focus Restoration
+
+### Identity Separation Principles
+
+Flowback follows a strict identity separation policy:
+1. **Application Identity:** `bundleIdentifier` (e.g. `com.google.antigravity`, `com.microsoft.VSCode`).
+2. **Window Identity:** `windowIdentifier` (macOS `CGWindowID`).
+3. **Workspace Identity:** Canonical file system path (e.g. `/Users/abin/workspace/projects/lottery-pi`).
+4. **Agent Execution Identity:** `executionID` (single prompt, turn, or tool invocation).
+5. **Conversation Identity:** `conversationID` (enduring thread or trajectory).
+6. **Remote Cloud Identity:** `isRemote`, `conversationURL` (distinguishing background cloud agents from local editor threads).
+
+A repository path, window title, or process ID is **never** treated as a unique conversation ID. Multiple conversations associated with the same repository or editor window remain independent sessions with distinct lifecycles, titles, and focus targets.
+
+### Restoration Hierarchy
+
+When the user selects a conversation in Flowback, `FocusController.restoreSession(_:)` resolves the target through a conservative priority order:
+
+1. **Provider Web URL / Dashboard / PR:**
+   - Evaluated for remote agents (`isRemote == true`) or sessions exposing `conversationURL`.
+   - Strict scheme validation: Only `http://` and `https://` URLs are permitted; unsafe schemes (`javascript:`, `file:`, arbitrary URI handlers) are rejected.
+   - Result: `.providerURLOpened`
+2. **CLI & Terminal Session Resumption:**
+   - Evaluated for terminal-based agents (e.g., `AntigravityCLIProvider`, `ClaudeCodeProvider`).
+   - If an origin terminal exists, Flowback focuses the terminal window and supplies a structured resume hint (e.g., `agy --conversation <id>` or `claude resume <id>`).
+   - Result: `.resumeHintPresented` (A displayed resume command is an actionable hint, not proof of restoration; `isExactConversation` is `false`).
+3. **Workspace & Window Adapter Focus:**
+   - Evaluated for desktop GUI applications.
+   - The registered application adapter matches candidate windows by Window ID, followed by workspace directory name.
+   - Result: `.exactConversationRestored` (if native deep linking/conversation selection is implemented), `.workspaceActivatedOnly` (if workspace matched), or `.windowActivatedOnly` (if containing application window raised).
+4. **Ambiguous Window Guard:**
+   - If multiple windows match a workspace path and no reliable Window ID is available, Flowback returns `.targetAmbiguous` rather than arbitrarily guessing a window.
+5. **Unsupported / Failure:**
+   - Returns `.conversationUnavailable`, `.restorationUnsupported`, or `.restorationFailed` with explanatory error messages. Flowback **never** misrepresents window-only activation or resume hints as exact conversation focus.
+
+### Persistence & Schema Migration (V2)
+
+Flowback storage implements zero-downtime, backward-compatible SQLite migrations:
+* **Migration V1:** Base session, event, snapshot, and settings schema.
+* **Migration V2:** Uses reliable schema inspection (`PRAGMA table_info(sessions);`) rather than parsing error message strings. Adds `conversation_title`, `conversation_id`, `task_summary`, `execution_id`, `parent_session_id`, `conversation_url`, `focus_capability`, and `is_remote` columns along with an index on `conversation_id`.
+* **Idempotency & Failure Rollback:** If columns already exist, migration skips them cleanly. Any unexpected SQLite failure propagates, triggers immediate transaction rollback, and prevents `PRAGMA user_version` from advancing.
+* Existing V1 databases automatically upgrade without data loss. Legacy records missing conversation fields default safely to `windowOnly` capability and derive titles from workspace project names.
