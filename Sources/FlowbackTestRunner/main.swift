@@ -858,6 +858,7 @@ await runMultiAgentConcurrencyAndSharedReliabilitySuites()
 await runCloudDiscoveryAndLifecycleRegressionSuites()
 await runAntigravityReactivationAndTranscriptSuites()
 await runAntigravityCLIIntegrationSuites()
+await runConversationAwarenessSuites()
 
 print("\n================================================================")
 print("TEST RESULTS SUMMARY")
