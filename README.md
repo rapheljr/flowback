@@ -324,7 +324,7 @@ Review our response targets and disclosure policies in [SECURITY.md](SECURITY.md
 * 🟢 **v1.0.0:** Universal core, official providers (Antigravity, Claude Code, Codex), Attention Arbiter, User Intent Engine, SQLite WAL, SwiftUI Dashboard & CLI.
 * 🔵 **v1.1.0:** Multi-monitor display pinning, official Homebrew Cask, terminal tab deep links.
 * 🔵 **v1.2.0:** Multi-agent workspace grouping presets, scheduled Focus Lock.
-* 🟣 **v2.0.0:** Out-of-process provider sidecar architecture.
+* 🟣 **v2.0.0:** Out-of-process provider sidecar architecture & cross-platform Linux support ([#7](https://github.com/rapheljr/flowback/issues/7)).
 
 Read the full [ROADMAP.md](ROADMAP.md).
 

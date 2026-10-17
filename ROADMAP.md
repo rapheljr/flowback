@@ -63,4 +63,6 @@ Status Legend:
 ## Milestone 2.0.0 — Exploratory / Future Directions 🟣
 
 * 🟣 **Custom Out-of-Process Provider Sidecars:** Allow developers to author providers in Python, TypeScript, or Go communicating via a lightweight POSIX FIFO without recompiling Flowback.
+* 🟣 **Cross-Platform Linux Support:** Headless background daemon (`flowbackd`), Freedesktop D-Bus notifications, X11 EWMH / Wayland (`xdg-activation-v1`, Hyprland, Sway) focus restoration drivers, and systemd user services ([#7](https://github.com/rapheljr/flowback/issues/7)).
 * 🟣 **Swift Testing Migration:** Adopt native `swift-testing` once upstream tooling and Command Line Tools fully standardize framework availability across all macOS environments.
+
