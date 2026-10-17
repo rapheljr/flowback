@@ -68,7 +68,7 @@ public actor SQLiteDatabase {
                         attributes: [.posixPermissions: 0o700]
                     )
                 }
-                try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir)
+                try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir)
             }
         }
         
