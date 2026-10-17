@@ -736,7 +736,9 @@ await testGroup("Apple HIG Compliance & Accessibility Verification") {
     }
 
     // 5. DashboardTab Coverage & Human Interface Hierarchy
-    assertTest(DashboardTab.allCases.count == 6, "Dashboard contains exactly 6 organized primary views")
+    assertTest(DashboardTab.allCases.count == 10, "Dashboard contains exactly 10 organized primary views")
+    assertTest(DashboardTab.workspaceTabs.count == 5, "Workspace section contains 5 operational tabs")
+    assertTest(DashboardTab.preferencesAndHelpTabs.count == 5, "Preferences & Help section contains 5 configuration & help tabs")
     for tab in DashboardTab.allCases {
         assertTest(!tab.subtitle.isEmpty, "Dashboard tab '\(tab.rawValue)' provides descriptive subtitle for window header")
         assertTest(!tab.icon.isEmpty, "Dashboard tab '\(tab.rawValue)' uses valid SF Symbol '\(tab.icon)'")
@@ -861,6 +863,7 @@ await runAntigravityCLIIntegrationSuites()
 await runConversationAwarenessSuites()
 await runAuditRemediationSuites()
 await runVorssaintDiscoverySuites()
+await runGeneralSidebarDestinationsSuites()
 await runVisualParitySuites()
 
 print("\n================================================================")

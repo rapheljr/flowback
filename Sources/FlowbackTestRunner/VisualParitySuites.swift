@@ -256,7 +256,11 @@ func runVisualParitySuites() async {
             ("dashboard_timeline", .timeline, sampleSessions, sampleSessions, sampleAttention),
             ("dashboard_applications", .applications, sampleSessions, sampleSessions, sampleAttention),
             ("dashboard_diagnostics", .diagnostics, sampleSessions, sampleSessions, sampleAttention),
-            ("dashboard_settings", .settings, sampleSessions, sampleSessions, sampleAttention)
+            ("dashboard_settings", .settings, sampleSessions, sampleSessions, sampleAttention),
+            ("dashboard_advanced", .advanced, sampleSessions, sampleSessions, sampleAttention),
+            ("dashboard_whats_new", .whatsNew, sampleSessions, sampleSessions, sampleAttention),
+            ("dashboard_support", .support, sampleSessions, sampleSessions, sampleAttention),
+            ("dashboard_about", .about, sampleSessions, sampleSessions, sampleAttention)
         ]
 
         var capturedCount = 0
@@ -301,7 +305,7 @@ func runVisualParitySuites() async {
             }
         }
 
-        // Render Empty States for Agents and Applications
+        // Render Empty States for Agents, Applications, and What's New
         let emptyVM = DashboardViewModel(
             selectedTab: .agents,
             activeSessions: [],
@@ -330,7 +334,14 @@ func runVisualParitySuites() async {
             assertTest(emptyAppsPNG.count > 5000, "V-015: Captured dashboard_applications_empty_dark.png")
         }
 
-        // Render Increased Contrast Mode (Overview screen)
+        let emptyWhatsNew = WhatsNewView(releaseNotes: [])
+        if let emptyWhatsNewPNG = renderViewToPNG(view: emptyWhatsNew, colorScheme: .dark) {
+            let url = screenshotsDir.appendingPathComponent("dashboard_whats_new_empty_dark.png")
+            try? emptyWhatsNewPNG.write(to: url)
+            assertTest(emptyWhatsNewPNG.count > 5000, "V-015: Captured dashboard_whats_new_empty_dark.png")
+        }
+
+        // Render Increased Contrast Mode (Overview and Advanced screens)
         let contrastVM = DashboardViewModel(
             selectedTab: .overview,
             activeSessions: sampleSessions,
@@ -357,7 +368,14 @@ func runVisualParitySuites() async {
             assertTest(contrastPNG.count > 5000, "V-015: Captured dashboard_overview_increased_contrast.png")
         }
 
-        assertTest(capturedCount >= 12, "V-015: Successfully captured all core dashboard surfaces across light and dark modes")
+        contrastVM.selectedTab = .advanced
+        if let advancedContrastPNG = renderViewToPNG(view: contrastView, colorScheme: .dark, isHighContrast: true) {
+            let url = screenshotsDir.appendingPathComponent("dashboard_advanced_increased_contrast.png")
+            try? advancedContrastPNG.write(to: url)
+            assertTest(advancedContrastPNG.count > 5000, "V-015: Captured dashboard_advanced_increased_contrast.png")
+        }
+
+        assertTest(capturedCount >= 20, "V-015: Successfully captured all 10 dashboard surfaces across light and dark modes")
     }
 
     // MARK: - V-016: Contrast Ratio & Color Space Audit
