@@ -15,7 +15,7 @@ private let logger = Logger(subsystem: "com.flowback.app", category: "FlowbackSe
 @MainActor
 public final class FlowbackService: NSObject, ObservableObject {
     public static let shared = FlowbackService()
-    
+
     // Lifecycle State
     @Published public private(set) var lifecycleState: ServiceLifecycleState = .notStarted
     @Published public private(set) var isIPCReady: Bool = false
@@ -23,7 +23,7 @@ public final class FlowbackService: NSObject, ObservableObject {
     @Published public private(set) var isStorageDurable: Bool = true
     @Published public private(set) var storageRecoveryNotice: String?
     @Published public private(set) var startupErrorMessage: String?
-    
+
     // Core Engine
     public let eventBus = EventBus.shared
     public let timelineTracker = TimelineTracker.shared
@@ -31,25 +31,25 @@ public final class FlowbackService: NSObject, ObservableObject {
     public private(set) var sessionRepository: SessionRepository!
     public private(set) var settingsRepository: SettingsRepository!
     public private(set) var eventRepository: EventRepository!
-    
+
     public private(set) var sessionManager: SessionManager!
     public private(set) var attentionArbiter: AttentionArbiter!
     public private(set) var focusController: FocusController!
     public private(set) var providerRegistry: ProviderRegistry!
-    
+
     // Server & Notifications
     public var isHeadless: Bool = false
     private var socketServer: UnixSocketServer!
     private var ipcHandler: IPCHandler!
     private let notificationManager = NotificationManager.shared
     private let menuBarController = MenuBarController()
-    
+
     // Managed Background Tasks & Observers (Owned lifecycle resources)
     private var agentEventsTask: Task<Void, Never>?
     private var backgroundRefreshTask: Task<Void, Never>?
     private var workspaceObserverTokens: [NSObjectProtocol] = []
     private var globalHotkeyMonitor: Any?
-    
+
     // Observable UI state
     @Published public var activeSessions: [AgentSession] = []
     @Published public var allSessions: [AgentSession] = []
@@ -59,27 +59,27 @@ public final class FlowbackService: NSObject, ObservableObject {
     @Published public var permissionStatus: PermissionStatus = PermissionStatus()
     @Published public var configuration: PolicyConfiguration = .default
     @Published public var focusLock: FocusLockState = FocusLockState()
-    
+
     // Dashboard window & navigation model
     private var dashboardWindow: NSWindow?
     private let dashboardViewModel = DashboardViewModel()
-    
+
     public override init() {
         super.init()
     }
-    
+
     // MARK: - Authoritative Lifecycle Start
-    
+
     public func start() async {
         guard lifecycleState != .starting && lifecycleState != .ready else {
             logger.warning("FlowbackService start() invoked while state is \(self.lifecycleState.rawValue); ignoring duplicate invocation.")
             return
         }
-        
+
         logger.info("Starting Flowback Universal Context & Focus Manager...")
         lifecycleState = .starting
         startupErrorMessage = nil
-        
+
         // 1. Storage setup & corruption recovery
         let dbPath = ("~/.flowback/flowback.sqlite" as NSString).expandingTildeInPath
         let storageResult = await RecoveryManager.shared.initializeStorageDetailed(path: dbPath)
@@ -90,17 +90,21 @@ public final class FlowbackService: NSObject, ObservableObject {
         self.settingsRepository = SettingsRepository(db: database)
         self.eventRepository = EventRepository(db: database)
         self.isDatabaseReady = true
-        
+
         if !storageResult.isDurable {
             self.lifecycleState = .degraded
             logger.warning("Operating in degraded storage mode: \(storageResult.recoveryNotice ?? "")")
         }
-        
+
         // 2. Load preferences
         self.configuration = await settingsRepository.loadConfiguration()
-        
+
         // 3. Coordinate core subsystems
-        self.sessionManager = SessionManager(timeline: timelineTracker, storageDelegate: sessionRepository)
+        self.sessionManager = SessionManager(
+            timeline: timelineTracker,
+            storageDelegate: sessionRepository,
+            eventBus: eventBus
+        )
         self.attentionArbiter = AttentionArbiter(
             aggregationWindow: Double(configuration.attentionAggregationMs) / 1000.0,
             cooldownDuration: Double(configuration.focusCooldownMs) / 1000.0
@@ -110,7 +114,7 @@ public final class FlowbackService: NSObject, ObservableObject {
             arbiter: attentionArbiter,
             timeline: timelineTracker
         )
-        
+
         // 4. Register Providers
         self.providerRegistry = ProviderRegistry.shared
         await providerRegistry.register(provider: AntigravityProvider())
@@ -122,21 +126,21 @@ public final class FlowbackService: NSObject, ObservableObject {
         await providerRegistry.register(provider: OpenCodeProvider())
         await providerRegistry.register(provider: CursorBackgroundProvider())
         await providerRegistry.register(provider: GenericHookProvider())
-        
+
         // 5. Restore persisted sessions and reconcile any orphaned ones
         let persisted = (try? await sessionRepository.fetchRecentSessions(limit: 50)) ?? []
         await sessionManager.restorePersistedSessions(persisted)
         await sessionManager.reconcileOrphanedSessions()
-        
+
         // 6. Setup Notifications & Menu Bar
         notificationManager.setActionDelegate(self)
         notificationManager.registerDelegate()
-        
+
         if !isHeadless {
             menuBarController.setDelegate(self)
             menuBarController.setup()
         }
-        
+
         // 7. Setup IPC Server with graceful shutdown, authorization, and notification hooks
         let sessionToken = UUID().uuidString
         self.ipcHandler = IPCHandler(
@@ -169,15 +173,15 @@ public final class FlowbackService: NSObject, ObservableObject {
             self.isIPCReady = false
             self.startupErrorMessage = "IPC Socket error: \(error.localizedDescription)"
         }
-        
+
         // 8. Observe Events and System changes with retained ownership
         startEventLoops()
         setupSystemObservers()
         setupGlobalHotkeys()
-        
+
         // 9. Initial state refresh
         await refreshUIState()
-        
+
         // 10. Conclude startup state
         if isIPCReady && isDatabaseReady {
             lifecycleState = .ready
@@ -187,66 +191,66 @@ public final class FlowbackService: NSObject, ObservableObject {
             logger.warning("Flowback initialized in degraded state. IPC: \(self.isIPCReady), DB: \(self.isDatabaseReady)")
         }
     }
-    
+
     // MARK: - Authoritative Single Shutdown Coordinator
-    
+
     public func stop() async {
         guard lifecycleState != .stopping && lifecycleState != .stopped else {
             logger.info("FlowbackService stop() called while state is \(self.lifecycleState.rawValue); ignoring duplicate invocation.")
             return
         }
-        
+
         logger.info("Stopping Flowback Universal Context & Focus Manager...")
         lifecycleState = .stopping
-        
+
         // 1. Stop IPC server immediately so no new requests are accepted
         socketServer?.stop()
         isIPCReady = false
-        
+
         // 2. Cancel and clean up background tasks
         agentEventsTask?.cancel()
         agentEventsTask = nil
         backgroundRefreshTask?.cancel()
         backgroundRefreshTask = nil
-        
+
         // 3. Reset and finish all active event bus stream continuations
         await eventBus.finishAll()
-        
+
         // 4. Remove all registered workspace notification center observers
         for token in workspaceObserverTokens {
             NSWorkspace.shared.notificationCenter.removeObserver(token)
         }
         workspaceObserverTokens.removeAll()
-        
+
         // 5. Remove global hotkey monitors
         if let monitor = globalHotkeyMonitor {
             NSEvent.removeMonitor(monitor)
             globalHotkeyMonitor = nil
         }
-        
+
         // 6. Teardown MenuBar status item
         if !isHeadless {
             menuBarController.teardown()
         }
-        
+
         // 7. Close companion dashboard window if open
         if let win = dashboardWindow {
             win.delegate = nil
             win.close()
             dashboardWindow = nil
         }
-        
+
         // 8. Close persistent SQLite database
         if let db = self.database {
             await db.close()
             self.database = nil
             self.isDatabaseReady = false
         }
-        
+
         lifecycleState = .stopped
         logger.info("FlowbackService stopped cleanly.")
     }
-    
+
     /// Synchronous safety barrier invoked during OS application termination callbacks
     public func emergencySyncStop() {
         guard lifecycleState != .stopped else { return }
@@ -276,7 +280,7 @@ public final class FlowbackService: NSObject, ObservableObject {
         }
         lifecycleState = .stopped
     }
-    
+
     /// Converges all Quit triggers (Menu Bar, App Menu, Hotkey, CLI) into single shutdown
     public func requestQuit() {
         logger.info("Authoritative Quit requested.")
@@ -289,9 +293,9 @@ public final class FlowbackService: NSObject, ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Event Loops
-    
+
     private func startEventLoops() {
         agentEventsTask?.cancel()
         agentEventsTask = Task { [weak self] in
@@ -302,18 +306,18 @@ public final class FlowbackService: NSObject, ObservableObject {
             }
         }
     }
-    
+
     private func handleAgentEvent(_ event: AgentEvent) async {
         guard lifecycleState == .ready || lifecycleState == .degraded else { return }
-        
+
         let session = await sessionManager.handleEvent(event)
         try? await eventRepository.saveEvent(event)
-        
+
         // Check terminal states for attention
         if event.type == .agentCompleted || event.type == .agentFailed || event.type == .agentPermissionRequired {
             let priority: AttentionPriority = (event.type == .agentPermissionRequired) ? .permissionRequired :
                 ((event.type == .agentFailed) ? .failure : .completed)
-            
+
             let req = AttentionRequest(
                 sessionID: session.id,
                 providerID: session.providerID,
@@ -323,14 +327,14 @@ public final class FlowbackService: NSObject, ObservableObject {
                 workspace: session.workspace
             )
             await attentionArbiter.enqueue(req)
-            
+
             // Evaluate focus restoration
             let decision = await focusController.handleSessionCompletion(
                 session: session,
                 config: configuration,
                 focusLock: focusLock
             )
-            
+
             if !decision.shouldActivateApp {
                 // Show actionable notification
                 await notificationManager.sendAttentionNotification(
@@ -340,18 +344,18 @@ public final class FlowbackService: NSObject, ObservableObject {
                 )
             }
         }
-        
+
         await refreshUIState()
     }
-    
+
     // MARK: - System Observers
-    
+
     private func setupSystemObservers() {
         for token in workspaceObserverTokens {
             NSWorkspace.shared.notificationCenter.removeObserver(token)
         }
         workspaceObserverTokens.removeAll()
-        
+
         // App activation observation
         let actToken = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
@@ -361,7 +365,7 @@ public final class FlowbackService: NSObject, ObservableObject {
             let app = notif.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             let bundleID = app?.bundleIdentifier
             let pid = app?.processIdentifier ?? 0
-            
+
             Task { @MainActor [weak self] in
                 guard let self = self, self.lifecycleState == .ready || self.lifecycleState == .degraded else { return }
                 let focusEvent = FocusEvent(
@@ -373,7 +377,7 @@ public final class FlowbackService: NSObject, ObservableObject {
             }
         }
         workspaceObserverTokens.append(actToken)
-        
+
         // Sleep & Wake
         let wakeToken = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didWakeNotification,
@@ -388,7 +392,7 @@ public final class FlowbackService: NSObject, ObservableObject {
             }
         }
         workspaceObserverTokens.append(wakeToken)
-        
+
         // Background active agent discovery (every 10s)
         backgroundRefreshTask?.cancel()
         backgroundRefreshTask = Task { [weak self] in
@@ -402,13 +406,13 @@ public final class FlowbackService: NSObject, ObservableObject {
             }
         }
     }
-    
+
     private func setupGlobalHotkeys() {
         if let existing = globalHotkeyMonitor {
             NSEvent.removeMonitor(existing)
             globalHotkeyMonitor = nil
         }
-        
+
         globalHotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             let flags = event.modifierFlags.intersection([.command, .option])
             if flags == [.command, .option] {
@@ -421,7 +425,7 @@ public final class FlowbackService: NSObject, ObservableObject {
             }
         }
     }
-    
+
     public func focusMostRecentAgent() {
         Task {
             if let recent = await sessionManager?.getRecentSessions(limit: 1).first {
@@ -429,18 +433,18 @@ public final class FlowbackService: NSObject, ObservableObject {
             }
         }
     }
-    
+
     // MARK: - UI State Refresh
-    
+
     public func refreshUIState() async {
         guard lifecycleState == .ready || lifecycleState == .degraded else { return }
-        
+
         // Proactively scan for live running agent sessions across providers
         let discovered = await providerRegistry.discoverAllActiveSessions()
         if !discovered.isEmpty {
             await sessionManager.mergeDiscoveredSessions(discovered)
         }
-        
+
         let active = await sessionManager.getActiveSessions()
         let all = await sessionManager.getAllSessions()
         let recent = await sessionManager.getRecentSessions(limit: 10)
@@ -448,14 +452,14 @@ public final class FlowbackService: NSObject, ObservableObject {
         let healths = await providerRegistry.checkAllHealth()
         let perms = await PermissionManager.shared.currentStatus()
         let timeline = await timelineTracker.allRecentEntries(limit: 50)
-        
+
         self.activeSessions = active
         self.allSessions = all
         self.attentionQueue = queue
         self.providerHealths = healths
         self.permissionStatus = perms
         self.timelineEntries = timeline
-        
+
         if !isHeadless {
             menuBarController.updateState(
                 activeSessions: active,
@@ -475,7 +479,7 @@ extension FlowbackService: MenuBarActionDelegate {
             await self?.refreshUIState()
         }
     }
-    
+
     public func didSelectFocus(sessionID: AgentSessionID) {
         Task {
             if let session = await sessionManager.getSession(id: sessionID) {
@@ -483,7 +487,7 @@ extension FlowbackService: MenuBarActionDelegate {
             }
         }
     }
-    
+
     public func didToggleFocusLock(minutes: Int?) {
         if let mins = minutes {
             let exp = Date().addingTimeInterval(TimeInterval(mins * 60))
@@ -494,19 +498,19 @@ extension FlowbackService: MenuBarActionDelegate {
         ipcHandler?.setFocusLock(focusLock)
         Task { await refreshUIState() }
     }
-    
+
     public func didRequestOpenDashboard() {
         openDashboardWindow(tab: .overview)
     }
-    
+
     public func didRequestOpenSettings() {
         openDashboardWindow(tab: .settings)
     }
-    
+
     public func didRequestOpenDiagnostics() {
         openDashboardWindow(tab: .diagnostics)
     }
-    
+
     public func didRequestQuit() {
         requestQuit()
     }
@@ -520,7 +524,7 @@ extension FlowbackService: NotificationActionDelegate {
             _ = await focusController.manualFocusSession(session)
         }
     }
-    
+
     public func didRequestReview() async {
         openDashboardWindow(tab: .overview)
     }
@@ -535,17 +539,17 @@ extension FlowbackService: NSWindowDelegate {
             logger.info("Dashboard window closed. Flowback continues running in menu bar.")
         }
     }
-    
+
     public func openDashboardWindow(tab: DashboardTab = .overview) {
         dashboardViewModel.selectedTab = tab
         setupStandardMainMenu()
-        
+
         if let existing = dashboardWindow {
             existing.makeKeyAndOrderFront(nil)
             NSApplication.shared.activate(ignoringOtherApps: true)
             return
         }
-        
+
         let dashboardView = DashboardView(
             viewModel: dashboardViewModel,
             activeSessions: Binding(get: { self.activeSessions }, set: { self.activeSessions = $0 }),
@@ -603,7 +607,7 @@ extension FlowbackService: NSWindowDelegate {
                 }
             }
         )
-        
+
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 880, height: 620),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -616,18 +620,18 @@ extension FlowbackService: NSWindowDelegate {
         window.contentView = NSHostingView(rootView: dashboardView)
         window.isReleasedWhenClosed = false
         window.delegate = self
-        
+
         self.dashboardWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
-    
+
     // MARK: - Native macOS Standard Main Menu
-    
+
     private func setupStandardMainMenu() {
         guard NSApp.mainMenu == nil else { return }
         let mainMenu = NSMenu()
-        
+
         // App Menu
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "Flowback")
@@ -643,7 +647,7 @@ extension FlowbackService: NSWindowDelegate {
         appMenu.addItem(withTitle: "Quit Flowback", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
-        
+
         // Edit Menu (Enables ⌘X, ⌘C, ⌘V, ⌘A, ⌘Z in text fields)
         let editMenuItem = NSMenuItem()
         let editMenu = NSMenu(title: "Edit")
@@ -658,7 +662,7 @@ extension FlowbackService: NSWindowDelegate {
         editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         editMenuItem.submenu = editMenu
         mainMenu.addItem(editMenuItem)
-        
+
         // Window Menu (Enables ⌘W to close companion window)
         let windowMenuItem = NSMenuItem()
         let windowMenu = NSMenu(title: "Window")
@@ -668,7 +672,7 @@ extension FlowbackService: NSWindowDelegate {
         windowMenu.addItem(minimizeItem)
         windowMenuItem.submenu = windowMenu
         mainMenu.addItem(windowMenuItem)
-        
+
         NSApp.mainMenu = mainMenu
     }
 }

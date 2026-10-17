@@ -16,50 +16,127 @@ public actor SessionManager {
     private let stateMachine = AgentStateMachine()
     private let timeline: TimelineTracker
     private weak var storageDelegate: SessionStorageDelegate?
-    
-    public init(timeline: TimelineTracker = .shared, storageDelegate: SessionStorageDelegate? = nil) {
+    private let eventBus: EventBus?
+
+    public init(
+        timeline: TimelineTracker = .shared,
+        storageDelegate: SessionStorageDelegate? = nil,
+        eventBus: EventBus? = nil
+    ) {
         self.timeline = timeline
         self.storageDelegate = storageDelegate
+        self.eventBus = eventBus
     }
-    
+
     public func setStorageDelegate(_ delegate: SessionStorageDelegate) {
         self.storageDelegate = delegate
     }
-    
+
     // MARK: - Session Retrieval
-    
+
     public func getSession(id: AgentSessionID) -> AgentSession? {
         sessions[id]
     }
-    
+
     public func getActiveSessions() -> [AgentSession] {
         sessions.values.filter { $0.state.isActive }
             .sorted { $0.startedAt > $1.startedAt }
     }
-    
+
     public func getAllSessions() -> [AgentSession] {
         sessions.values.sorted { $0.startedAt > $1.startedAt }
     }
-    
+
     public func getRecentSessions(limit: Int = 10) -> [AgentSession] {
         let all = Array(sessions.values.sorted { ($0.completedAt ?? $0.updatedAt) > ($1.completedAt ?? $1.updatedAt) })
         return Array(all.prefix(limit))
     }
-    
+
     // MARK: - Proactive Discovery Merging
-    
-    public func mergeDiscoveredSessions(_ discovered: [AgentSession]) async {
+
+    @discardableResult
+    public func mergeDiscoveredSessions(_ discovered: [AgentSession]) async -> [AgentEvent] {
         let now = Date()
+        var generatedEvents: [AgentEvent] = []
+
         for s in discovered {
             if let existing = sessions[s.id] {
-                // If discovered session is active, ensure our in-memory session reflects active state
-                if s.state.isActive && !existing.state.isActive && existing.state != .completed {
+                // 1. Stale protection: reject discovery results older than existing session update
+                if s.updatedAt < existing.updatedAt.addingTimeInterval(-2.0) {
+                    logger.debug("Dropped stale discovered session \(s.id) (timestamp \(s.updatedAt) < existing \(existing.updatedAt))")
+                    continue
+                }
+
+                // 2. Meaningful state change detection
+                if s.state != existing.state {
+                    // Check if state transition is legally valid according to finite state machine
+                    if stateMachine.canTransition(from: existing.state, to: s.state) {
+                        let eventType: AgentEventType
+                        switch s.state {
+                        case .completed: eventType = .agentCompleted
+                        case .failed: eventType = .agentFailed
+                        case .cancelled: eventType = .agentCancelled
+                        case .waiting: eventType = .agentWaiting
+                        case .permissionRequired: eventType = .agentPermissionRequired
+                        case .running: eventType = .agentRunning
+                        case .starting: eventType = .agentStarted
+                        default: eventType = .agentRunning
+                        }
+
+                        var updated = existing
+                        updated.state = s.state
+                        updated.updatedAt = s.updatedAt > existing.updatedAt ? s.updatedAt : now
+                        if s.state.isTerminal {
+                            updated.completedAt = updated.updatedAt
+                        }
+                        if updated.workspace == nil { updated.workspace = s.workspace }
+                        if updated.originContext == nil { updated.originContext = s.originContext }
+                        if let err = s.errorDescription { updated.errorDescription = err }
+                        sessions[s.id] = updated
+
+                        await timeline.record(
+                            sessionID: s.id,
+                            category: "Discovery",
+                            summary: "Discovered state transition: \(existing.state.rawValue) -> \(s.state.rawValue)",
+                            details: s.projectName
+                        )
+
+                        if let storage = storageDelegate {
+                            try? await storage.saveSession(updated)
+                        }
+
+                        let event = AgentEvent(
+                            timestamp: updated.updatedAt,
+                            providerID: s.providerID,
+                            sessionID: s.id,
+                            type: eventType,
+                            workspace: updated.workspace,
+                            origin: updated.originContext,
+                            metadata: s.metadata
+                        )
+                        generatedEvents.append(event)
+
+                        if let bus = eventBus {
+                            await bus.publish(agentEvent: event)
+                        }
+                    } else {
+                        logger.warning("Ignoring invalid discovered state transition from \(existing.state.rawValue) to \(s.state.rawValue) for session \(s.id)")
+                    }
+                } else {
+                    // State unchanged: enrich missing context/workspace if available without duplicate notifications
                     var updated = existing
-                    updated.state = s.state
-                    updated.updatedAt = now
-                    if updated.workspace == nil { updated.workspace = s.workspace }
-                    if updated.originContext == nil { updated.originContext = s.originContext }
-                    sessions[s.id] = updated
+                    var didEnrich = false
+                    if updated.workspace == nil, let ws = s.workspace {
+                        updated.workspace = ws
+                        didEnrich = true
+                    }
+                    if updated.originContext == nil, let origin = s.originContext {
+                        updated.originContext = origin
+                        didEnrich = true
+                    }
+                    if didEnrich {
+                        sessions[s.id] = updated
+                    }
                 }
             } else {
                 // New session discovered directly from provider
@@ -73,12 +150,31 @@ public actor SessionManager {
                 if let storage = storageDelegate {
                     try? await storage.saveSession(s)
                 }
+
+                // If it is newly discovered and active, emit an event
+                if s.state.isActive {
+                    let event = AgentEvent(
+                        timestamp: s.startedAt,
+                        providerID: s.providerID,
+                        sessionID: s.id,
+                        type: (s.state == .starting) ? .agentStarted : (s.state == .waiting ? .agentWaiting : .agentRunning),
+                        workspace: s.workspace,
+                        origin: s.originContext,
+                        metadata: s.metadata
+                    )
+                    generatedEvents.append(event)
+                    if let bus = eventBus {
+                        await bus.publish(agentEvent: event)
+                    }
+                }
             }
         }
+
+        return generatedEvents
     }
-    
+
     // MARK: - Event Ingestion & State Transitions
-    
+
     public func handleEvent(_ event: AgentEvent) async -> AgentSession {
         // Stale & Out-of-order protection: reject events older than current session update
         if let existing = sessions[event.sessionID], event.timestamp < existing.updatedAt.addingTimeInterval(-2.0) {
@@ -93,7 +189,7 @@ public actor SessionManager {
             )
             return existing
         }
-        
+
         var session = sessions[event.sessionID] ?? AgentSession(
             id: event.sessionID,
             providerID: event.providerID,
@@ -104,7 +200,7 @@ public actor SessionManager {
             startedAt: event.timestamp,
             updatedAt: event.timestamp
         )
-        
+
         // Update origin if provided and currently missing
         if session.originContext == nil, let origin = event.origin {
             session.originContext = origin
@@ -115,12 +211,12 @@ public actor SessionManager {
                 details: origin.displayLabel
             )
         }
-        
+
         // Update workspace if provided
         if let ws = event.workspace, !ws.isEmpty {
             session.workspace = ws
         }
-        
+
         // Target state mapping
         if let targetState = event.type.mappedState {
             do {
@@ -128,27 +224,27 @@ public actor SessionManager {
                 let oldState = session.state
                 session.state = newState
                 session.updatedAt = event.timestamp
-                
+
                 if newState.isTerminal {
                     session.completedAt = event.timestamp
                 }
-                
+
                 if let err = event.metadata["error"], !err.isEmpty {
                     session.errorDescription = err
                 }
-                
+
                 await timeline.record(
                     sessionID: session.id,
                     category: "State",
                     summary: "State changed: \(oldState.rawValue) -> \(newState.rawValue)",
                     details: event.type.rawValue
                 )
-                
+
             } catch {
                 logger.warning("State transition failed for session \(session.id): \(error.localizedDescription)")
             }
         }
-        
+
         // Record event in timeline
         await timeline.record(
             sessionID: session.id,
@@ -156,9 +252,9 @@ public actor SessionManager {
             summary: "Received \(event.type.rawValue)",
             details: event.metadata.description
         )
-        
+
         sessions[session.id] = session
-        
+
         if let storage = storageDelegate {
             do {
                 try await storage.saveSession(session)
@@ -166,23 +262,29 @@ public actor SessionManager {
                 logger.error("Failed to persist session \(session.id): \(error.localizedDescription)")
             }
         }
-        
+
         return session
     }
-    
+
     // MARK: - Startup & Recovery
-    
+
     public func restorePersistedSessions(_ persistedSessions: [AgentSession]) {
         for s in persistedSessions {
             sessions[s.id] = s
         }
     }
-    
+
     /// Reconciles sessions after crash or app launch, marking abandoned sessions
     public func reconcileOrphanedSessions() async {
         let now = Date()
         for (id, mutSession) in sessions {
             var session = mutSession
+            // Remote cloud agents run on external infrastructure independently of the local Mac.
+            // They must not be marked cancelled on local restart or wake; their state is reconciled via provider discovery.
+            if session.providerID == .cursorBackground {
+                continue
+            }
+
             if session.state.isActive {
                 // If it was left active before app restarted, mark cancelled/interrupted
                 session.state = .cancelled
@@ -190,13 +292,13 @@ public actor SessionManager {
                 session.updatedAt = now
                 session.errorDescription = "Interrupted by system restart or application relaunch"
                 sessions[id] = session
-                
+
                 await timeline.record(
                     sessionID: id,
                     category: "Recovery",
-                    summary: "Session marked cancelled during startup reconciliation"
+                    summary: "Local session marked cancelled during startup reconciliation"
                 )
-                
+
                 if let storage = storageDelegate {
                     try? await storage.saveSession(session)
                 }
