@@ -856,6 +856,8 @@ await runOpenCodeIntegrationSuites()
 await runCursorBackgroundIntegrationSuites()
 await runMultiAgentConcurrencyAndSharedReliabilitySuites()
 await runCloudDiscoveryAndLifecycleRegressionSuites()
+await runAntigravityReactivationAndTranscriptSuites()
+await runAntigravityCLIIntegrationSuites()
 
 print("\n================================================================")
 print("TEST RESULTS SUMMARY")
