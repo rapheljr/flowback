@@ -192,8 +192,48 @@ case "doctor", "providers":
             print(resp.message)
         }
     } catch {
-        print("Error: Flowback daemon is not running.")
-        exit(1)
+        print("========================================")
+        print("Flowback Doctor Diagnostics (Offline)")
+        print("========================================")
+        print("Status: Flowback daemon is not currently running.")
+        print("Socket: \(client.socketPath) [Not Connected]\n")
+
+        let fm = FileManager.default
+        let home = ("~" as NSString).expandingTildeInPath
+
+        print("Local Filesystem & Storage:")
+        let flowbackDir = (home as NSString).appendingPathComponent(".flowback")
+        let dirExists = fm.fileExists(atPath: flowbackDir)
+        print("  \(dirExists ? "✓" : "○") State directory: \(flowbackDir)")
+
+        let dbPath = (flowbackDir as NSString).appendingPathComponent("flowback.sqlite")
+        let dbExists = fm.fileExists(atPath: dbPath)
+        print("  \(dbExists ? "✓" : "○") Database store: \(dbPath)")
+
+        print("\nProvider Hook Configurations:")
+        let agyHooks = ((home as NSString).appendingPathComponent(".gemini/config/hooks.json"))
+        let agyHooksExists = fm.fileExists(atPath: agyHooks)
+        print("  \(agyHooksExists ? "✓" : "○") Antigravity hooks: \(agyHooks)")
+
+        let openCodeConfig = ((home as NSString).appendingPathComponent(".config/opencode/plugins/flowback.js"))
+        let openCodeExists = fm.fileExists(atPath: openCodeConfig)
+        print("  \(openCodeExists ? "✓" : "○") OpenCode plugin: \(openCodeConfig)")
+
+        print("\nDeveloper CLI Tools:")
+        let cliBinaries = [
+            ("Antigravity CLI (agy)", ["/opt/homebrew/bin/agy", "/usr/local/bin/agy", "\(home)/.local/bin/agy"]),
+            ("Claude Code (claude)", ["/opt/homebrew/bin/claude", "/usr/local/bin/claude", "\(home)/.local/bin/claude"]),
+            ("OpenCode (opencode)", ["/opt/homebrew/bin/opencode", "/usr/local/bin/opencode", "\(home)/.local/bin/opencode"])
+        ]
+        for (name, paths) in cliBinaries {
+            let found = paths.first { fm.isExecutableFile(atPath: $0) }
+            if let p = found {
+                print("  ✓ \(name): \(p)")
+            } else {
+                print("  ○ \(name): not found in standard paths")
+            }
+        }
+        print("\nRun 'open -a Flowback' or launch the Flowback app to start the daemon.")
     }
 
 case "focus":

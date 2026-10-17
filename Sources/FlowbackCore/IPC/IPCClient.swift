@@ -1,5 +1,7 @@
 import Foundation
-import FlowbackCore
+#if canImport(Darwin)
+import Darwin
+#endif
 
 public struct IPCClientResult: Sendable {
     public let success: Bool
@@ -15,9 +17,14 @@ public struct IPCClientResult: Sendable {
 
 public struct IPCClient: Sendable {
     public let socketPath: String
+    public let timeoutSeconds: TimeInterval
 
-    public init(socketPath: String = ("~/.flowback/flowback.sock" as NSString).expandingTildeInPath) {
+    public init(
+        socketPath: String = ("~/.flowback/flowback.sock" as NSString).expandingTildeInPath,
+        timeoutSeconds: TimeInterval = 10.0
+    ) {
         self.socketPath = socketPath
+        self.timeoutSeconds = timeoutSeconds
     }
 
     public func send(command: String, argument: String? = nil, payload: Data? = nil, authToken: String? = nil) throws -> IPCClientResult {
@@ -26,6 +33,16 @@ public struct IPCClient: Sendable {
             throw POSIXError(.init(rawValue: errno) ?? .EIO)
         }
         defer { close(fd) }
+
+        var nosigpipe: Int32 = 1
+        setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe, socklen_t(MemoryLayout<Int32>.size))
+
+        var timeout = timeval(
+            tv_sec: Int(timeoutSeconds),
+            tv_usec: Int32((timeoutSeconds.truncatingRemainder(dividingBy: 1.0)) * 1_000_000)
+        )
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
 
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
@@ -64,13 +81,19 @@ public struct IPCClient: Sendable {
         let req = IPCRequest(command: command, argument: argument, payload: payload, authToken: effectiveToken)
         let reqData = try JSONEncoder().encode(req)
 
-        reqData.withUnsafeBytes { raw in
+        try reqData.withUnsafeBytes { raw in
             guard let base = raw.baseAddress else { return }
             var totalWritten = 0
             let totalBytes = reqData.count
             while totalWritten < totalBytes {
                 let written = write(fd, base + totalWritten, totalBytes - totalWritten)
-                if written <= 0 { break }
+                if written < 0 {
+                    let err = errno
+                    if err == EINTR { continue }
+                    throw POSIXError(.init(rawValue: err) ?? .EIO)
+                } else if written == 0 {
+                    throw POSIXError(.EPIPE)
+                }
                 totalWritten += written
             }
         }
@@ -83,7 +106,17 @@ public struct IPCClient: Sendable {
 
         while true {
             let bytesRead = read(fd, &buffer, buffer.count)
-            if bytesRead <= 0 { break }
+            if bytesRead <= 0 {
+                if bytesRead < 0 {
+                    let err = errno
+                    if err == EINTR { continue }
+                    if err == EAGAIN || err == EWOULDBLOCK || err == ETIMEDOUT {
+                        return IPCClientResult(success: false, message: "Request timed out waiting for Flowback daemon", data: nil)
+                    }
+                    throw POSIXError(.init(rawValue: err) ?? .EIO)
+                }
+                break
+            }
             respData.append(buffer, count: bytesRead)
 
             if let resp = try? decoder.decode(IPCResponse.self, from: respData) {

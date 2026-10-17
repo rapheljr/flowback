@@ -31,7 +31,19 @@ public final class ApplicationController: ApplicationControlling, @unchecked Sen
     }
     
     public func activate(application: NSRunningApplication) -> Bool {
+        guard !application.isTerminated else {
+            logger.warning("Cannot activate terminated application \(application.bundleIdentifier ?? "unknown") (PID: \(application.processIdentifier))")
+            return false
+        }
         logger.info("Activating application \(application.bundleIdentifier ?? "unknown") (PID: \(application.processIdentifier))")
-        return application.activate(options: [])
+        if application.isHidden {
+            application.unhide()
+        }
+        if #available(macOS 14.0, *) {
+            application.activate(from: NSRunningApplication.current, options: [])
+            return true
+        } else {
+            return application.activate(options: [.activateIgnoringOtherApps])
+        }
     }
 }

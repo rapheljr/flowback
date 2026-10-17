@@ -13,7 +13,10 @@ public struct TerminalAdapter: ApplicationAdapter {
         "com.googlecode.iterm2",
         "com.mitchellh.ghostty",
         "dev.warp.Warp-Stable",
-        "co.zeit.hyper"
+        "co.zeit.hyper",
+        "org.alacritty",
+        "net.kovidgoyal.kitty",
+        "com.github.wez.wezterm"
     ]
     
     public init() {}

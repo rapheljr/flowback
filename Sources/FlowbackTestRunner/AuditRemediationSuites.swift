@@ -7,12 +7,12 @@ import FlowbackProviders
 import FlowbackServer
 import FlowbackTestHarness
 
-// MARK: - Audit Remediation Verification Suites (F-01 through F-13)
+// MARK: - Audit Remediation Verification Suites (F-01 through F-23)
 
 @MainActor
 func runAuditRemediationSuites() async {
     print("\n================================================================")
-    print("FLOWBACK AUDIT REMEDIATION VERIFICATION SUITES (F-01 to F-13)")
+    print("FLOWBACK AUDIT REMEDIATION VERIFICATION SUITES (F-01 to F-23)")
     print("================================================================")
 
     // MARK: - F-01: Correct Window Selection Using Requested Window Identity
@@ -842,4 +842,7 @@ func runAuditRemediationSuites() async {
         let reductionPct = (Double(uncoalescedCount - coalescedCount) / Double(uncoalescedCount)) * 100.0
         assertTest(reductionPct >= 99.0, "C-01: Validated 99.9% reduction in UI synchronization frequency under 1,000-event burst")
     }
+
+    // Extended suites covering findings F-14 through F-22
+    await runExtendedRemediationSuites()
 }

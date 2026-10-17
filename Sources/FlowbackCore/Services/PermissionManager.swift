@@ -67,6 +67,7 @@ public final class PermissionManager: Sendable {
     
     public static let accessibilitySettingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
     public static let notificationSettingsURL = URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!
+    public static let modernNotificationSettingsURL = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")!
     
     /// Requests Accessibility permissions, opening System Settings prompt if needed
     @discardableResult
@@ -89,6 +90,11 @@ public final class PermissionManager: Sendable {
     @discardableResult
     public func openNotificationSettings() -> Bool {
         #if canImport(AppKit)
+        if #available(macOS 13.0, *) {
+            if NSWorkspace.shared.open(Self.modernNotificationSettingsURL) {
+                return true
+            }
+        }
         return NSWorkspace.shared.open(Self.notificationSettingsURL)
         #else
         return false

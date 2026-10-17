@@ -55,12 +55,14 @@ public actor TimelineTracker {
         details: String? = nil,
         explanation: String? = nil
     ) {
+        let cleanDetails = details.map { SecretSanitizer.sanitizeText($0) }
+        let cleanExplanation = explanation.map { SecretSanitizer.sanitizeText($0) }
         let entry = TimelineEntry(
             sessionID: sessionID,
             category: category,
             summary: summary,
-            details: details,
-            decisionExplanation: explanation
+            details: cleanDetails,
+            decisionExplanation: cleanExplanation
         )
         var list = entriesBySession[sessionID] ?? []
         list.append(entry)

@@ -88,18 +88,18 @@ public struct AgentEvent: Identifiable, Codable, Hashable, Sendable {
         self.type = type
         self.workspace = workspace
         self.origin = origin
-        self.metadata = metadata
+        self.metadata = SecretSanitizer.sanitizeMetadata(metadata)
 
         self.conversationID = conversationID ?? metadata["conversationId"] ?? metadata["sessionId"]
 
         let cleanTitle = conversationTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
             ?? metadata["title"]?.trimmingCharacters(in: .whitespacesAndNewlines)
             ?? metadata["conversation_title"]?.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.conversationTitle = (cleanTitle?.isEmpty == false) ? cleanTitle : nil
+        self.conversationTitle = (cleanTitle?.isEmpty == false) ? SecretSanitizer.sanitizeText(cleanTitle!) : nil
 
         let cleanSummary = taskSummary?.trimmingCharacters(in: .whitespacesAndNewlines)
             ?? metadata["summary"]?.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.taskSummary = (cleanSummary?.isEmpty == false) ? cleanSummary : nil
+        self.taskSummary = (cleanSummary?.isEmpty == false) ? SecretSanitizer.sanitizeText(cleanSummary!) : nil
 
         self.executionID = executionID ?? metadata["executionId"] ?? metadata["latestRunId"]
 

@@ -82,7 +82,41 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
         )
     }
 
+    private final class VersionCache: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cachedPath: String?
+        private var cachedMtime: Date?
+        private var cachedVersion: String?
+        private var lastProbeDate: Date?
+
+        func get(path: String, mtime: Date?) -> String? {
+            lock.lock()
+            defer { lock.unlock() }
+            guard cachedPath == path, cachedMtime == mtime, let version = cachedVersion else {
+                return nil
+            }
+            if let last = lastProbeDate, Date().timeIntervalSince(last) < 300 {
+                return version
+            }
+            return version
+        }
+
+        func set(path: String, mtime: Date?, version: String) {
+            lock.lock()
+            defer { lock.unlock() }
+            self.cachedPath = path
+            self.cachedMtime = mtime
+            self.cachedVersion = version
+            self.lastProbeDate = Date()
+        }
+    }
+    private let versionCache = VersionCache()
+
     private func probeBinaryVersion(atPath path: String) async -> String? {
+        let mtime = (try? FileManager.default.attributesOfItem(atPath: path)[.modificationDate]) as? Date
+        if let cached = versionCache.get(path: path, mtime: mtime) {
+            return cached
+        }
         do {
             let result = try await AsyncProcessRunner.run(
                 executablePath: path,
@@ -92,6 +126,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             if result.exitCode == 0 {
                 let str = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !str.isEmpty {
+                    versionCache.set(path: path, mtime: mtime, version: str)
                     return str
                 }
             }

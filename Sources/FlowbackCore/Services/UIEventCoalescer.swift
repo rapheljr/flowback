@@ -148,6 +148,7 @@ public final class UIEventCoalescer: @unchecked Sendable {
 
     private func execute() async {
         guard !isStopped else { return }
+        pendingTask?.cancel()
         pendingTask = nil
         hasPendingRequest = false
         isExecuting = true
@@ -162,7 +163,7 @@ public final class UIEventCoalescer: @unchecked Sendable {
         }
     }
 
-    /// Flushes any pending scheduled refresh immediately without waiting for the timer
+    /// Flushes any pending scheduled refresh immediately without waiting for the timer, and awaits any active in-flight execution
     public func flush() async {
         guard !isStopped else { return }
         if let task = pendingTask {
@@ -170,7 +171,7 @@ public final class UIEventCoalescer: @unchecked Sendable {
             pendingTask = nil
             hasPendingRequest = true
         }
-        while hasPendingRequest && !isStopped {
+        while (hasPendingRequest || isExecuting) && !isStopped {
             if !isExecuting {
                 await execute()
             } else {

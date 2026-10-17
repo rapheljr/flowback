@@ -62,6 +62,7 @@ public final class FlowbackService: NSObject, ObservableObject {
 
     public let lifecycleCoordinator = LifecycleCoordinator()
     private var isPerformingMaintenance = false
+    private var lastStoragePruneDate: Date?
 
     // Dashboard window & navigation model
     private var dashboardWindow: NSWindow?
@@ -515,8 +516,13 @@ public final class FlowbackService: NSObject, ObservableObject {
         defer { isPerformingMaintenance = false }
 
         // 1. Storage maintenance: prune completed sessions older than 30 days while retaining recent 50
-        if let repo = sessionRepository {
-            _ = try? await repo.pruneCompletedSessions(olderThanDays: 30, keepMinCount: 50)
+        // Throttled to run at most once per hour to prevent unnecessary SQLite write transactions on periodic timer
+        let now = Date()
+        if lastStoragePruneDate == nil || now.timeIntervalSince(lastStoragePruneDate!) >= 3600 {
+            if let repo = sessionRepository {
+                _ = try? await repo.pruneCompletedSessions(olderThanDays: 30, keepMinCount: 50)
+                lastStoragePruneDate = now
+            }
         }
 
         // 2. Proactively scan for unobserved running agent sessions across providers

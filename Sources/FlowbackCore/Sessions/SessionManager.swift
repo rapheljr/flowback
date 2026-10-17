@@ -312,40 +312,78 @@ public actor SessionManager {
     // MARK: - Event Ingestion & State Transitions
 
     public func handleEvent(_ event: AgentEvent) async -> AgentSession {
+        // Look up in memory, and if missing, check storageDelegate to resurrect evicted or cold session
+        var existing = sessions[event.sessionID]
+        if existing == nil, let delegate = storageDelegate {
+            do {
+                if let stored = try await delegate.fetchSession(id: event.sessionID) {
+                    if let inFlightCurrent = sessions[event.sessionID] {
+                        existing = inFlightCurrent
+                    } else {
+                        sessions[event.sessionID] = stored
+                        existing = stored
+                    }
+                }
+            } catch {
+                logger.error("Failed to resurrect session \(event.sessionID.rawValue) from storage: \(error.localizedDescription)")
+            }
+        }
+
         // Stale & Out-of-order protection: reject events older than current session update
         // Exempt reactivating a terminal session with a live active event (e.g. user submitted new prompt in multi-turn conversation)
-        let isReactivating = (sessions[event.sessionID]?.state.isTerminal == true) && (event.type.mappedState?.isActive == true)
-        if !isReactivating, let existing = sessions[event.sessionID], event.timestamp < existing.updatedAt.addingTimeInterval(-2.0) {
+        let isReactivating = (existing?.state.isTerminal == true) && (event.type.mappedState?.isActive == true)
+        if !isReactivating, let current = existing, event.timestamp < current.updatedAt.addingTimeInterval(-2.0) {
             let staleMsg = "Dropped stale/out-of-order event \(event.type.rawValue) for session " +
                 "\(event.sessionID.rawValue): timestamp is older than last update"
             logger.warning("\(staleMsg)")
             await timeline.record(
-                sessionID: existing.id,
+                sessionID: current.id,
                 category: "Order",
                 summary: "Dropped stale event: \(event.type.rawValue)",
-                details: "Event timestamp \(event.timestamp) is older than session updated at \(existing.updatedAt)"
+                details: "Event timestamp \(event.timestamp) is older than session updated at \(current.updatedAt)"
             )
-            return existing
+            return current
         }
 
-        var session = sessions[event.sessionID] ?? AgentSession(
-            id: event.sessionID,
-            providerID: event.providerID,
-            providerSessionID: event.conversationID ?? event.metadata["conversationId"] ?? event.metadata["sessionId"],
-            state: .starting,
-            workspace: event.workspace,
-            originContext: event.origin,
-            startedAt: event.timestamp,
-            updatedAt: event.timestamp,
-            conversationID: event.conversationID,
-            conversationTitle: event.conversationTitle,
-            taskSummary: event.taskSummary,
-            executionID: event.executionID,
-            parentSessionID: event.parentSessionID,
-            conversationURL: event.conversationURL,
-            focusCapability: event.focusCapability,
-            isRemote: event.isRemote
-        )
+        var session: AgentSession
+        if var current = existing {
+            // Enrich with origin/workspace if current lacked it but event has it
+            if current.originContext == nil, let origin = event.origin {
+                current.originContext = origin
+            }
+            if current.workspace == nil, let ws = event.workspace {
+                current.workspace = ws
+            }
+            if current.conversationID == nil, let cId = event.conversationID {
+                current.conversationID = cId
+            }
+            if current.conversationURL == nil, let url = event.conversationURL {
+                current.conversationURL = url
+            }
+            if current.focusCapability == .windowOnly, let cap = event.focusCapability, cap != .windowOnly {
+                current.focusCapability = cap
+            }
+            session = current
+        } else {
+            session = AgentSession(
+                id: event.sessionID,
+                providerID: event.providerID,
+                providerSessionID: event.conversationID ?? event.metadata["conversationId"] ?? event.metadata["sessionId"],
+                state: .starting,
+                workspace: event.workspace,
+                originContext: event.origin,
+                startedAt: event.timestamp,
+                updatedAt: event.timestamp,
+                conversationID: event.conversationID,
+                conversationTitle: event.conversationTitle,
+                taskSummary: event.taskSummary,
+                executionID: event.executionID,
+                parentSessionID: event.parentSessionID,
+                conversationURL: event.conversationURL,
+                focusCapability: event.focusCapability,
+                isRemote: event.isRemote
+            )
+        }
 
         // Title update event without changing session identity or state
         if event.type == .conversationTitleUpdated {

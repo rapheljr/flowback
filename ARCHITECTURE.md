@@ -152,7 +152,7 @@ Flowback storage implements zero-downtime, backward-compatible SQLite migrations
 
 ---
 
-## Audit Remediation Architectural Invariants (F-01 through F-13)
+## Audit Remediation Architectural Invariants (F-01 through F-23)
 
 1. **Window Selection Accuracy (F-01):** `WindowController.selectMatchingWindowIndex` correlates target `WindowInfo` bounds, geometry, and title scoring against accessibility candidates. If identity cannot be uniquely resolved, window raising fails conservatively rather than raising an arbitrary window.
 2. **Honest Restoration Outcomes (F-02):** Window and workspace adapters report `.workspaceActivatedOnly` or `.windowActivatedOnly`, never claiming `.exactConversationRestored`.
@@ -168,3 +168,13 @@ Flowback storage implements zero-downtime, backward-compatible SQLite migrations
 12. **Stable Database Decoding (F-12):** Repository decoders use explicit SQL column projections and name-based mapping (`sqlite3_column_name`), eliminating fragility to column ordering.
 13. **Adapter Registry Concurrency (F-13):** `ApplicationAdapterRegistry` synchronizes mutations and lookups via `NSLock`, snapshotting registered adapters before executing external evaluation logic.
 14. **UI Event Coalescing & Throttling (C-01):** High-frequency event streams are throttled using `UIEventCoalescer` with a 50ms coalescing window. Multiple intermediate events schedule at most one pending UI synchronization on `@MainActor`, achieving a 99.9% reduction in main runloop UI refresh frequency while capturing the cumulative final state.
+15. **Bounded Process Output Streaming & Watchdog Safety (F-14):** `AsyncProcessRunner` streams stdout and stderr continuously via `readabilityHandler` into bounded memory buffers (`maxOutputBytes: 1MB`), preventing 64KB OS pipe buffer deadlocks. Timeout watchdog tasks are cancelled immediately upon child completion to prevent task leaks.
+16. **UI Event Coalescing Flush Synchronization (F-15):** `UIEventCoalescer.flush()` awaits both pending scheduled requests and active in-flight executions (`(hasPendingRequest || isExecuting)`), ensuring callers observe settled state.
+17. **Session Storage Resurrection (F-16):** When receiving an event for an evicted in-memory session, `SessionManager` restores the session from `storageDelegate` (SQLite), preserving original window IDs, process IDs, workspace, and origin bundle without creating empty placeholder sessions.
+18. **Bounded IPC Client Socket Options (F-17):** `IPCClient` sets `SO_RCVTIMEO` and `SO_SNDTIMEO` (10s) and `SO_NOSIGPIPE` on Unix domain sockets, preventing indefinite CLI hangs if the daemon is stalled.
+19. **Stable Event Column Projections (F-18):** `EventRepository` queries use explicit column projection `eventColumnsProjection` and `mapRowToEvent`, eliminating fragile `SELECT *` positional column lookups.
+20. **Background Subprocess & Storage Throttling (F-19):** `AntigravityCLIProvider` caches probed CLI binary versions with mtime validation. `FlowbackService` throttles database retention pruning to once per hour to eliminate unnecessary background SQLite write transactions and subprocess launches.
+21. **Deterministic Secret Sanitization (F-20):** `SecretSanitizer` scrubs API keys, bearer tokens, passwords, and sensitive keys from `AgentEvent.metadata` and `TimelineTracker` before persistence and UI publication.
+22. **macOS Cooperative Activation & Terminal Coverage (F-21):** `ApplicationController.activate` unhides hidden applications and uses cooperative activation (`activate(from:options:)`). `TerminalAdapter` adds support for Alacritty, Kitty, and WezTerm.
+23. **Modern Settings Extension Deep-Links (F-22):** `PermissionManager` provides deep-links to modern macOS 13+ Notification Settings extensions (`com.apple.Notifications-Settings.extension`) with legacy preference pane fallback.
+24. **Offline Doctor Environment Diagnostics (F-23):** `flowback doctor` provides offline inspection of local storage, permissions, hooks, and CLI tools when the daemon is not running.
