@@ -52,26 +52,34 @@ Every adapter adheres to the Section 14 restoration hierarchy:
 
 ## Built-In Adapters
 
-### 1. `VSCodeAdapter`
-* **Supported Bundle IDs:** `com.microsoft.VSCode`, `com.microsoft.VSCodeInsiders`, `com.visualstudio.code.oss`.
+### 1. `WindsurfAdapter`
+* **Supported Bundle IDs:** `com.codeium.windsurf`.
+* **Behavior:**
+  1. Checks for exact window matching `windowIdentifier` using accessibility window raising.
+  2. If missing or invalid, searches running Windsurf window titles for `[Workspace] — Windsurf` or matching workspace directory name.
+  3. Activates the running application instance.
+
+### 2. `CursorAdapter`
+* **Supported Bundle IDs:** `co.anysphere.cursor`, `com.todesktop.230313mzl4w4u92`, `com.cursor.Cursor`.
+* **Behavior:** Applies AI-editor window heuristics matching current workspace project folder. Recovers from stale window IDs or missing windows without failing silently.
+* **Remote Cloud Agents Note:** For remote Cursor Background Agents running on `api.cursor.com`, Flowback checks if a matching local git clone exists on disk. If so, `CursorAdapter` restores the local workspace window; otherwise, Flowback falls back to browser navigation opening the active Pull Request or task run dashboard.
+
+### 3. `VSCodeAdapter`
+* **Supported Bundle IDs:** `com.microsoft.VSCode`, `com.microsoft.VSCodeInsiders`, `com.visualstudio.code.oss`, `com.vscodium`, `co.posit.positron`, `com.byteplus.trae`.
 * **Behavior:**
   1. Checks for exact window matching `windowIdentifier`.
   2. If missing, extracts workspace directory name from `workspacePath` (e.g. `matchday`) and searches running VS Code window titles for `MatchDay — Visual Studio Code`.
   3. Uses Accessibility (`AXUIElement`) to bring the window to the front and activates the application.
 
-### 2. `CursorAdapter`
-* **Supported Bundle IDs:** `com.todesktop.230313mzl4w4u92`, `com.cursor.Cursor`.
-* **Behavior:** Applies AI-editor window heuristics matching current workspace project folder.
-
-### 3. `TerminalAdapter`
+### 4. `TerminalAdapter`
 * **Supported Bundle IDs:** `com.apple.Terminal`, `com.googlecode.iterm2`, `com.mitchellh.ghostty`, `dev.warp.Warp-Stable`, `co.zeit.hyper`.
 * **Behavior:** Targets the specific shell session tab or terminal window where the agent or CLI task originated.
 
-### 4. `BraveAdapter`
+### 5. `BraveAdapter`
 * **Supported Bundle IDs:** `com.brave.Browser`, `com.brave.Browser.beta`.
 * **Behavior:** Restores browser window context for web-based agents and debug sessions.
 
-### 5. `GenericApplicationAdapter`
+### 6. `GenericApplicationAdapter`
 * **Supported Bundle IDs:** Any macOS application.
 * **Behavior:** Performs generic window enumeration and AppKit `application.activate(options: [])`.
 

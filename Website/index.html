@@ -232,16 +232,22 @@
               <td>Emits schema version 1 events from any script or CI runner</td>
             </tr>
             <tr>
-              <td><strong>Windsurf / OpenCode</strong></td>
-              <td><span class="badge badge-partial">Partial</span></td>
-              <td>Editor &amp; Window Adapter</td>
-              <td>Window and workspace restoration verified; native hooks planned</td>
+              <td><strong>Windsurf</strong></td>
+              <td><span class="badge badge-supported">Supported</span></td>
+              <td>Official Cascade Hooks</td>
+              <td>Native JSON lifecycle hooks (<code>~/.codeium/windsurf/hooks.json</code>), transcript fallback, exact window restoration</td>
+            </tr>
+            <tr>
+              <td><strong>OpenCode</strong></td>
+              <td><span class="badge badge-supported">Supported</span></td>
+              <td>Official Plugin API</td>
+              <td>Plugin event subscriptions (<code>session.*</code>, <code>tool.execute.*</code>) over local authenticated socket IPC</td>
             </tr>
             <tr>
               <td><strong>Cursor Background Agent</strong></td>
-              <td><span class="badge badge-partial">Partial</span></td>
-              <td>Editor Adapter &amp; IPC</td>
-              <td>Window raising verified; custom subagent hook planned</td>
+              <td><span class="badge badge-supported">Supported</span></td>
+              <td>Cloud Agents API &amp; Window Adapter</td>
+              <td>Remote <code>api.cursor.com/v1/agents</code> lifecycle tracking, subagents, repo/branch metadata, and local window restoration</td>
             </tr>
           </tbody>
         </table>

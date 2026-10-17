@@ -22,6 +22,9 @@ Flowback assigns an honest, evidence-backed support level to every integrated pr
 | Provider | Support Level | Event Source | Lifecycle Coverage | Context Capture | Restoration Capability | Verified Status |
 |---|---|---|---|---|---|---|
 | **Google Antigravity** | `native-lifecycle` | `~/.gemini/config/hooks.json` (`Stop` hook) | Started, Running, Idle, Completed, Failed | IDE process, window, workspace | Exact Window & Workspace | **LOCALLY_VERIFIED** |
+| **Windsurf** | `native-lifecycle` | `~/.codeium/windsurf/hooks.json` (Cascade Hooks) | Started, Running, Progress, PermissionRequired, Completed, Failed | Process, window, workspace | Exact Window & Workspace | **LOCALLY_VERIFIED** |
+| **OpenCode** | `native-lifecycle` | `~/.config/opencode/plugins/flowback.js` (Plugin API) | Started, Running, PermissionRequired, Progress, Completed, Cancelled, Failed | Process, workspace | Workspace Window / App Activation | **LOCALLY_VERIFIED** |
+| **Cursor Background Agent** | `adapter` / `native-lifecycle` | `https://api.cursor.com/v1/agents` + Local Window | Running, Waiting, PermissionRequired, Completed, Failed, Cancelled, Subagents | Cloud API, Git repo/branch, PR URL, local workspace | Workspace Window / PR Browser Fallback | **LOCALLY_VERIFIED** |
 | **Claude Code** | `adapter` | CLI wrapper & terminal hooks | Running, Waiting, Completed | Terminal process & window | Workspace Window / App Activation | **LOCALLY_VERIFIED** |
 | **OpenAI Codex** | `adapter` | Codex CLI hooks & process tracker | Running, PermissionRequired, Completed | Process & workspace | App Activation Only | **LOCALLY_VERIFIED** |
 | **Gemini CLI** | `adapter` | Command watcher / CLI hook | Running, Completed, Failed | Terminal working dir | Workspace Window | **LOCALLY_VERIFIED** |
@@ -119,7 +122,56 @@ Before modifying `~/.gemini/config/hooks.json`:
 
 ---
 
-## 6. Generic Hook Provider (`GenericHookProvider`)
+## 6. Windsurf Provider (`WindsurfProvider`)
+
+* **Integration Mechanism:** Official Cascade JSON lifecycle hooks configured in `~/.codeium/windsurf/hooks.json` (with proactive transcript scanning in `~/.codeium/windsurf/transcripts/`).
+* **Supported Lifecycle Events:**
+  * `pre_user_prompt`: Agent turn launched; normalized to `.agentStarted` or `.agentRunning`.
+  * `pre_run_command`, `pre_write_code`, `pre_mcp_tool_use`: Normalizes to `.agentRunning` (or `.agentPermissionRequired` when `requires_confirmation: true`).
+  * `post_run_command`, `post_write_code`, `post_mcp_tool_use`: Normalizes to `.agentProgress`.
+  * `post_cascade_response`, `post_cascade_response_with_transcript`: Agent completed turn; normalized to `.agentCompleted`.
+* **Identity Correlation:** Preserves Cascade `trajectory_id` as the primary session ID, along with `execution_id` and action metadata.
+* **Safe Installation:** Creates a timestamped backup before idempotently inserting Flowback hook entries without overwriting existing user scripts. On uninstall, only Flowback hook entries are removed.
+* **Window Restoration:** Paired with dedicated `WindsurfAdapter` in `FlowbackFocus` targeting `com.codeium.windsurf` using exact window ID or workspace folder name matching (`[Workspace] — Windsurf`).
+
+---
+
+## 7. OpenCode Provider (`OpenCodeProvider`)
+
+* **Integration Mechanism:** Official OpenCode plugin architecture (`~/.config/opencode/plugins/flowback.js`).
+* **Supported Events:**
+  * `session.created` → `.agentStarted`
+  * `session.running` / `session.status` (busy) → `.agentRunning`
+  * `tool.execute.before` (with permission flag) → `.agentPermissionRequired`
+  * `tool.execute.after` → `.agentProgress`
+  * `session.idle` / `session.completed` → `.agentCompleted`
+  * `session.deleted` → `.agentCancelled`
+  * `session.error` → `.agentFailed`
+* **Transport:** Emits normalized events over authenticated local Unix Domain Socket (`~/.flowback/flowback.sock`).
+* **Reload & Lifecycle Resilience:** Implements standard plugin teardown via `AbortController` to handle live plugin reload and daemon reconnections without duplicate event loops.
+
+---
+
+## 8. Cursor Background Agent (`CursorBackgroundProvider` & `CursorAdapter`)
+
+Flowback strictly decouples local Cursor editor focus from remote Cloud Background Agents:
+
+* **Local Editor Focus (`CursorAdapter`):**
+  * Supports `co.anysphere.cursor`, `com.todesktop.230313mzl4w4u92`, and `com.cursor.Cursor`.
+  * Multi-tier restoration: Exact window ID → Workspace folder match → Window title match → Safe frontmost activation.
+  * Handles stale PIDs and closed windows gracefully without failing silently.
+* **Remote Cloud Agent Tracking (`CursorBackgroundProvider`):**
+  * Connects to official Cursor Cloud Agents API (`https://api.cursor.com/v1/agents`).
+  * **Authentication:** Uses secure `CURSOR_API_KEY` (from environment or `~/.flowback/cursor_api_key`). Credentials are encrypted/isolated and **never** printed in logs or diagnostic events.
+  * **Lifecycle Coverage:** Translates cloud statuses (`RUNNING`, `WAITING`, `CONFIRMATION_REQUIRED`, `COMPLETED`, `FAILED`, `CANCELLED`).
+  * **Metadata & Subagents:** Tracks repository URLs, branch names, PR URLs (`prUrl`), latest run IDs, and hierarchical subagents (`parentAgentId` → `parentSessionId`).
+  * **Context Restoration:** Resolves whether a matching local repository clone exists on disk:
+    * If local clone found: Restores workspace in Cursor (`.workspaceWindow`).
+    * If remote cloud-only: Offers browser/navigation fallback directly to the Pull Request or task run dashboard (`.notificationFallbackOnly`).
+
+---
+
+## 9. Generic Hook Provider (`GenericHookProvider`)
 
 For custom agents, scripts, CI runners, or tools without a dedicated provider, Flowback exposes a local JSON Event Protocol over IPC:
 
@@ -185,6 +237,9 @@ Or by sending JSON directly to `~/.flowback/flowback.sock`:
        CodexProvider(),
        GeminiCLIProvider(),
        AiderProvider(),
+       WindsurfProvider(),
+       OpenCodeProvider(),
+       CursorBackgroundProvider(),
        NewAgentProvider(),
        GenericHookProvider()
    ]

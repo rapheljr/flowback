@@ -10,9 +10,9 @@ Flowback connects agent sessions to specific application windows using dedicated
 |---|---|---|
 | **Visual Studio Code** | `com.microsoft.VSCode` | Window ID → Title Pattern (`[Folder] — Visual Studio Code`) |
 | **VS Code Insiders** | `com.microsoft.VSCodeInsiders` | Window ID → Title Pattern |
-| **Cursor** | `co.anysphere.cursor`, `com.todesktop.230313mzl4w4u92` | Window ID → Title Pattern |
+| **Cursor** | `co.anysphere.cursor`, `com.todesktop.230313mzl4w4u92`, `com.cursor.Cursor` | Window ID → Title Pattern (`[Folder] — Cursor`) |
 | **Google Antigravity IDE** | `com.google.antigravity-ide`, `com.google.antigravity` | Window ID → Title Pattern |
-| **Windsurf** | `com.codeium.windsurf` | Window ID → Title Pattern |
+| **Windsurf** | `com.codeium.windsurf` | Window ID → Title Pattern (`[Folder] — Windsurf`) |
 | **VSCodium** | `com.vscodium`, `com.vscodium.codium` | Window ID → Title Pattern |
 | **Positron** | `co.posit.positron`, `com.rstudio.positron` | Window ID → Title Pattern |
 | **Trae** | `com.byteplus.trae` | Window ID → Title Pattern |

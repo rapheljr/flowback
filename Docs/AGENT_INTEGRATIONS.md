@@ -9,6 +9,9 @@ Flowback tracks coding agent sessions using dedicated provider adapters and the 
 | Provider | Status | Mechanism | Hook Location / Lifecycle |
 |---|---|---|---|
 | **Google Antigravity** | **Supported** | Official JSON Hook | `~/.gemini/config/hooks.json` (`PreInvocation`, `PostInvocation`, `Stop` with `fullyIdle=true`) + live transcript scan |
+| **Windsurf** | **Supported** | Official Cascade Hooks | `~/.codeium/windsurf/hooks.json` (`pre_user_prompt`, `post_cascade_response`, `pre_run_command`, etc.) + `~/.codeium/windsurf/transcripts/` |
+| **OpenCode** | **Supported** | Official Plugin API | `~/.config/opencode/plugins/flowback.js` event subscriptions over authenticated local IPC |
+| **Cursor Background Agent** | **Supported** | Cloud Agents API + Window Adapter | Remote `api.cursor.com/v1/agents` tracking, subagent hierarchy, repo/branch tracking + local window restoration |
 | **Claude Code** | **Supported** | Process & Hook | Terminal process monitoring & hook callbacks |
 | **OpenAI Codex** | **Supported** | Process & IPC | CLI process monitoring & status mapping |
 | **Gemini CLI** | **Supported** | Command Hook | Shell wrapper & post-execution callback |
@@ -51,7 +54,65 @@ In addition to hook events, Flowback includes proactive transcript scanning:
 
 ---
 
-## 2. Generic Hook Protocol (v1 Schema)
+## 2. Windsurf Integration (Cascade Hooks)
+
+Flowback integrates natively with Windsurf via official Cascade Hooks configured in `~/.codeium/windsurf/hooks.json`:
+
+```json
+{
+  "hooks": {
+    "pre_user_prompt": [
+      {
+        "command": "/usr/local/bin/flowback hook windsurf",
+        "show_output": false
+      }
+    ],
+    "post_cascade_response": [
+      {
+        "command": "/usr/local/bin/flowback hook windsurf",
+        "show_output": false
+      }
+    ],
+    "pre_run_command": [
+      {
+        "command": "/usr/local/bin/flowback hook windsurf",
+        "show_output": false
+      }
+    ]
+  }
+}
+```
+
+* **Session Identity:** Preserves Cascade `trajectory_id` and `execution_id`.
+* **Proactive Fallback:** Scans recent `.jsonl` session files in `~/.codeium/windsurf/transcripts/` without collecting sensitive code contents.
+* **Window Restoration:** Supported by `WindsurfAdapter` targeting `com.codeium.windsurf`.
+
+---
+
+## 3. OpenCode Integration (Plugin Architecture)
+
+Flowback provides a native OpenCode plugin installed to `~/.config/opencode/plugins/flowback.js`:
+
+* **Subscription:** Listens to `ctx.event.subscribe` (`session.created`, `session.running`, `tool.execute.before`, `session.idle`, `session.deleted`).
+* **Transport:** Emits structured events directly over the local Unix Domain Socket (`~/.flowback/flowback.sock`).
+* **Session & Workspace Identity:** Retains OpenCode session and directory bindings.
+
+---
+
+## 4. Cursor Background Agent Integration
+
+Flowback decouples local Cursor windows from cloud-hosted background agents:
+
+* **Local Editor Focus:** `CursorAdapter` restores exact windows and workspace directory titles across `co.anysphere.cursor`, `com.todesktop.230313mzl4w4u92`, and `com.cursor.Cursor`.
+* **Cloud Agents API:** `CursorBackgroundProvider` queries `https://api.cursor.com/v1/agents` using `CURSOR_API_KEY`:
+  * Tracks statuses (`RUNNING`, `WAITING`, `CONFIRMATION_REQUIRED`, `COMPLETED`, `FAILED`).
+  * Preserves repository URLs, branches, PR URLs, and hierarchical subagents (`parentAgentId`).
+  * Restores local matching git workspace or opens PR dashboard navigation.
+* **Credential Protection:** API keys are never written to logs or event metadata.
+
+---
+
+## 5. Generic Hook Protocol (v1 Schema)
 
 Any custom CLI agent, CI runner, or developer script can integrate with Flowback by piping JSON events into `flowback emit`:
 
