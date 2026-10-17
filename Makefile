@@ -36,6 +36,7 @@ release:
 
 test:
 	swift run FlowbackTestRunner
+	node Scripts/test_opencode_plugin.js
 
 package: release
 	bash Scripts/package_app.sh 1.0.0 1 universal

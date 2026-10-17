@@ -69,11 +69,11 @@ await testGroup("Event Deduplication") {
     let event1 = AgentEvent(providerID: .antigravity, sessionID: sessionID, type: .agentCompleted, workspace: "/test")
     let event2 = AgentEvent(providerID: .antigravity, sessionID: sessionID, type: .agentCompleted, workspace: "/test")
     let event3 = AgentEvent(providerID: .antigravity, sessionID: sessionID, type: .agentFailed, workspace: "/test")
-    
+
     let first = await deduplicator.shouldProcess(event: event1)
     let second = await deduplicator.shouldProcess(event: event2)
     let third = await deduplicator.shouldProcess(event: event3)
-    
+
     assertTest(first == true, "First unique event is processed")
     assertTest(second == false, "Immediate duplicate event is dropped")
     assertTest(third == true, "Different event type for same session is processed")
@@ -86,16 +86,16 @@ await testGroup("Policy Configuration & Overrides") {
     config.providerOverrides["antigravity"] = .alwaysRestore
     config.applicationOverrides["com.microsoft.VSCode"] = .notificationOnly
     config.workspaceOverrides["/projects/critical"] = .neverInterrupt
-    
+
     let res1 = config.resolvePolicy(provider: .antigravity, appBundleID: "com.microsoft.VSCode", workspace: "/projects/critical")
     assertTest(res1 == .neverInterrupt, "Workspace override has highest priority")
-    
+
     let res2 = config.resolvePolicy(provider: .antigravity, appBundleID: "com.microsoft.VSCode", workspace: "/projects/other")
     assertTest(res2 == .notificationOnly, "Application override has priority over provider")
-    
+
     let res3 = config.resolvePolicy(provider: .antigravity, appBundleID: "com.brave.Browser", workspace: "/projects/other")
     assertTest(res3 == .alwaysRestore, "Provider override has priority over global default")
-    
+
     let res4 = config.resolvePolicy(provider: .claudeCode, appBundleID: "com.brave.Browser", workspace: "/projects/other")
     assertTest(res4 == .smart, "Global default used when no overrides match")
 }
@@ -105,7 +105,7 @@ await testGroup("Persistence, WAL Mode & Recovery") {
     let tempDb = NSTemporaryDirectory() + "flowback_runner_\(UUID().uuidString).sqlite"
     let db = await RecoveryManager.shared.initializeStorage(path: tempDb)
     let repo = SessionRepository(db: db)
-    
+
     let origin = OriginContext(
         bundleIdentifier: "com.microsoft.VSCode",
         processIdentifier: 5555,
@@ -122,13 +122,13 @@ await testGroup("Persistence, WAL Mode & Recovery") {
         originContext: origin,
         metadata: ["tag": "runner-test"]
     )
-    
+
     try await repo.saveSession(session)
     let fetched = try await repo.fetchSession(id: sessionID)
     assertTest(fetched?.id == sessionID, "Session successfully persisted and fetched from SQLite")
     assertTest(fetched?.originContext?.bundleIdentifier == "com.microsoft.VSCode", "OriginContext correctly decoded from database")
     assertTest(fetched?.originContext?.windowIdentifier == 101, "Window ID correctly retrieved from database")
-    
+
     var updated = session
     updated.state = .completed
     updated.completedAt = Date()
@@ -136,7 +136,7 @@ await testGroup("Persistence, WAL Mode & Recovery") {
     let fetchedUpdated = try await repo.fetchSession(id: sessionID)
     assertTest(fetchedUpdated?.state == .completed, "Session state transition saved to SQLite")
     assertTest(fetchedUpdated?.completedAt != nil, "Completion timestamp saved to SQLite")
-    
+
     await db.close()
     try? FileManager.default.removeItem(atPath: tempDb)
     try? FileManager.default.removeItem(atPath: "\(tempDb)-wal")
@@ -146,7 +146,7 @@ await testGroup("Persistence, WAL Mode & Recovery") {
 // 5. Antigravity Hook & fullyIdle Prioritization
 await testGroup("Antigravity Provider Official Hook Contract") {
     let provider = AntigravityProvider()
-    
+
     // Case 1: fullyIdle = true -> completed
     let payloadComplete = """
     {
@@ -161,7 +161,7 @@ await testGroup("Antigravity Provider Official Hook Contract") {
     let event1 = try provider.parseLifecyclePayload(data: payloadComplete)
     assertTest(event1?.type == .agentCompleted, "Antigravity fullyIdle=true translates to .agentCompleted")
     assertTest(event1?.workspace == "/Users/abin/workspace/projects/focus-switcher", "Workspace path correctly extracted")
-    
+
     // Case 2: fullyIdle = false -> running (background tasks still working)
     let payloadRunning = """
     {
@@ -175,7 +175,7 @@ await testGroup("Antigravity Provider Official Hook Contract") {
     """.data(using: .utf8)!
     let event2 = try provider.parseLifecyclePayload(data: payloadRunning)
     assertTest(event2?.type == .agentRunning, "Antigravity fullyIdle=false translates to .agentRunning (not completed)")
-    
+
     // Case 3: error -> failed
     let payloadError = """
     {
@@ -189,7 +189,7 @@ await testGroup("Antigravity Provider Official Hook Contract") {
     """.data(using: .utf8)!
     let event3 = try provider.parseLifecyclePayload(data: payloadError)
     assertTest(event3?.type == .agentFailed, "Antigravity error payload translates to .agentFailed")
-    
+
     // Case 4: PreInvocation hook -> agentStarted
     let payloadPre = """
     {
@@ -201,7 +201,7 @@ await testGroup("Antigravity Provider Official Hook Contract") {
     """.data(using: .utf8)!
     let eventPre = try provider.parseLifecyclePayload(data: payloadPre)
     assertTest(eventPre?.type == .agentStarted, "Antigravity PreInvocation translates to .agentStarted")
-    
+
     // Case 5: Proactive active session discovery
     var discovered = await provider.discoverActiveSessions()
     if discovered.isEmpty {
@@ -215,7 +215,7 @@ await testGroup("Antigravity Provider Official Hook Contract") {
         """
         let transcriptPath = (testLogsDir as NSString).appendingPathComponent("transcript.jsonl")
         try? sampleTranscript.write(toFile: transcriptPath, atomically: true, encoding: .utf8)
-        
+
         let fixtureProvider = AntigravityProvider(brainPaths: [tempBrainDir])
         discovered = await fixtureProvider.discoverActiveSessions()
         try? FileManager.default.removeItem(atPath: tempBrainDir)
@@ -232,7 +232,7 @@ await testGroup("Final Acceptance Scenarios A through J") {
     let intentEngine = UserIntentEngine(idleTracker: mockIdle, windowController: mockWin, spaceController: mockSpace, appController: mockApp)
     let arbiter = AttentionArbiter(aggregationWindow: 1.0, cooldownDuration: 0.5)
     let focusController = FocusController(appController: mockApp, windowController: mockWin, intentEngine: intentEngine, arbiter: arbiter)
-    
+
     // Scenario A: Antigravity -> VS Code / MatchDay -> User switches to Brave -> Agent completes -> User idle -> Restore
     let originA = OriginContext(
         bundleIdentifier: "com.microsoft.VSCode",
@@ -249,7 +249,7 @@ await testGroup("Final Acceptance Scenarios A through J") {
         return
     }
     assertTest(ctxA.bundleIdentifier == "com.microsoft.VSCode" && ctxA.windowIdentifier == 42, "Scenario A: Successfully restores VS Code / MatchDay window")
-    
+
     // Scenario B: Antigravity -> VS Code -> User actively typing in Brave -> Complete -> Do NOT steal focus
     mockIdle.idleSecondsMock = 0.5 // Active input < 5s threshold
     let decisionB = intentEngine.evaluate(session: sessionA, config: .default, focusLock: FocusLockState(), frontmostApp: NSRunningApplication.current)
@@ -258,7 +258,7 @@ await testGroup("Final Acceptance Scenarios A through J") {
         return
     }
     assertTest(reasonB.contains("actively interacting"), "Scenario B: Respected active user typing; suppressed focus steal and notified instead")
-    
+
     // Scenario C: Claude Code -> Terminal -> Complete -> Correct window restored
     let originC = OriginContext(bundleIdentifier: "com.apple.Terminal", processIdentifier: 2002, windowIdentifier: 88, workspacePath: "/test")
     let sessionC = AgentSession(providerID: .claudeCode, state: .completed, originContext: originC)
@@ -276,7 +276,7 @@ await testGroup("Final Acceptance Scenarios A through J") {
         return
     }
     assertTest(ctxC.bundleIdentifier == "com.apple.Terminal", "Scenario C: Terminal window restored")
-    
+
     // Scenario D: Codex -> Cursor -> Agent fails -> Priority attention
     let originD = OriginContext(bundleIdentifier: "com.todesktop.230313mzl4w4u92", processIdentifier: 3003)
     _ = originD
@@ -286,7 +286,7 @@ await testGroup("Final Acceptance Scenarios A through J") {
     await arbiter.enqueue(reqFailure)
     let topReq = await arbiter.dequeueHighestPriority()
     assertTest(topReq?.priority == .failure, "Scenario D: Failure attention request prioritized over lower priority")
-    
+
     // Scenario E: 3 agents complete within 1 second -> Aggregated attention, cooldown prevents thrashing
     let arbMulti = AttentionArbiter(aggregationWindow: 1.5, cooldownDuration: 1.0)
     let reqE1 = AttentionRequest(sessionID: AgentSessionID("e1"), providerID: .antigravity, priority: .completed, title: "Done", message: "1", workspace: "/p1")
@@ -299,14 +299,14 @@ await testGroup("Final Acceptance Scenarios A through J") {
     assertTest(summaryE?.title == "3 agents need attention", "Scenario E: Aggregated 3 simultaneous agents into single summary")
     await arbMulti.recordFocusRestoration()
     assertTest(await arbMulti.canRestoreFocusNow() == false, "Scenario E: Focus cooldown prevents window thrashing")
-    
+
     // Scenario F: Origin window closes -> fallback to application/workspace
     let originF = OriginContext(bundleIdentifier: "com.microsoft.VSCode", processIdentifier: 1001, windowIdentifier: 99999)
     let sessionF = AgentSession(providerID: .antigravity, state: .completed, originContext: originF)
     mockIdle.idleSecondsMock = 25.0
     let decisionF = await focusController.handleSessionCompletion(session: sessionF, config: .default, focusLock: FocusLockState())
     assertTest(decisionF != .suppress(reason: ""), "Scenario F: Handles invalid window ID gracefully without crash")
-    
+
     // Scenario G: Fullscreen presentation -> No focus steal
     mockWin.isFullscreenMock = true
     let decisionG = intentEngine.evaluate(session: sessionA, config: .default, focusLock: FocusLockState(), frontmostApp: nil)
@@ -316,7 +316,7 @@ await testGroup("Final Acceptance Scenarios A through J") {
     }
     assertTest(reasonG.contains("Fullscreen"), "Scenario G: Fullscreen presentation mode detected; focus switch suppressed")
     mockWin.isFullscreenMock = false
-    
+
     // Scenario H: Focus Lock active -> Notification only
     let lockH = FocusLockState(isActive: true, expiresAt: Date().addingTimeInterval(1800), label: "30 min")
     let decisionH = intentEngine.evaluate(session: sessionA, config: .default, focusLock: lockH, frontmostApp: nil)
@@ -325,7 +325,7 @@ await testGroup("Final Acceptance Scenarios A through J") {
         return
     }
     assertTest(reasonH.contains("Focus Lock is active"), "Scenario H: Focus Lock active; notification only")
-    
+
     // Scenario I: Mac sleeps -> Wakes -> Reconciles orphaned sessions
     let smI = SessionManager()
     let runningSess = AgentSession(providerID: .antigravity, state: .running)
@@ -333,14 +333,14 @@ await testGroup("Final Acceptance Scenarios A through J") {
     await smI.reconcileOrphanedSessions()
     let reconciledI = await smI.getSession(id: runningSess.id)
     assertTest(reconciledI?.state == .cancelled, "Scenario I: Startup / Wake reconciliation cleanly cancels orphaned sessions")
-    
+
     // Scenario J: Crash recovery -> Startup reconciliation from persisted storage
     let crashDbPath = NSTemporaryDirectory() + "flowback_crash_j_\(UUID().uuidString).sqlite"
     let crashDb = await RecoveryManager.shared.initializeStorage(path: crashDbPath)
     let crashRepo = SessionRepository(db: crashDb)
     let crashSess = AgentSession(id: AgentSessionID("crash-j"), providerID: .antigravity, state: .running)
     try await crashRepo.saveSession(crashSess)
-    
+
     // Simulate fresh relaunch
     let recoveredMgr = SessionManager(storageDelegate: crashRepo)
     let recSessions = try await crashRepo.fetchRecentSessions(limit: 10)
@@ -348,7 +348,7 @@ await testGroup("Final Acceptance Scenarios A through J") {
     await recoveredMgr.reconcileOrphanedSessions()
     let reconciledJ = await recoveredMgr.getSession(id: AgentSessionID("crash-j"))
     assertTest(reconciledJ?.state == .cancelled, "Scenario J: Persisted running session recovered and reconciled after restart")
-    
+
     await crashDb.close()
     try? FileManager.default.removeItem(atPath: crashDbPath)
     try? FileManager.default.removeItem(atPath: "\(crashDbPath)-wal")
@@ -375,16 +375,16 @@ await testGroup("Deep Audit & Robustness Verification") {
     for bundle in expectedVSCodeBundles {
         assertTest(vsAdapter.canHandle(bundleIdentifier: bundle), "VSCodeAdapter handles \(bundle)")
     }
-    
+
     let cursorAdapter = CursorAdapter()
     assertTest(cursorAdapter.canHandle(bundleIdentifier: "com.todesktop.230313mzl4w4u92"), "CursorAdapter handles com.todesktop.230313mzl4w4u92")
     assertTest(cursorAdapter.canHandle(bundleIdentifier: "co.anysphere.cursor"), "CursorAdapter handles co.anysphere.cursor")
-    
+
     // 2. SQLite Transient Memory Stress Test
     let auditDbPath = NSTemporaryDirectory() + "flowback_audit_\(UUID().uuidString).sqlite"
     let auditDb = await RecoveryManager.shared.initializeStorage(path: auditDbPath)
     let auditRepo = SessionRepository(db: auditDb)
-    
+
     var stressSuccess = true
     for i in 1...20 {
         let dynString = "Workspace_Path_Dynamically_Allocated_\(UUID().uuidString)_\(i)"
@@ -410,10 +410,10 @@ await testGroup("Deep Audit & Robustness Verification") {
         }
     }
     assertTest(stressSuccess, "SQLite handles rapid dynamic string persistence with SQLITE_TRANSIENT without memory fault")
-    
+
     let fetchedSess = try? await auditRepo.fetchRecentSessions(limit: 50)
     assertTest(fetchedSess?.count == 20, "Retrieved all 20 persisted stress sessions with data intact")
-    
+
     // 3. Database Transaction Rollback Test
     var rollbackVerified = false
     do {
@@ -431,12 +431,12 @@ await testGroup("Deep Audit & Robustness Verification") {
         }
     }
     assertTest(rollbackVerified, "SQLite transactions roll back completely on thrown error")
-    
+
     await auditDb.close()
     try? FileManager.default.removeItem(atPath: auditDbPath)
     try? FileManager.default.removeItem(atPath: "\(auditDbPath)-wal")
     try? FileManager.default.removeItem(atPath: "\(auditDbPath)-shm")
-    
+
     // 4. IPCHandler Edge Case & Malformed Payloads
     let tempDbIPC = NSTemporaryDirectory() + "flowback_audit_ipc_\(UUID().uuidString).sqlite"
     let ipcDb = await RecoveryManager.shared.initializeStorage(path: tempDbIPC)
@@ -451,40 +451,40 @@ await testGroup("Deep Audit & Robustness Verification") {
     await testRegistry.register(provider: ClaudeCodeProvider())
     await testRegistry.register(provider: CodexProvider())
     await testRegistry.register(provider: GenericHookProvider())
-    
+
     let ipcHandler = IPCHandler(
         sessionManager: ipcSessionMgr,
         focusController: ipcFocusCtrl,
         providerRegistry: testRegistry,
         settingsRepo: ipcSettingsRepo
     )
-    
+
     // Unknown command
     let unkResp = await ipcHandler.handleRequest(IPCRequest(command: "non_existent_command_xyz"))
     assertTest(!unkResp.success && unkResp.message.contains("Unknown command"), "IPCHandler safely rejects unknown commands")
-    
+
     // Malformed hook JSON
     let malformedHookResp = await ipcHandler.handleRequest(IPCRequest(command: "hook", argument: "antigravity", payload: "not-json-content".data(using: .utf8)))
     assertTest(malformedHookResp.success, "IPCHandler fails safe on unparseable hook payload and provides fallback allow")
-    
+
     // Missing arguments
     let missingArgsResp = await ipcHandler.handleRequest(IPCRequest(command: "focus", argument: "invalid-session-id-404"))
     assertTest(!missingArgsResp.success, "IPCHandler safely returns error for non-existent session focus")
-    
+
     await ipcDb.close()
     try? FileManager.default.removeItem(atPath: tempDbIPC)
     try? FileManager.default.removeItem(atPath: "\(tempDbIPC)-wal")
     try? FileManager.default.removeItem(atPath: "\(tempDbIPC)-shm")
-    
+
     // 5. Provider Hook Robustness
     let claude = ClaudeCodeProvider()
     let claudeEmpty = try? claude.parseLifecyclePayload(data: Data())
     assertTest(claudeEmpty == nil, "ClaudeCodeProvider handles empty data gracefully")
-    
+
     let codex = CodexProvider()
     let codexPerm = try? codex.parseLifecyclePayload(data: "{\"status\": \"permission_required\", \"session_id\": \"codex-1\"}".data(using: .utf8)!)
     assertTest(codexPerm?.type == .agentPermissionRequired, "CodexProvider translates permission_required status")
-    
+
     let generic = GenericHookProvider()
     let genericMalformed = try? generic.parseLifecyclePayload(data: "{\"bad_schema\": true}".data(using: .utf8)!)
     assertTest(genericMalformed == nil, "GenericHookProvider rejects non-conforming payloads cleanly")
@@ -494,7 +494,7 @@ await testGroup("Deep Audit & Robustness Verification") {
 await testGroup("Standalone Execution & App Bundle Safety") {
     let permMgr = PermissionManager()
     assertTest(!permMgr.isAppBundle, "Standalone process correctly identifies isAppBundle == false")
-    
+
     let status = await permMgr.currentStatus()
     assertTest(!status.isAppBundle, "PermissionStatus reports isAppBundle == false")
     assertTest(!status.notificationsGranted, "Notifications disabled safely when running outside app bundle")
@@ -504,7 +504,7 @@ await testGroup("Standalone Execution & App Bundle Safety") {
 // 14. UnixSocketServer Security & Concurrency Suite
 await testGroup("UnixSocketServer Security & Concurrency") {
     let testSockPath = "/tmp/fb_t\(UInt32.random(in: 10000...99999)).sock"
-    
+
     let mockAppIPC = MockApplicationController()
     let dummyIPC = IPCHandler(
         sessionManager: SessionManager(),
@@ -522,11 +522,11 @@ await testGroup("UnixSocketServer Security & Concurrency") {
         providerRegistry: ProviderRegistry(),
         settingsRepo: SettingsRepository(db: await RecoveryManager.shared.initializeStorage(path: ":memory:"))
     )
-    
+
     let server1 = UnixSocketServer(socketPath: testSockPath, delegate: dummyIPC)
     try server1.start()
     assertTest(FileManager.default.fileExists(atPath: testSockPath), "UnixSocketServer creates socket file on start")
-    
+
     // Duplicate instance test on same active socket
     let server2 = UnixSocketServer(socketPath: testSockPath, delegate: dummyIPC)
     var duplicateDetected = false
@@ -536,10 +536,10 @@ await testGroup("UnixSocketServer Security & Concurrency") {
         duplicateDetected = true
     }
     assertTest(duplicateDetected, "UnixSocketServer detects active running daemon and refuses duplicate bind (EADDRINUSE)")
-    
+
     server1.stop()
     assertTest(!FileManager.default.fileExists(atPath: testSockPath), "UnixSocketServer unlinks socket file on clean stop")
-    
+
     // Stale socket recovery test: create a dead socket file on disk
     FileManager.default.createFile(atPath: testSockPath, contents: Data(), attributes: nil)
     assertTest(FileManager.default.fileExists(atPath: testSockPath), "Dead socket file staged on disk")
@@ -557,7 +557,7 @@ await testGroup("Normalized Events & Enriched Context Model") {
     assertTest(!disappeared.isActionableForAttention, "sessionDisappeared is non-actionable for disruptive focus")
     assertTest(AgentEventType.agentCompleted.isActionableForAttention, "agentCompleted is actionable")
     assertTest(AgentEventType.agentWaiting.isActionableForAttention, "agentWaiting is actionable")
-    
+
     let origin = OriginContext(
         bundleIdentifier: "com.apple.Terminal",
         processIdentifier: 99999,
@@ -572,7 +572,7 @@ await testGroup("Normalized Events & Enriched Context Model") {
     assertTest(origin.restorationCapability == .exactWindowAndWorkspace, "OriginContext stores restoration capability")
     assertTest(origin.confidence == 0.95, "OriginContext confidence level tracked")
     assertTest(origin.isFresh(within: 60), "OriginContext captures freshness within threshold")
-    
+
     // Stale context test
     let oldOrigin = OriginContext(
         bundleIdentifier: "com.apple.Terminal",
@@ -580,7 +580,7 @@ await testGroup("Normalized Events & Enriched Context Model") {
         capturedAt: Date().addingTimeInterval(-700)
     )
     assertTest(!oldOrigin.isFresh(within: 600), "OriginContext detects stale context older than threshold")
-    
+
     // Provider tier verification
     assertTest(AntigravityProvider().supportLevel == .nativeLifecycle, "AntigravityProvider tier is native-lifecycle")
     assertTest(ClaudeCodeProvider().supportLevel == .adapter, "ClaudeCodeProvider tier is adapter")
@@ -596,7 +596,7 @@ await testGroup("Structured Focus Outcomes & Intent Engine") {
     let mockSpace = MockSpaceController()
     let intentEngine = UserIntentEngine(idleTracker: mockIdle, windowController: mockWin, spaceController: mockSpace, appController: mockApp)
     let focusController = FocusController(appController: mockApp, windowController: mockWin, intentEngine: intentEngine, arbiter: AttentionArbiter())
-    
+
     // Terminated application test: PID 99999999 does not exist on macOS
     let deadPIDOrigin = OriginContext(
         bundleIdentifier: "com.nonexistent.app",
@@ -609,7 +609,7 @@ await testGroup("Structured Focus Outcomes & Intent Engine") {
         state: .completed,
         originContext: deadPIDOrigin
     )
-    
+
     let deadOutcome = intentEngine.evaluate(
         session: deadSession,
         config: PolicyConfiguration(),
@@ -621,7 +621,7 @@ await testGroup("Structured Focus Outcomes & Intent Engine") {
     default:
         assertTest(false, "Terminated app did not produce notifyOnly")
     }
-    
+
     // Cooldown test in FocusController
     let liveOrigin = OriginContext(
         bundleIdentifier: "com.apple.Terminal",
@@ -634,11 +634,11 @@ await testGroup("Structured Focus Outcomes & Intent Engine") {
         state: .completed,
         originContext: liveOrigin
     )
-    
+
     let config = PolicyConfiguration(focusPolicy: .alwaysRestore)
     let firstAction = await focusController.handleSessionCompletion(session: liveSession, config: config, focusLock: FocusLockState())
     assertTest(firstAction.outcome != .ignore, "First completion action handled")
-    
+
     // Immediate repeat within cooldown window
     let secondAction = await focusController.handleSessionCompletion(session: liveSession, config: config, focusLock: FocusLockState())
     switch secondAction {
@@ -655,7 +655,7 @@ await testGroup("Database Retention & Pruning") {
     let db = await RecoveryManager.shared.initializeStorage(path: dbPath)
     let sessionRepo = SessionRepository(db: db)
     let eventRepo = EventRepository(db: db)
-    
+
     // Seed 10 old completed sessions and 5 recent active sessions
     let oldDate = Date().addingTimeInterval(-40 * 86400) // 40 days ago
     for i in 1...10 {
@@ -668,7 +668,7 @@ await testGroup("Database Retention & Pruning") {
             completedAt: oldDate
         )
         try await sessionRepo.saveSession(s)
-        
+
         let e = AgentEvent(
             id: "old-event-\(i)",
             timestamp: oldDate,
@@ -678,7 +678,7 @@ await testGroup("Database Retention & Pruning") {
         )
         try await eventRepo.saveEvent(e)
     }
-    
+
     for i in 1...5 {
         let s = AgentSession(
             id: AgentSessionID("recent-session-\(i)"),
@@ -689,16 +689,16 @@ await testGroup("Database Retention & Pruning") {
         )
         try await sessionRepo.saveSession(s)
     }
-    
+
     let prunedCount = try await sessionRepo.pruneCompletedSessions(olderThanDays: 30, keepMinCount: 5)
     assertTest(prunedCount == 10, "pruneCompletedSessions pruned exactly 10 old sessions exceeding 30-day cutoff")
-    
+
     let remainingSessions = try await sessionRepo.fetchRecentSessions(limit: 50)
     assertTest(remainingSessions.count == 5, "Remaining sessions count is preserved at 5 recent active sessions")
-    
+
     let eventPruned = try await eventRepo.pruneEvents(olderThanDays: 30)
     assertTest(eventPruned >= 0, "pruneEvents executes cleanly")
-    
+
     await db.close()
     try? FileManager.default.removeItem(atPath: dbPath)
     try? FileManager.default.removeItem(atPath: "\(dbPath)-wal")
@@ -711,37 +711,37 @@ await testGroup("Apple HIG Compliance & Accessibility Verification") {
     let axURL = PermissionManager.accessibilitySettingsURL
     let expectedAX = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
     assertTest(axURL.absoluteString == expectedAX, "Accessibility deep link maps to Privacy_Accessibility System Settings pane")
-    
+
     let notifURL = PermissionManager.notificationSettingsURL
     let expectedNotif = "x-apple.systempreferences:com.apple.preference.notifications"
     assertTest(notifURL.absoluteString == expectedNotif, "Notification deep link maps to Notifications System Settings pane")
-    
+
     // 2. PolicyConfiguration Equatability and Live Persistence
     let config1 = PolicyConfiguration.default
     var config2 = PolicyConfiguration.default
     assertTest(config1 == config2, "Default PolicyConfiguration instances are equatable")
-    
+
     config2.focusCooldownMs = 2500
     assertTest(config1 != config2, "Modified PolicyConfiguration triggers Equatable inequality for live onChange persistence")
-    
+
     // 3. Notification Action Safety (Non-destructive Dismissal)
     assertTest(NotificationManager.categoryAttention == "FLOWBACK_ATTENTION", "Attention notification category is FLOWBACK_ATTENTION")
     assertTest(NotificationManager.actionDismiss == "FLOWBACK_ACTION_DISMISS", "Dismiss action ID is registered")
     assertTest(NotificationManager.actionFocus == "FLOWBACK_ACTION_FOCUS", "Focus action ID is registered")
     assertTest(NotificationManager.actionReview == "FLOWBACK_ACTION_REVIEW", "Review action ID is registered")
-    
+
     // 4. Textual State Conveyance (VoiceOver / Color-Independent Communication)
     for state in AgentState.allCases {
         assertTest(!state.displayName.isEmpty, "AgentState.\(state.rawValue) defines clear text label '\(state.displayName)' for assistive technology")
     }
-    
+
     // 5. DashboardTab Coverage & Human Interface Hierarchy
     assertTest(DashboardTab.allCases.count == 6, "Dashboard contains exactly 6 organized primary views")
     for tab in DashboardTab.allCases {
         assertTest(!tab.subtitle.isEmpty, "Dashboard tab '\(tab.rawValue)' provides descriptive subtitle for window header")
         assertTest(!tab.icon.isEmpty, "Dashboard tab '\(tab.rawValue)' uses valid SF Symbol '\(tab.icon)'")
     }
-    
+
     // 6. Focus Lock Remaining Time Bounds & Formatting
     let lockActive = FocusLockState(isActive: true, expiresAt: Date().addingTimeInterval(900), label: "15 min")
     assertTest(lockActive.isCurrentlyLocked, "Focus lock detects active state")
@@ -751,10 +751,10 @@ await testGroup("Apple HIG Compliance & Accessibility Verification") {
     } else {
         assertTest(false, "Focus lock missing remainingSeconds calculation")
     }
-    
+
     let lockExpired = FocusLockState(isActive: true, expiresAt: Date().addingTimeInterval(-10), label: "expired")
     assertTest(!lockExpired.isCurrentlyLocked, "Expired focus lock cleanly evaluates to isCurrentlyLocked == false")
-    
+
     // 7. Protected Applications Case-Insensitive Matching
     var testConfig = PolicyConfiguration.default
     testConfig.protectedApplications = ["us.zoom.xos", "com.apple.Keynote"]
@@ -769,7 +769,7 @@ await testGroup("Apple HIG Compliance & Accessibility Verification") {
 // 19. Lifecycle State Coordinator & Rollback Resilience Suite
 await testGroup("Lifecycle State Coordinator & Rollback Resilience") {
     let coordinator = LifecycleCoordinator()
-    
+
     // Valid and invalid state transitions
     assertTest(await coordinator.canTransition(from: .notStarted, to: .starting), ".notStarted -> .starting is valid")
     assertTest(!(await coordinator.canTransition(from: .notStarted, to: .stopping)), ".notStarted -> .stopping is invalid")
@@ -780,7 +780,7 @@ await testGroup("Lifecycle State Coordinator & Rollback Resilience") {
     assertTest(!(await coordinator.canTransition(from: .ready, to: .notStarted)), ".ready -> .notStarted is invalid")
     assertTest(!(await coordinator.canTransition(from: .stopped, to: .ready)), ".stopped -> .ready without starting is invalid")
     assertTest(!(await coordinator.canTransition(from: .startupFailure, to: .ready)), ".startupFailure -> .ready is invalid")
-    
+
     // Component test fixture
     final class MockComponent: LifecycleManagedComponent, @unchecked Sendable {
         let componentName: String
@@ -788,48 +788,48 @@ await testGroup("Lifecycle State Coordinator & Rollback Resilience") {
         let shouldFailStart: Bool
         var isStarted: Bool = false
         var isStopped: Bool = false
-        
+
         init(name: String, isCritical: Bool = true, shouldFailStart: Bool = false) {
             self.componentName = name
             self.isCritical = isCritical
             self.shouldFailStart = shouldFailStart
         }
-        
+
         func startComponent() async throws {
             if shouldFailStart {
                 throw NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Simulated failure"])
             }
             isStarted = true
         }
-        
+
         func stopComponent() async {
             isStopped = true
             isStarted = false
         }
     }
-    
+
     // Test successful start and stop
     let c1 = MockComponent(name: "Storage")
     let c2 = MockComponent(name: "IPC")
     let stateResult = await coordinator.start(components: [c1, c2])
     assertTest(stateResult == .ready, "Coordinated start transitions to .ready when components succeed")
     assertTest(c1.isStarted && c2.isStarted, "All components started successfully")
-    
+
     // Test duplicate start call is idempotent
     let duplicateState = await coordinator.start(components: [c1, c2])
     assertTest(duplicateState == .ready, "Duplicate start() returns current state without re-initializing")
     assertTest(await coordinator.startInvocationCount == 2, "Start invocation count tracks duplicate calls")
-    
+
     // Test stop
     await coordinator.stop()
     assertTest(await coordinator.currentState == .stopped, "Stop transitions to .stopped")
     assertTest(c1.isStopped && c2.isStopped, "All components stopped successfully on shutdown")
-    
+
     // Test duplicate stop is idempotent
     await coordinator.stop()
     assertTest(await coordinator.currentState == .stopped, "Duplicate stop() remains .stopped safely")
     assertTest(await coordinator.stopInvocationCount == 2, "Stop invocation count tracks repeated calls")
-    
+
     // Test critical failure rollback
     let failCoordinator = LifecycleCoordinator()
     let goodComp = MockComponent(name: "DB")
@@ -837,7 +837,7 @@ await testGroup("Lifecycle State Coordinator & Rollback Resilience") {
     let failState = await failCoordinator.start(components: [goodComp, badComp])
     assertTest(failState == .startupFailure, "Critical component failure sets state to .startupFailure")
     assertTest(goodComp.isStopped, "Previously started component DB rolled back on critical failure")
-    
+
     // Test non-critical failure results in degraded state
     let degradedCoordinator = LifecycleCoordinator()
     let dbComp = MockComponent(name: "DB")
@@ -855,6 +855,7 @@ await runWindsurfIntegrationSuites()
 await runOpenCodeIntegrationSuites()
 await runCursorBackgroundIntegrationSuites()
 await runMultiAgentConcurrencyAndSharedReliabilitySuites()
+await runCloudDiscoveryAndLifecycleRegressionSuites()
 
 print("\n================================================================")
 print("TEST RESULTS SUMMARY")
