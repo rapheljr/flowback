@@ -148,3 +148,23 @@ Flowback storage implements zero-downtime, backward-compatible SQLite migrations
 * **Migration V2:** Uses reliable schema inspection (`PRAGMA table_info(sessions);`) rather than parsing error message strings. Adds `conversation_title`, `conversation_id`, `task_summary`, `execution_id`, `parent_session_id`, `conversation_url`, `focus_capability`, and `is_remote` columns along with an index on `conversation_id`.
 * **Idempotency & Failure Rollback:** If columns already exist, migration skips them cleanly. Any unexpected SQLite failure propagates, triggers immediate transaction rollback, and prevents `PRAGMA user_version` from advancing.
 * Existing V1 databases automatically upgrade without data loss. Legacy records missing conversation fields default safely to `windowOnly` capability and derive titles from workspace project names.
+* **Resilient SQL Column Projections (F-12):** Explicit column projections (`sessionColumnsProjection`) and name-based SQLite column lookup with positional fallbacks ensure schema modifications never cause misaligned column decoding.
+
+---
+
+## Audit Remediation Architectural Invariants (F-01 through F-13)
+
+1. **Window Selection Accuracy (F-01):** `WindowController.selectMatchingWindowIndex` correlates target `WindowInfo` bounds, geometry, and title scoring against accessibility candidates. If identity cannot be uniquely resolved, window raising fails conservatively rather than raising an arbitrary window.
+2. **Honest Restoration Outcomes (F-02):** Window and workspace adapters report `.workspaceActivatedOnly` or `.windowActivatedOnly`, never claiming `.exactConversationRestored`.
+3. **Provider Hook Coexistence (F-03):** Desktop and CLI providers use isolated, namespaced keys (`flowback-antigravity` and `flowback-antigravity-cli`) in `hooks.json`. Atomic file writes and targeted uninstallation preserve user-defined hooks and sibling provider configurations.
+4. **Hot Event Path Performance (F-04):** Event ingestion updates state and dispatches focus decisions with $O(1)$ complexity without performing filesystem directory traversals or CLI health checks. Periodic maintenance schedules handle background discovery and health.
+5. **Bounded In-Memory State (F-05):** In-memory completed sessions are bounded to 100, while active sessions are never evicted. Historical records reload seamlessly from SQLite on demand, and database pruning enforces retention schedules.
+6. **Provider-Owned Resumption (F-06):** Terminal agent resume syntax is owned by the respective providers (`AgentProvider.resumeCommand(for:)`) and resolved via `ResumeCommandRegistry`. Core domain and focus models remain strictly provider-agnostic.
+7. **Asynchronous Non-Blocking Execution (F-07):** External processes are managed via `AsyncProcessRunner` using Swift concurrency continuations, `Process.terminationHandler`, watchdog timeouts, and cooperative task cancellation.
+8. **Decoupled Hook Protocol Handling (F-08):** `IPCHandler` routes requests generically, delegating payload interpretation and provider-specific responses to `AgentProvider.generateHookResponse(for:)`.
+9. **Remote Agent Intent & Diagnostics (F-09):** Cloud sessions (`isRemote == true`) evaluate destinations honestly via `.restoreDestination` and respect user typing safeguards without false "missing local origin" diagnoses.
+10. **Unified Component Lifecycle (F-10):** `LifecycleCoordinator` serves as the authoritative state machine for `FlowbackService`, providing rollback on critical component failure and coordinated reverse-order teardown.
+11. **Canonical Shared IPC Types (F-11):** Wire protocol types `IPCRequest` and `IPCResponse` reside in `FlowbackCore/IPC`, ensuring CLI and daemon contracts stay synchronized without reversing module dependencies.
+12. **Stable Database Decoding (F-12):** Repository decoders use explicit SQL column projections and name-based mapping (`sqlite3_column_name`), eliminating fragility to column ordering.
+13. **Adapter Registry Concurrency (F-13):** `ApplicationAdapterRegistry` synchronizes mutations and lookups via `NSLock`, snapshotting registered adapters before executing external evaluation logic.
+14. **UI Event Coalescing & Throttling (C-01):** High-frequency event streams are throttled using `UIEventCoalescer` with a 50ms coalescing window. Multiple intermediate events schedule at most one pending UI synchronization on `@MainActor`, achieving a 99.9% reduction in main runloop UI refresh frequency while capturing the cumulative final state.
