@@ -22,6 +22,7 @@ func printHelp() {
       providers                 List detected agent providers and health
       test-focus                Simulate focus restoration evaluation
       test-notification         Send a test macOS actionable notification
+      config [export|import]    Export or import policy configuration JSON
       hook <provider>           Process hook input from stdin (for Antigravity, Claude, etc.)
       emit <json>               Emit a generic agent event into Flowback
       quit, shutdown            Request graceful daemon shutdown
@@ -273,6 +274,48 @@ case "test-notification":
         print("Dispatched test notification request: \(resp.message)")
     } catch {
         print("Error: Flowback daemon is not running.")
+        exit(1)
+    }
+
+case "config":
+    let sub = args.count > 2 ? args[2] : "export"
+    if sub == "export" {
+        do {
+            let resp = try client.send(command: "config-export")
+            if resp.success, let data = resp.data, let str = String(data: data, encoding: .utf8) {
+                if args.count > 3 {
+                    let outPath = (args[3] as NSString).expandingTildeInPath
+                    try str.write(toFile: outPath, atomically: true, encoding: .utf8)
+                    print("Exported configuration to \(outPath)")
+                } else {
+                    print(str)
+                }
+                exit(0)
+            } else {
+                print("Error: \(resp.message)")
+                exit(1)
+            }
+        } catch {
+            print("Error: Flowback daemon is not running.")
+            exit(1)
+        }
+    } else if sub == "import" {
+        guard args.count > 3 else {
+            print("Error: 'flowback config import' requires a file path argument (e.g. flowback config import config.json)")
+            exit(1)
+        }
+        let inPath = (args[3] as NSString).expandingTildeInPath
+        do {
+            let fileData = try Data(contentsOf: URL(fileURLWithPath: inPath))
+            let resp = try client.send(command: "config-import", payload: fileData)
+            print(resp.message)
+            exit(resp.success ? 0 : 1)
+        } catch {
+            print("Error importing config from \(inPath): \(error.localizedDescription)")
+            exit(1)
+        }
+    } else {
+        print("Unknown config subcommand '\(sub)'. Usage: flowback config [export [file] | import <file>]")
         exit(1)
     }
 

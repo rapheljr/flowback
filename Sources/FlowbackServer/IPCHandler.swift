@@ -86,6 +86,12 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         case "test-notification":
             return await handleTestNotification()
 
+        case "config-export":
+            return await handleConfigExport()
+
+        case "config-import":
+            return await handleConfigImport(payload: request.payload)
+
         case "quit", "shutdown":
             return handleShutdown(request: request)
 
@@ -320,6 +326,28 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
             return IPCResponse(success: true, message: "Test notification dispatched")
         } else {
             return IPCResponse(success: false, message: "Notification handler not configured")
+        }
+    }
+
+    private func handleConfigExport() async -> IPCResponse {
+        do {
+            let jsonString = try await settingsRepo.exportConfigurationJSON()
+            let data = jsonString.data(using: .utf8)
+            return IPCResponse(success: true, message: "Configuration exported", data: data)
+        } catch {
+            return IPCResponse(success: false, message: "Failed to export configuration: \(error.localizedDescription)")
+        }
+    }
+
+    private func handleConfigImport(payload: Data?) async -> IPCResponse {
+        guard let data = payload, let jsonString = String(data: data, encoding: .utf8) else {
+            return IPCResponse(success: false, message: "Missing or invalid payload for config import")
+        }
+        do {
+            let config = try await settingsRepo.importConfigurationJSON(jsonString)
+            return IPCResponse(success: true, message: "Configuration imported successfully (policy: \(config.focusPolicy.rawValue))")
+        } catch {
+            return IPCResponse(success: false, message: "Failed to import configuration: \(error.localizedDescription)")
         }
     }
 

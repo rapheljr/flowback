@@ -23,7 +23,10 @@ public final class ApplicationController: ApplicationControlling, @unchecked Sen
     }
     
     public func runningApplication(forProcessIdentifier pid: Int32) -> NSRunningApplication? {
-        NSRunningApplication(processIdentifier: pid_t(pid))
+        if let direct = NSRunningApplication(processIdentifier: pid_t(pid)) {
+            return direct
+        }
+        return ResponsibleProcessResolver.resolveOwningApplication(for: pid_t(pid))
     }
     
     public func runningApplications(withBundleIdentifier bundleID: String) -> [NSRunningApplication] {
@@ -40,7 +43,26 @@ public final class ApplicationController: ApplicationControlling, @unchecked Sen
             application.unhide()
         }
         if #available(macOS 14.0, *) {
-            application.activate(from: NSRunningApplication.current, options: [])
+            // When Flowback runs as a background accessory app, it holds no frontmost activation token.
+            // Self-activating briefly and yielding activation to the target application ensures
+            // cooperative activate(from:options:) is accepted by the macOS 14+ window server.
+            let yieldBlock = {
+                MainActor.assumeIsolated {
+                    if NSApplication.shared.activationPolicy() == .accessory {
+                        NSApplication.shared.activate(ignoringOtherApps: true)
+                        NSApplication.shared.yieldActivation(to: application)
+                    }
+                }
+            }
+            if Thread.isMainThread {
+                yieldBlock()
+            } else {
+                DispatchQueue.main.sync(execute: yieldBlock)
+            }
+            let success = application.activate(from: NSRunningApplication.current, options: [])
+            if !success {
+                return application.activate(options: [.activateIgnoringOtherApps])
+            }
             return true
         } else {
             return application.activate(options: [.activateIgnoringOtherApps])

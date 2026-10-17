@@ -38,14 +38,16 @@ public actor FocusController {
     public func handleSessionCompletion(
         session: AgentSession,
         config: PolicyConfiguration,
-        focusLock: FocusLockState
+        focusLock: FocusLockState,
+        isSessionActive: Bool = true
     ) async -> FocusDecision {
 
         let decision = intentEngine.evaluate(
             session: session,
             config: config,
             focusLock: focusLock,
-            frontmostApp: appController.frontmostApplication()
+            frontmostApp: appController.frontmostApplication(),
+            isSessionActive: isSessionActive
         )
 
         await timeline.record(

@@ -32,6 +32,8 @@ public enum FocusReasonCode: String, Codable, Sendable {
     case eventStaleOrOutOfOrder = "event_stale_or_out_of_order"
     case eventNotActionable = "event_not_actionable"
     case manualUserTrigger = "manual_user_trigger"
+    case secureInputActive = "secure_input_active"
+    case sessionInactive = "session_inactive"
 }
 
 /// Deterministic result of a focus evaluation
@@ -101,10 +103,18 @@ public struct UserIntentEngine: Sendable {
         session: AgentSession,
         config: PolicyConfiguration,
         focusLock: FocusLockState,
-        frontmostApp: NSRunningApplication? = NSWorkspace.shared.frontmostApplication
+        frontmostApp: NSRunningApplication? = NSWorkspace.shared.frontmostApplication,
+        isSessionActive: Bool = true
     ) -> FocusDecision {
 
-        // 1. Focus Lock active
+        // 1. Session Active check (macOS Fast User Switching or Lock Screen)
+        if !isSessionActive {
+            let reason = "macOS user session is locked or inactive. Suppressing focus switch."
+            logger.info("\(reason)")
+            return .notifyOnly(reason: reason)
+        }
+
+        // 2. Focus Lock active
         if focusLock.isCurrentlyLocked {
             let reason = focusLock.remainingSeconds.map {
                 "Focus Lock is active (expires in \(Int($0))s). Suppressing focus switch."
@@ -126,6 +136,13 @@ public struct UserIntentEngine: Sendable {
 
         if effectivePolicy == .notificationOnly {
             return .notifyOnly(reason: "Policy is set to Notification Only.")
+        }
+
+        // 3. Secure Event Input safeguard (password / credential entry active)
+        if idleTracker.isSecureInputActive() && effectivePolicy != .alwaysRestore {
+            let reason = "Secure event input (password or credential prompt) is active across system. Suppressing focus switch."
+            logger.info("\(reason)")
+            return .notifyOnly(reason: reason)
         }
 
         // 3. Protected Application check

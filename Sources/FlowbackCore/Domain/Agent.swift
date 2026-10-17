@@ -45,6 +45,7 @@ public struct AgentProviderID: Hashable, Codable, Sendable, CustomStringConverti
     public static let windsurf = AgentProviderID("windsurf")
     public static let cursorBackground = AgentProviderID("cursor-background")
     public static let genericHook = AgentProviderID("generic-hook")
+    public static let copilot = AgentProviderID("copilot")
 }
 
 /// Unique identifier for an agent session

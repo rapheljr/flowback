@@ -91,6 +91,12 @@ public final class WindowController: WindowControlling, @unchecked Sendable {
                 ))
             }
         }
+        if windows.isEmpty, let owningApp = ResponsibleProcessResolver.resolveOwningApplication(for: pid_t(pid)) {
+            let parentPID = owningApp.processIdentifier
+            if parentPID != pid {
+                return listWindows(forProcessIdentifier: parentPID)
+            }
+        }
         return windows
     }
 
@@ -170,6 +176,7 @@ public final class WindowController: WindowControlling, @unchecked Sendable {
         }
 
         let appRef = AXUIElementCreateApplication(pid_t(pid))
+        AXUIElementSetMessagingTimeout(appRef, 0.5)
         var windowsRef: CFTypeRef?
         let copyResult = AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &windowsRef)
 

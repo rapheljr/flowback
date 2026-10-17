@@ -1,9 +1,23 @@
 import Foundation
 import CoreGraphics
+#if canImport(Carbon)
+import Carbon.HIToolbox
+#endif
 
 public protocol IdleTracking: Sendable {
     func systemIdleSeconds() -> Double
     func isUserActive(within seconds: Double) -> Bool
+    func isSecureInputActive() -> Bool
+}
+
+public extension IdleTracking {
+    func isSecureInputActive() -> Bool {
+        #if canImport(Carbon)
+        return IsSecureEventInputEnabled()
+        #else
+        return false
+        #endif
+    }
 }
 
 /// Tracks user inactivity without recording keystrokes or mouse positions
@@ -21,5 +35,13 @@ public final class IdleTracker: IdleTracking, Sendable {
     
     public func isUserActive(within seconds: Double) -> Bool {
         systemIdleSeconds() <= seconds
+    }
+
+    public func isSecureInputActive() -> Bool {
+        #if canImport(Carbon)
+        return IsSecureEventInputEnabled()
+        #else
+        return false
+        #endif
     }
 }

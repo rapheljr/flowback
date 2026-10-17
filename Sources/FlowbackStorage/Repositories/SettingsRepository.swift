@@ -39,4 +39,39 @@ public actor SettingsRepository {
         }
         return PolicyConfiguration.default
     }
+
+    public func exportConfigurationJSON() async throws -> String {
+        let config = await loadConfiguration()
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(config)
+        guard let string = String(data: data, encoding: .utf8) else {
+            throw SettingsRepositoryError.encodingFailed
+        }
+        return string
+    }
+
+    @discardableResult
+    public func importConfigurationJSON(_ jsonString: String) async throws -> PolicyConfiguration {
+        guard let data = jsonString.data(using: .utf8) else {
+            throw SettingsRepositoryError.invalidJSON
+        }
+        let config = try jsonDecoder.decode(PolicyConfiguration.self, from: data)
+        try await saveConfiguration(config)
+        return config
+    }
+}
+
+public enum SettingsRepositoryError: Error, LocalizedError, Sendable {
+    case encodingFailed
+    case invalidJSON
+
+    public var errorDescription: String? {
+        switch self {
+        case .encodingFailed:
+            return "Failed to encode configuration to UTF-8 JSON"
+        case .invalidJSON:
+            return "Configuration JSON payload is malformed or invalid UTF-8"
+        }
+    }
 }
