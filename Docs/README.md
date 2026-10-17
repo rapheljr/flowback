@@ -32,3 +32,4 @@ Welcome to the Flowback documentation hub.
 ## Engineering & Releasing
 * **[Development Guide](DEVELOPMENT.md)** — Building from source, deterministic test harness, and contributing.
 * **[Release Engineering](RELEASE.md)** — Release checklist, code signing, notarization, and checksum verification.
+* **[Support Flowback](https://buymeacoffee.com/flowback)** — Support continued development on Buy Me a Coffee ([Support Page](https://rapheljr.github.io/flowback/support/)).

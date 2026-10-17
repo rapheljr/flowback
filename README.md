@@ -9,6 +9,7 @@
     <a href="https://github.com/rapheljr/flowback/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-Passing-10b981?style=flat-square&logo=githubactions&logoColor=white" alt="CI Status"/></a>
     <a href="https://github.com/rapheljr/flowback/releases"><img src="https://img.shields.io/badge/Release-v1.0.0-38bdf8?style=flat-square" alt="Latest Release"/></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-6366f1?style=flat-square" alt="MIT License"/></a>
+    <a href="https://buymeacoffee.com/flowback"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-flowback-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"/></a>
     <img src="https://img.shields.io/badge/macOS-14.0%2B-slate?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+"/>
     <img src="https://img.shields.io/badge/Architecture-Apple%20Silicon%20%7C%20Intel-blue?style=flat-square" alt="Architectures"/>
   </p>
@@ -271,7 +272,26 @@ All contributors are expected to uphold our [Code of Conduct](CODE_OF_CONDUCT.md
 
 ---
 
-## 16. License
+## 16. Supporting Flowback
+
+Flowback is an independent, 100% developer-funded macOS utility with zero telemetry, zero trackers, and zero ads.
+
+If Flowback helps you stay in flow and protects your focus while your AI coding agents work, consider supporting continued development on Buy Me a Coffee:
+
+<p align="center">
+  <a href="https://buymeacoffee.com/flowback" target="_blank" rel="noopener noreferrer">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="48">
+  </a>
+</p>
+
+* ☕ **Support on Buy Me a Coffee:** [https://buymeacoffee.com/flowback](https://buymeacoffee.com/flowback)
+* 🌐 **Support Page:** [https://rapheljr.github.io/flowback/support/](https://rapheljr.github.io/flowback/support/)
+
+Your contributions directly fund feature development (new agent and editor adapters), focus arbitration reliability, and ongoing compatibility with upcoming macOS releases.
+
+---
+
+## 17. License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 Copyright (c) 2026 Abin Rapheal and Flowback Contributors.
@@ -280,7 +300,7 @@ Third-party notices and licenses are documented in [THIRD_PARTY_NOTICES.md](THIR
 
 ---
 
-## 17. Security Reporting
+## 18. Security Reporting
 
 Please **DO NOT** report security vulnerabilities through public GitHub issues.
 Report privately via GitHub Security Advisories:
@@ -290,7 +310,7 @@ Review our response targets and disclosure policies in [SECURITY.md](SECURITY.md
 
 ---
 
-## 18. Roadmap
+## 19. Roadmap
 
 * 🟢 **v1.0.0:** Universal core, official providers (Antigravity, Claude Code, Codex), Attention Arbiter, User Intent Engine, SQLite WAL, SwiftUI Dashboard & CLI.
 * 🔵 **v1.1.0:** Multi-monitor display pinning, official Homebrew Cask, terminal tab deep links.
@@ -301,7 +321,7 @@ Read the full [ROADMAP.md](ROADMAP.md).
 
 ---
 
-## 19. FAQ & Known Limitations
+## 20. FAQ & Known Limitations
 
 * **macOS Spaces Limitation:** By default, Flowback follows `neverSwitchSpaces` to avoid disorienting desktop jumping. It displays a notification banner on your current Space instead. Space switching can be enabled in Settings.
 * **Permission Fallback:** Without Accessibility permissions, Flowback activates the target application via `NSWorkspace` instead of raising a specific window.
@@ -309,9 +329,10 @@ Read the full [ROADMAP.md](ROADMAP.md).
 
 ---
 
-## 20. Project Links & Resources
+## 21. Project Links & Resources
 
 * 🌐 **Marketing Website:** [https://rapheljr.github.io/flowback/](https://rapheljr.github.io/flowback/)
+* ☕ **Buy Me a Coffee:** [https://buymeacoffee.com/flowback](https://buymeacoffee.com/flowback) (Support Page: [https://rapheljr.github.io/flowback/support/](https://rapheljr.github.io/flowback/support/))
 * 📦 **Downloads Page:** [https://rapheljr.github.io/flowback/download/](https://rapheljr.github.io/flowback/download/)
 * 📚 **Documentation Hub:** [Docs/README.md](Docs/README.md)
 * 🚀 **GitHub Releases:** [https://github.com/rapheljr/flowback/releases](https://github.com/rapheljr/flowback/releases)
