@@ -120,7 +120,7 @@ public final class FlowbackService: NSObject, ObservableObject {
         await providerRegistry.register(provider: AntigravityProvider())
         await providerRegistry.register(provider: ClaudeCodeProvider())
         await providerRegistry.register(provider: CodexProvider())
-        await providerRegistry.register(provider: GeminiCLIProvider())
+        await providerRegistry.register(provider: AntigravityCLIProvider())
         await providerRegistry.register(provider: AiderProvider())
         await providerRegistry.register(provider: WindsurfProvider())
         await providerRegistry.register(provider: OpenCodeProvider())
@@ -460,6 +460,20 @@ public final class FlowbackService: NSObject, ObservableObject {
         self.permissionStatus = perms
         self.timelineEntries = timeline
 
+        // Proactively synchronize published properties of dashboardViewModel for instant reactive UI re-renders
+        dashboardViewModel.activeSessions = active
+        dashboardViewModel.allSessions = all
+        dashboardViewModel.attentionQueue = queue
+        dashboardViewModel.providerHealths = healths
+        dashboardViewModel.permissionStatus = perms
+        dashboardViewModel.timelineEntries = timeline
+        dashboardViewModel.config = configuration
+        dashboardViewModel.focusLock = focusLock
+        dashboardViewModel.isDatabaseReady = isDatabaseReady
+        dashboardViewModel.isStorageDurable = isStorageDurable
+        dashboardViewModel.storageRecoveryNotice = storageRecoveryNotice
+        dashboardViewModel.isIPCReady = isIPCReady
+
         if !isHeadless {
             menuBarController.updateState(
                 activeSessions: active,
@@ -550,20 +564,22 @@ extension FlowbackService: NSWindowDelegate {
             return
         }
 
+        // Initialize dashboardViewModel with current state
+        dashboardViewModel.activeSessions = activeSessions
+        dashboardViewModel.allSessions = allSessions
+        dashboardViewModel.attentionQueue = attentionQueue
+        dashboardViewModel.providerHealths = providerHealths
+        dashboardViewModel.permissionStatus = permissionStatus
+        dashboardViewModel.timelineEntries = timelineEntries
+        dashboardViewModel.config = configuration
+        dashboardViewModel.focusLock = focusLock
+        dashboardViewModel.isDatabaseReady = isDatabaseReady
+        dashboardViewModel.isStorageDurable = isStorageDurable
+        dashboardViewModel.storageRecoveryNotice = storageRecoveryNotice
+        dashboardViewModel.isIPCReady = isIPCReady
+
         let dashboardView = DashboardView(
             viewModel: dashboardViewModel,
-            activeSessions: Binding(get: { self.activeSessions }, set: { self.activeSessions = $0 }),
-            allSessions: Binding(get: { self.allSessions }, set: { self.allSessions = $0 }),
-            attentionQueue: Binding(get: { self.attentionQueue }, set: { self.attentionQueue = $0 }),
-            timelineEntries: Binding(get: { self.timelineEntries }, set: { self.timelineEntries = $0 }),
-            providerHealths: Binding(get: { self.providerHealths }, set: { self.providerHealths = $0 }),
-            permissionStatusBinding: Binding(get: { self.permissionStatus }, set: { self.permissionStatus = $0 }),
-            config: Binding(get: { self.configuration }, set: { self.configuration = $0 }),
-            focusLock: Binding(get: { self.focusLock }, set: { self.focusLock = $0 }),
-            isDatabaseReady: isDatabaseReady,
-            isStorageDurable: isStorageDurable,
-            storageRecoveryNotice: storageRecoveryNotice,
-            isIPCReady: isIPCReady,
             onFocusSession: { [weak self] session in
                 Task { [weak self] in
                     _ = await self?.focusController.manualFocusSession(session)
@@ -574,6 +590,7 @@ extension FlowbackService: NSWindowDelegate {
                     do {
                         try await self?.settingsRepository.saveConfiguration(updated)
                         self?.configuration = updated
+                        self?.dashboardViewModel.config = updated
                         logger.info("Configuration successfully updated and persisted.")
                     } catch {
                         logger.error("Failed to persist updated configuration: \(error.localizedDescription)")
