@@ -74,6 +74,9 @@ public struct AgentEvent: Identifiable, Codable, Hashable, Sendable {
     
     /// Unique deduplication key for idempotency within short time windows
     public var deduplicationKey: String {
+        if let custom = metadata["deduplicationKey"], !custom.isEmpty {
+            return custom
+        }
         let cleanWs = workspace ?? ""
         return "\(providerID.rawValue):\(sessionID.rawValue):\(type.rawValue):\(cleanWs)"
     }

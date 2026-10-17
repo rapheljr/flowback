@@ -35,6 +35,7 @@ public final class ApplicationAdapterRegistry: @unchecked Sendable {
     }
     
     private func registerDefaultAdapters() {
+        adapters.append(WindsurfAdapter())
         adapters.append(VSCodeAdapter())
         adapters.append(CursorAdapter())
         adapters.append(TerminalAdapter())

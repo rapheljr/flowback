@@ -850,6 +850,12 @@ await testGroup("Lifecycle State Coordinator & Rollback Resilience") {
 // 20-23. Extended System Verification Suites
 await runExtendedSystemSuites()
 
+// 24-27. Target Agent Integrations Suites (Windsurf, OpenCode, Cursor Background Agent)
+await runWindsurfIntegrationSuites()
+await runOpenCodeIntegrationSuites()
+await runCursorBackgroundIntegrationSuites()
+await runMultiAgentConcurrencyAndSharedReliabilitySuites()
+
 print("\n================================================================")
 print("TEST RESULTS SUMMARY")
 print("Total tests executed: \(totalTestsRun)")

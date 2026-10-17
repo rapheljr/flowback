@@ -118,6 +118,9 @@ public final class FlowbackService: NSObject, ObservableObject {
         await providerRegistry.register(provider: CodexProvider())
         await providerRegistry.register(provider: GeminiCLIProvider())
         await providerRegistry.register(provider: AiderProvider())
+        await providerRegistry.register(provider: WindsurfProvider())
+        await providerRegistry.register(provider: OpenCodeProvider())
+        await providerRegistry.register(provider: CursorBackgroundProvider())
         await providerRegistry.register(provider: GenericHookProvider())
         
         // 5. Restore persisted sessions and reconcile any orphaned ones

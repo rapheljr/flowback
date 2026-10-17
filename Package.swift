@@ -38,11 +38,12 @@ var packageTargets: [Target] = [
         path: "Sources/FlowbackFocus"
     ),
     
-    // Agent providers (Antigravity, Claude Code, Codex, GenericHook, etc.)
+    // Agent providers (Antigravity, Claude Code, Codex, GenericHook, Windsurf, OpenCode, Cursor, etc.)
     .target(
         name: "FlowbackProviders",
         dependencies: ["FlowbackCore"],
-        path: "Sources/FlowbackProviders"
+        path: "Sources/FlowbackProviders",
+        exclude: ["OpenCode/Plugin/flowback-opencode-plugin.js"]
     ),
     
     // Unix domain socket IPC server & hook dispatcher

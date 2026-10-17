@@ -16,6 +16,8 @@ public struct AgentProviderID: Hashable, Codable, Sendable, CustomStringConverti
     public static let geminiCLI = AgentProviderID("gemini-cli")
     public static let aider = AgentProviderID("aider")
     public static let openCode = AgentProviderID("opencode")
+    public static let windsurf = AgentProviderID("windsurf")
+    public static let cursorBackground = AgentProviderID("cursor-background")
     public static let genericHook = AgentProviderID("generic-hook")
 }
 

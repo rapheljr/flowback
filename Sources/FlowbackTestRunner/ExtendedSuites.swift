@@ -274,10 +274,12 @@ func runTerminationLifecycleSuites() async {
             backing: .buffered,
             defer: false
         )
+        window.isReleasedWhenClosed = false
         window.delegate = delegate
         assertTest(!delegate.windowClosed, "Window delegate initialized with windowClosed == false")
         
         window.close()
+        window.delegate = nil
         assertTest(delegate.windowClosed, "NSWindow close notification cleanly informs delegate without memory leak")
     }
 }
