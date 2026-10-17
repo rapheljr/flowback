@@ -251,6 +251,7 @@ public struct DashboardView: View {
                     }
                 }
             }
+            .background(Color(nsColor: .windowBackgroundColor))
             .navigationTitle(viewModel.selectedTab.rawValue)
             .navigationSubtitle(viewModel.selectedTab.subtitle)
             .toolbar {

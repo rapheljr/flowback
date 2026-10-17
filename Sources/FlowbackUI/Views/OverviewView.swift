@@ -3,6 +3,7 @@ import FlowbackCore
 import FlowbackFocus
 
 public struct OverviewView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var activeSessions: [AgentSession]
     @Binding var attentionQueue: [AttentionRequest]
     @Binding var focusLock: FocusLockState
@@ -25,12 +26,20 @@ public struct OverviewView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: FlowbackSpacing.xl) {
                 // Focus Lock banner if active
                 if focusLock.isCurrentlyLocked {
-                    HStack {
-                        Image(systemName: "lock.fill")
-                            .foregroundColor(.orange)
+                    HStack(spacing: FlowbackSpacing.md) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: FlowbackRadius.control, style: .continuous)
+                                .fill(ThemeTokens.iconTileFill(tint: .orange, scheme: colorScheme))
+                                .frame(width: 32, height: 32)
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.orange)
+                        }
+                        .accessibilityHidden(true)
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Focus Lock Active")
                                 .font(.headline)
@@ -52,14 +61,20 @@ public struct OverviewView: View {
                         .accessibilityLabel("Disable focus lock")
                         .accessibilityIdentifier("overview-disable-lock-button")
                     }
-                    .padding()
-                    .background(Color.orange.opacity(0.12))
-                    .cornerRadius(10)
+                    .padding(FlowbackSpacing.md)
+                    .background(
+                        RoundedRectangle(cornerRadius: FlowbackRadius.card, style: .continuous)
+                            .fill(Color.orange.opacity(colorScheme == .dark ? 0.15 : 0.08))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: FlowbackRadius.card, style: .continuous)
+                            .strokeBorder(Color.orange.opacity(0.3), lineWidth: ThemeTokens.cardBorderWidth)
+                    )
                     .accessibilityIdentifier("overview-focus-lock-banner")
                 }
 
                 // Stat Cards
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: FlowbackSpacing.md) {
                     StatCard(
                         title: "Active Agents",
                         value: "\(activeSessions.count)",
@@ -82,32 +97,58 @@ public struct OverviewView: View {
 
                 // Attention Queue items
                 if !attentionQueue.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: FlowbackSpacing.sm) {
                         Text("Attention Required")
-                            .font(.title2.bold())
+                            .font(.title3.bold())
                         ForEach(attentionQueue) { req in
-                            HStack {
-                                Image(systemName: "exclamationmark.circle.fill")
-                                    .foregroundColor(.orange)
-                                VStack(alignment: .leading) {
+                            HStack(spacing: FlowbackSpacing.md) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: FlowbackRadius.control, style: .continuous)
+                                        .fill(ThemeTokens.iconTileFill(tint: .orange, scheme: colorScheme))
+                                        .frame(width: 32, height: 32)
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(.orange)
+                                }
+                                .accessibilityHidden(true)
+
+                                VStack(alignment: .leading, spacing: 2) {
                                     Text(req.title).font(.headline)
                                     Text(req.message).font(.subheadline).foregroundColor(.secondary)
                                 }
                                 Spacer()
+                                if let session = activeSessions.first(where: { $0.id == req.sessionID }) {
+                                    Button("Review & Focus") {
+                                        onFocusSession(session)
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .controlSize(.small)
+                                }
                             }
-                            .padding()
-                            .background(Color(NSColor.controlBackgroundColor))
-                            .cornerRadius(8)
+                            .padding(FlowbackSpacing.md)
+                            .background(
+                                RoundedRectangle(cornerRadius: FlowbackRadius.card, style: .continuous)
+                                    .fill(ThemeTokens.cardFill(for: colorScheme))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: FlowbackRadius.card, style: .continuous)
+                                    .strokeBorder(ThemeTokens.cardBorder(for: colorScheme), lineWidth: ThemeTokens.cardBorderWidth)
+                            )
                             .accessibilityIdentifier("overview-attention-item-\(req.sessionID.rawValue)")
                         }
                     }
                 }
 
                 // Active Sessions
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: FlowbackSpacing.md) {
                     HStack {
-                        Text("Active Agents")
-                            .font(.title2.bold())
+                        VStack(alignment: .leading, spacing: FlowbackSpacing.xxs) {
+                            Text("Active Agents")
+                                .font(.title3.bold())
+                            Text("Real-time orchestrator monitoring")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                         Spacer()
                         Button(action: onRefresh) {
                             Label("Refresh", systemImage: "arrow.clockwise")
@@ -119,73 +160,111 @@ public struct OverviewView: View {
                     }
 
                     if activeSessions.isEmpty {
-                        HStack {
-                            Spacer()
-                            VStack(spacing: 8) {
-                                Image(systemName: "checkmark.circle")
-                                    .font(.system(size: 36))
-                                    .foregroundColor(.secondary)
-                                Text("No agents currently running")
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
-                                Text("Flowback is monitoring background agent lifecycle events.")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.vertical, 40)
-                            .accessibilityElement(children: .combine)
-                            .accessibilityIdentifier("overview-empty-state")
-                            Spacer()
-                        }
+                        FlowbackEmptyState(
+                            icon: "checkmark.circle",
+                            title: "No agents currently running",
+                            message: "Flowback is monitoring background agent lifecycle events.",
+                            actionTitle: "Scan Now",
+                            onAction: onRefresh
+                        )
+                        .accessibilityIdentifier("overview-empty-state")
                     } else {
-                        ForEach(activeSessions) { session in
-                            HStack {
-                                Circle()
-                                    .fill(Color.blue)
-                                    .frame(width: 10, height: 10)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(session.displayTitle)
-                                        .font(.headline)
-                                        .lineLimit(1)
-                                    HStack(spacing: 4) {
-                                        Text("\(session.providerDisplayName) • \(session.projectName)")
-                                        Text("• \(session.focusCapability.displayLabel)")
-                                            .foregroundColor(session.focusCapability == .windowOnly ? .secondary : .accentColor)
-                                        Text("• \(session.formattedDuration)")
+                        VStack(spacing: FlowbackSpacing.sm) {
+                            ForEach(activeSessions) { session in
+                                HStack(spacing: FlowbackSpacing.md) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: FlowbackRadius.control, style: .continuous)
+                                            .fill(ThemeTokens.iconTileFill(tint: .accentColor, scheme: colorScheme))
+                                            .frame(width: 32, height: 32)
+                                        Image(systemName: ThemeTokens.statusIcon(for: session.state))
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundColor(.accentColor)
                                     }
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                    .accessibilityHidden(true)
+
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        HStack(alignment: .firstTextBaseline, spacing: FlowbackSpacing.xs) {
+                                            Text(session.displayTitle)
+                                                .font(.headline)
+                                                .lineLimit(1)
+                                            if activeSessions.filter({ $0.projectName == session.projectName }).count > 1 {
+                                                Text("Shared Repo")
+                                                    .font(.system(size: 9, weight: .bold))
+                                                    .padding(.horizontal, 5)
+                                                    .padding(.vertical, 1)
+                                                    .background(Color.orange.opacity(0.15))
+                                                    .foregroundColor(.orange)
+                                                    .cornerRadius(FlowbackRadius.badge)
+                                            }
+                                        }
+
+                                        HStack(spacing: FlowbackSpacing.xs) {
+                                            Text(session.providerDisplayName)
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundColor(.secondary)
+                                            Text("•")
+                                                .foregroundColor(.secondary)
+                                            Text(session.projectName)
+                                                .font(.subheadline)
+                                                .foregroundColor(.secondary)
+                                            Text("•")
+                                                .foregroundColor(.secondary)
+                                            Text(session.focusCapability.displayLabel)
+                                                .font(.caption2)
+                                                .padding(.horizontal, 5)
+                                                .padding(.vertical, 1)
+                                                .background(session.focusCapability == .windowOnly ? Color.gray.opacity(0.15) : Color.blue.opacity(0.15))
+                                                .foregroundColor(session.focusCapability == .windowOnly ? .secondary : .accentColor)
+                                                .cornerRadius(FlowbackRadius.badge)
+                                            Text("•")
+                                                .foregroundColor(.secondary)
+                                            Text(session.formattedDuration)
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    StatusBadge(state: session.state)
+
+                                    Button("Restore Focus") {
+                                        onFocusSession(session)
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .controlSize(.regular)
+                                    .accessibilityLabel("Restore focus to \(session.displayTitle)")
+                                    .accessibilityIdentifier("restore-focus-\(session.id.rawValue)")
                                 }
-                                Spacer()
-                                StatusBadge(state: session.state)
-                                Button("Restore Focus") {
-                                    onFocusSession(session)
-                                }
-                                .buttonStyle(.bordered)
-                                .accessibilityLabel("Restore focus to \(session.displayTitle)")
-                                .accessibilityIdentifier("restore-focus-\(session.id.rawValue)")
+                                .padding(FlowbackSpacing.md)
+                                .background(
+                                    RoundedRectangle(cornerRadius: FlowbackRadius.card, style: .continuous)
+                                        .fill(ThemeTokens.cardFill(for: colorScheme))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: FlowbackRadius.card, style: .continuous)
+                                        .strokeBorder(ThemeTokens.cardBorder(for: colorScheme), lineWidth: ThemeTokens.cardBorderWidth)
+                                )
                             }
-                            .padding(12)
-                            .background(Color(NSColor.controlBackgroundColor))
-                            .cornerRadius(10)
                         }
                     }
                 }
             }
-            .padding(24)
+            .padding(FlowbackSpacing.xl)
         }
     }
 }
 
 struct StatCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let value: String
     let systemImage: String
     let color: Color
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: FlowbackSpacing.md) {
+            VStack(alignment: .leading, spacing: FlowbackSpacing.xxs) {
                 Text(title)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -193,14 +272,25 @@ struct StatCard: View {
                     .font(.system(size: 28, weight: .bold, design: .rounded))
             }
             Spacer()
-            Image(systemName: systemImage)
-                .font(.system(size: 24))
-                .foregroundColor(color)
-                .accessibilityHidden(true)
+            ZStack {
+                RoundedRectangle(cornerRadius: FlowbackRadius.subcard, style: .continuous)
+                    .fill(ThemeTokens.iconTileFill(tint: color, scheme: colorScheme))
+                    .frame(width: 36, height: 36)
+                Image(systemName: systemImage)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(color)
+            }
+            .accessibilityHidden(true)
         }
-        .padding(16)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
+        .padding(FlowbackSpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: FlowbackRadius.card, style: .continuous)
+                .fill(ThemeTokens.cardFill(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: FlowbackRadius.card, style: .continuous)
+                .strokeBorder(ThemeTokens.cardBorder(for: colorScheme), lineWidth: ThemeTokens.cardBorderWidth)
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title): \(value)")
         .accessibilityIdentifier("overview-stat-\(title.lowercased().replacingOccurrences(of: " ", with: "-"))")

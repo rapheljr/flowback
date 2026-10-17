@@ -59,6 +59,7 @@ public final class FlowbackService: NSObject, ObservableObject {
     @Published public var permissionStatus: PermissionStatus = PermissionStatus()
     @Published public var configuration: PolicyConfiguration = .default
     @Published public var focusLock: FocusLockState = FocusLockState()
+    @Published public var isSessionActive: Bool = true
 
     public let lifecycleCoordinator = LifecycleCoordinator()
     private var isPerformingMaintenance = false
@@ -159,6 +160,7 @@ public final class FlowbackService: NSObject, ObservableObject {
         await providerRegistry.register(provider: OpenCodeProvider())
         await providerRegistry.register(provider: CursorBackgroundProvider())
         await providerRegistry.register(provider: GenericHookProvider())
+        await providerRegistry.register(provider: CopilotProvider())
 
         // 5. Restore persisted sessions and reconcile any orphaned ones
         let persisted = (try? await sessionRepository.fetchRecentSessions(limit: 50)) ?? []
@@ -367,7 +369,8 @@ public final class FlowbackService: NSObject, ObservableObject {
             let decision = await focusController.handleSessionCompletion(
                 session: session,
                 config: configuration,
-                focusLock: focusLock
+                focusLock: focusLock,
+                isSessionActive: isSessionActive
             )
 
             if !decision.shouldActivateApp {
@@ -427,6 +430,35 @@ public final class FlowbackService: NSObject, ObservableObject {
             }
         }
         workspaceObserverTokens.append(wakeToken)
+
+        // Session active / resigned observation (Fast user switching & screen lock)
+        let resignToken = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.sessionDidResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.isSessionActive = false
+                logger.info("macOS user session resigned active (screen locked or user switched).")
+            }
+        }
+        workspaceObserverTokens.append(resignToken)
+
+        let becomeActiveToken = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.sessionDidBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.isSessionActive = true
+                logger.info("macOS user session became active.")
+                await self.sessionManager?.reconcileOrphanedSessions()
+                await self.refreshUIState()
+            }
+        }
+        workspaceObserverTokens.append(becomeActiveToken)
 
         // Background active agent discovery (every 10s)
         backgroundRefreshTask?.cancel()
@@ -740,6 +772,34 @@ extension FlowbackService: NSWindowDelegate {
         editMenuItem.submenu = editMenu
         mainMenu.addItem(editMenuItem)
 
+        // View Menu (Enables ⌘1-⌘6 navigation and ⌘R refresh)
+        let viewMenuItem = NSMenuItem()
+        let viewMenu = NSMenu(title: "View")
+        let overviewItem = NSMenuItem(title: "Overview", action: #selector(didSelectOverviewMenuTab), keyEquivalent: "1")
+        overviewItem.target = self
+        viewMenu.addItem(overviewItem)
+        let agentsItem = NSMenuItem(title: "Agent Sessions", action: #selector(didSelectAgentsMenuTab), keyEquivalent: "2")
+        agentsItem.target = self
+        viewMenu.addItem(agentsItem)
+        let timelineItem = NSMenuItem(title: "Timeline", action: #selector(didSelectTimelineMenuTab), keyEquivalent: "3")
+        timelineItem.target = self
+        viewMenu.addItem(timelineItem)
+        let appsItem = NSMenuItem(title: "Protected Applications", action: #selector(didSelectApplicationsMenuTab), keyEquivalent: "4")
+        appsItem.target = self
+        viewMenu.addItem(appsItem)
+        let diagItem = NSMenuItem(title: "Diagnostics", action: #selector(didSelectDiagnosticsMenuTab), keyEquivalent: "5")
+        diagItem.target = self
+        viewMenu.addItem(diagItem)
+        let settingsItem = NSMenuItem(title: "Settings", action: #selector(didSelectSettingsMenuTab), keyEquivalent: "6")
+        settingsItem.target = self
+        viewMenu.addItem(settingsItem)
+        viewMenu.addItem(NSMenuItem.separator())
+        let refreshItem = NSMenuItem(title: "Refresh Sessions", action: #selector(didSelectRefreshMenu), keyEquivalent: "r")
+        refreshItem.target = self
+        viewMenu.addItem(refreshItem)
+        viewMenuItem.submenu = viewMenu
+        mainMenu.addItem(viewMenuItem)
+
         // Window Menu (Enables ⌘W to close companion window)
         let windowMenuItem = NSMenuItem()
         let windowMenu = NSMenu(title: "Window")
@@ -751,5 +811,33 @@ extension FlowbackService: NSWindowDelegate {
         mainMenu.addItem(windowMenuItem)
 
         NSApp.mainMenu = mainMenu
+    }
+
+    @objc private func didSelectOverviewMenuTab() {
+        dashboardViewModel.selectedTab = .overview
+    }
+
+    @objc private func didSelectAgentsMenuTab() {
+        dashboardViewModel.selectedTab = .agents
+    }
+
+    @objc private func didSelectTimelineMenuTab() {
+        dashboardViewModel.selectedTab = .timeline
+    }
+
+    @objc private func didSelectApplicationsMenuTab() {
+        dashboardViewModel.selectedTab = .applications
+    }
+
+    @objc private func didSelectDiagnosticsMenuTab() {
+        dashboardViewModel.selectedTab = .diagnostics
+    }
+
+    @objc private func didSelectSettingsMenuTab() {
+        dashboardViewModel.selectedTab = .settings
+    }
+
+    @objc private func didSelectRefreshMenu() {
+        Task { await refreshUIState() }
     }
 }

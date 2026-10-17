@@ -36,6 +36,7 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
     public func setup() {
         guard statusItem == nil else { return }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem?.autosaveName = "FlowbackStatusItem"
         updateStatusItemAppearance()
 
         let menu = NSMenu()
