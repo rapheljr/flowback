@@ -56,7 +56,7 @@ public actor FocusController {
         )
 
         switch decision {
-        case .restoreOrigin(let origin, let reason):
+        case .restoreOrigin(_, let reason):
             // Check cooldown before restoring
             let canRestore = await arbiter.canRestoreFocusNow()
             if !canRestore {
@@ -69,18 +69,18 @@ public actor FocusController {
                 return .deferAction(reasonCode: .cooldownActive, explanation: cooldownReason)
             }
 
-            let restored = await restoreContext(origin)
-            if restored {
+            let result = await restoreSession(session)
+            if result.outcome.isSuccessful {
                 await arbiter.recordFocusRestoration()
                 await timeline.record(
                     sessionID: session.id,
                     category: "Restoration",
-                    summary: "Successfully restored focus to \(origin.displayLabel)",
+                    summary: result.message,
                     explanation: reason
                 )
                 return decision
             } else {
-                let fallbackReason = "Direct restoration failed; falling back to notification."
+                let fallbackReason = "Direct restoration failed (\(result.outcome.rawValue)); falling back to notification."
                 await timeline.record(
                     sessionID: session.id,
                     category: "Restoration",
@@ -99,6 +99,171 @@ public actor FocusController {
 
         case .notifyOnly, .deferAction, .suppress:
             return decision
+        }
+    }
+
+    /// Comprehensive, provider-aware conversation restoration implementing Section 14 & Phase 7 priority
+    public func restoreSession(_ session: AgentSession) async -> RestorationResult {
+        let convTitle = session.conversationTitle ?? session.displayTitle
+        let convID = session.conversationID ?? session.providerSessionID ?? session.id.rawValue
+
+        // Priority 1 & 4: Provider destination URL / Pull Request / Remote Dashboard
+        // If session is a remote agent (e.g. Cursor background agent) or has a valid conversationURL
+        var destinationURL: URL?
+        if let url = session.conversationURL {
+            destinationURL = url
+        } else if let ws = session.originContext?.workspacePath,
+                  (ws.hasPrefix("http://") || ws.hasPrefix("https://")),
+                  let url = URL(string: ws) {
+            destinationURL = url
+        }
+
+        if let targetURL = destinationURL {
+            let scheme = targetURL.scheme?.lowercased() ?? ""
+            guard scheme == "http" || scheme == "https" else {
+                logger.warning("Rejected non-http/https URL scheme for restoration: '\(scheme)'")
+                return RestorationResult(
+                    outcome: .restorationFailed,
+                    sessionID: session.id,
+                    providerID: session.providerID,
+                    conversationID: convID,
+                    conversationTitle: convTitle,
+                    targetDescription: targetURL.absoluteString,
+                    message: "Rejected unsafe destination URL scheme: '\(scheme)'"
+                )
+            }
+
+            logger.info("Opening provider web destination: \(targetURL.absoluteString)")
+            let opened = urlOpener(targetURL)
+            if opened {
+                return RestorationResult(
+                    outcome: .providerURLOpened,
+                    sessionID: session.id,
+                    providerID: session.providerID,
+                    conversationID: convID,
+                    conversationTitle: convTitle,
+                    targetDescription: targetURL.absoluteString,
+                    message: "Opened destination URL: \(targetURL.absoluteString)"
+                )
+            } else {
+                return RestorationResult(
+                    outcome: .restorationFailed,
+                    sessionID: session.id,
+                    providerID: session.providerID,
+                    conversationID: convID,
+                    conversationTitle: convTitle,
+                    targetDescription: targetURL.absoluteString,
+                    message: "Failed to open destination URL: \(targetURL.absoluteString)"
+                )
+            }
+        }
+
+        // Priority 2: CLI / Terminal resume command for Terminal-based agents
+        if session.providerID == .antigravityCLI || session.providerID == .claudeCode {
+            if let origin = session.originContext {
+                // Try raising the exact terminal window
+                let adapter = adapterRegistry.findAdapter(for: origin.bundleIdentifier) ?? GenericApplicationAdapter()
+                let restored = await adapter.restoreContext(
+                    context: origin,
+                    appController: appController,
+                    windowController: windowController
+                )
+                if restored {
+                    let resumeHint = (session.providerID == .antigravityCLI)
+                        ? "agy --conversation \(convID)"
+                        : "claude resume \(convID)"
+                    return RestorationResult(
+                        outcome: .resumeHintPresented,
+                        sessionID: session.id,
+                        providerID: session.providerID,
+                        conversationID: convID,
+                        conversationTitle: convTitle,
+                        targetDescription: origin.displayLabel,
+                        message: "Activated workspace terminal window with resume hint: (\(resumeHint))"
+                    )
+                }
+            }
+        }
+
+        // Priority 3 & 5: Local Window & Workspace via Adapter
+        guard let origin = session.originContext else {
+            let outcome: RestorationOutcome = (session.focusCapability == .unavailable) ? .restorationUnsupported : .conversationUnavailable
+            logger.warning("Session \(session.id) has no origin context or destination URL to restore")
+            return RestorationResult(
+                outcome: outcome,
+                sessionID: session.id,
+                providerID: session.providerID,
+                conversationID: convID,
+                conversationTitle: convTitle,
+                targetDescription: session.projectName,
+                message: "No origin context or destination target available for session \(session.id.rawValue)"
+            )
+        }
+
+        // Ambiguous target safety check:
+        // If windowIdentifier is missing and multiple windows match the same workspace title for this PID
+        if origin.windowIdentifier == nil && origin.processIdentifier > 0, let ws = origin.workspacePath {
+            let folderName = (ws as NSString).lastPathComponent
+            let candidateWindows = windowController.listWindows(forProcessIdentifier: origin.processIdentifier).filter {
+                $0.title.localizedCaseInsensitiveContains(folderName)
+            }
+            if candidateWindows.count > 1 {
+                logger.warning("Ambiguous target: \(candidateWindows.count) matching windows found for workspace '\(folderName)'")
+                return RestorationResult(
+                    outcome: .targetAmbiguous,
+                    sessionID: session.id,
+                    providerID: session.providerID,
+                    conversationID: convID,
+                    conversationTitle: convTitle,
+                    targetDescription: origin.displayLabel,
+                    message: "Multiple windows (\(candidateWindows.count)) matched workspace '\(folderName)'. Restoration aborted to prevent guessing."
+                )
+            }
+        }
+
+        let adapter = adapterRegistry.findAdapter(for: origin.bundleIdentifier) ?? GenericApplicationAdapter()
+        logger.info("Restoring origin for \(origin.bundleIdentifier) via \(adapter.adapterName)")
+
+        let restored = await adapter.restoreContext(
+            context: origin,
+            appController: appController,
+            windowController: windowController
+        )
+
+        if restored {
+            // Determine honest outcome based on provider capability and restored context
+            let outcome: RestorationOutcome
+            let message: String
+            if session.focusCapability == .exactConversation {
+                outcome = .exactConversationRestored
+                message = "Restored exact conversation for \(origin.displayLabel)"
+            } else if origin.workspacePath != nil {
+                outcome = .workspaceActivatedOnly
+                message = "Activated workspace window for \(origin.displayLabel)"
+            } else {
+                outcome = .windowActivatedOnly
+                message = "Activated application window for \(origin.displayLabel)"
+            }
+
+            return RestorationResult(
+                outcome: outcome,
+                sessionID: session.id,
+                providerID: session.providerID,
+                conversationID: convID,
+                conversationTitle: convTitle,
+                targetDescription: origin.displayLabel,
+                message: message
+            )
+        } else {
+            return RestorationResult(
+                outcome: .restorationFailed,
+                sessionID: session.id,
+                providerID: session.providerID,
+                conversationID: convID,
+                conversationTitle: convTitle,
+                targetDescription: origin.displayLabel,
+                message: "Failed to raise target window for \(origin.displayLabel)"
+            )
         }
     }
 
@@ -135,17 +300,15 @@ public actor FocusController {
     }
 
     /// Manually restores focus to a session (e.g. from menu bar or CLI)
+    @discardableResult
     public func manualFocusSession(_ session: AgentSession) async -> Bool {
-        guard let origin = session.originContext else {
-            logger.warning("Session \(session.id) has no origin context to restore")
-            return false
-        }
         await timeline.record(
             sessionID: session.id,
             category: "Manual",
-            summary: "Manual focus triggered by user",
-            details: origin.displayLabel
+            summary: "Manual focus triggered by user for \(session.displayTitle)",
+            details: session.originContext?.displayLabel ?? session.projectName
         )
-        return await restoreContext(origin)
+        let result = await restoreSession(session)
+        return result.outcome.isSuccessful
     }
 }

@@ -18,7 +18,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
     private let shutdownHandler: (@Sendable () -> Void)?
     private let testNotificationHandler: (@Sendable () async -> Void)?
     private let sessionToken: String?
-    
+
     public init(
         eventBus: EventBus = .shared,
         sessionManager: SessionManager,
@@ -40,67 +40,67 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         self.shutdownHandler = shutdownHandler
         self.testNotificationHandler = testNotificationHandler
     }
-    
+
     public func setFocusLock(_ state: FocusLockState) {
         self.focusLock = state
     }
-    
+
     public func currentFocusLock() -> FocusLockState {
         self.focusLock
     }
-    
+
     public func handleRequest(_ request: IPCRequest) async -> IPCResponse {
         logger.info("Handling IPC command: \(request.command)")
-        
+
         switch request.command {
         case "status":
             return await handleStatus()
-            
+
         case "agents":
             return await handleAgents()
-            
+
         case "sessions":
             return await handleSessions()
-            
+
         case "doctor":
             return await handleDoctor()
-            
+
         case "focus":
             return await handleFocus(sessionIDString: request.argument)
-            
+
         case "focus-lock":
             return handleFocusLock(argument: request.argument)
-            
+
         case "hook":
             return await handleHook(providerString: request.argument, payload: request.payload)
-            
+
         case "emit":
             return await handleEmit(payload: request.payload)
-            
+
         case "refresh":
             return await handleRefresh()
-            
+
         case "test-focus":
             return await handleTestFocus()
-            
+
         case "test-notification":
             return await handleTestNotification()
-            
+
         case "quit", "shutdown":
             return handleShutdown(request: request)
-            
+
         default:
             return IPCResponse(success: false, message: "Unknown command '\(request.command)'")
         }
     }
-    
+
     // MARK: - Handlers
-    
+
     private func handleStatus() async -> IPCResponse {
         let active = await sessionManager.getActiveSessions()
         let healths = await providerRegistry.checkAllHealth()
         let isLocked = focusLock.isCurrentlyLocked
-        
+
         var summary = [
             "activeSessionsCount": "\(active.count)",
             "focusLockActive": "\(isLocked)",
@@ -110,27 +110,27 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         if let rem = focusLock.remainingSeconds {
             summary["focusLockRemainingSeconds"] = "\(Int(rem))"
         }
-        
+
         let data = try? JSONSerialization.data(withJSONObject: summary, options: [.prettyPrinted])
         return IPCResponse(success: true, message: "Flowback is running", data: data)
     }
-    
+
     private func handleAgents() async -> IPCResponse {
         let active = await sessionManager.getActiveSessions()
         let data = try? JSONEncoder().encode(active)
         return IPCResponse(success: true, message: "Found \(active.count) active sessions", data: data)
     }
-    
+
     private func handleSessions() async -> IPCResponse {
         let recent = await sessionManager.getRecentSessions(limit: 20)
         let data = try? JSONEncoder().encode(recent)
         return IPCResponse(success: true, message: "Found \(recent.count) recent sessions", data: data)
     }
-    
+
     private func handleDoctor() async -> IPCResponse {
         let healths = await providerRegistry.checkAllHealth()
         let permStatus = await PermissionManager.shared.currentStatus()
-        
+
         var report: [String: Any] = [
             "permissions": [
                 "accessibility": permStatus.accessibilityGranted,
@@ -138,7 +138,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
                 "launchAtLogin": permStatus.launchAtLoginEnabled
             ]
         ]
-        
+
         var providerList: [[String: Any]] = []
         for h in healths {
             providerList.append([
@@ -151,28 +151,30 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
             ])
         }
         report["providers"] = providerList
-        
+
         let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted])
         return IPCResponse(success: true, message: "Doctor diagnostics completed", data: data)
     }
-    
+
     private func handleFocus(sessionIDString: String?) async -> IPCResponse {
         guard let idStr = sessionIDString, !idStr.isEmpty else {
             // Focus most recent session
             if let recent = await sessionManager.getRecentSessions(limit: 1).first {
-                let success = await focusController.manualFocusSession(recent)
-                return IPCResponse(success: success, message: success ? "Restored focus to \(recent.projectName)" : "Failed to restore focus")
+                let result = await focusController.restoreSession(recent)
+                let data = try? JSONEncoder().encode(result)
+                return IPCResponse(success: result.isSuccessful, message: result.message, data: data)
             }
             return IPCResponse(success: false, message: "No recent session found")
         }
-        
+
         if let session = await sessionManager.getSession(id: AgentSessionID(idStr)) {
-            let success = await focusController.manualFocusSession(session)
-            return IPCResponse(success: success, message: success ? "Restored focus to \(session.projectName)" : "Failed to restore focus")
+            let result = await focusController.restoreSession(session)
+            let data = try? JSONEncoder().encode(result)
+            return IPCResponse(success: result.isSuccessful, message: result.message, data: data)
         }
         return IPCResponse(success: false, message: "Session '\(idStr)' not found")
     }
-    
+
     private func handleFocusLock(argument: String?) -> IPCResponse {
         guard let arg = argument?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines), !arg.isEmpty else {
             // Toggle off if active
@@ -186,12 +188,12 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
                 return IPCResponse(success: true, message: "Focus Lock enabled for 30 minutes")
             }
         }
-        
+
         if arg == "off" || arg == "disable" || arg == "0" {
             focusLock = FocusLockState(isActive: false)
             return IPCResponse(success: true, message: "Focus Lock disabled")
         }
-        
+
         var durationMinutes = 30
         if arg.hasSuffix("m") {
             let digits = arg.dropLast()
@@ -202,36 +204,39 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         } else if let val = Int(arg) {
             durationMinutes = val
         }
-        
+
         let exp = Date().addingTimeInterval(TimeInterval(durationMinutes * 60))
         focusLock = FocusLockState(isActive: true, expiresAt: exp, label: "\(durationMinutes) min")
         return IPCResponse(success: true, message: "Focus Lock enabled for \(durationMinutes) minutes")
     }
-    
+
     private func handleRefresh() async -> IPCResponse {
         let discovered = await providerRegistry.discoverAllActiveSessions()
         if !discovered.isEmpty {
             await sessionManager.mergeDiscoveredSessions(discovered)
         }
         let active = await sessionManager.getActiveSessions()
-        
+
         let report: [String: Any] = [
             "status": "refreshed",
             "activeSessionsCount": active.count,
             "activeSessions": active.map { session in
                 [
                     "id": session.id.rawValue,
+                    "title": session.displayTitle,
+                    "conversationTitle": session.conversationTitle ?? "",
                     "projectName": session.projectName,
                     "provider": session.providerID.rawValue,
                     "state": session.state.rawValue,
-                    "workspace": session.workspace ?? "unknown"
+                    "workspace": session.workspace ?? "unknown",
+                    "focusCapability": session.focusCapability.rawValue
                 ]
             }
         ]
         let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted])
         return IPCResponse(success: true, message: "Refreshed. \(active.count) active agent(s) found.", data: data)
     }
-    
+
     private func handleHook(providerString: String?, payload: Data?) async -> IPCResponse {
         let allowData = "{\"decision\":\"allow\"}".data(using: .utf8)
         guard let provName = providerString else {
@@ -240,12 +245,12 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         guard let data = payload else {
             return IPCResponse(success: true, message: "Missing hook payload (safe pass-through)", data: allowData)
         }
-        
+
         let provID = AgentProviderID(provName)
         guard let provider = await providerRegistry.getProvider(provID) else {
             return IPCResponse(success: true, message: "Provider '\(provName)' not registered (safe pass-through)", data: allowData)
         }
-        
+
         var isPreInvocation = false
         var isPostInvocation = false
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -259,7 +264,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
                 isPreInvocation = true
             }
         }
-        
+
         do {
             if let event = try provider.parseLifecyclePayload(data: data) {
                 await eventBus.publish(agentEvent: event)
@@ -268,7 +273,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         } catch {
             logger.error("Failed to parse hook payload for \(provName): \(error.localizedDescription)")
         }
-        
+
         let responseStr: String
         if isPreInvocation {
             responseStr = "{\"injectSteps\":[]}"
@@ -280,7 +285,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         let responseData = responseStr.data(using: .utf8)
         return IPCResponse(success: true, message: "Hook ingested", data: responseData)
     }
-    
+
     private func handleEmit(payload: Data?) async -> IPCResponse {
         guard let data = payload else {
             return IPCResponse(success: false, message: "Missing emit payload")
@@ -288,7 +293,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         guard let genericProvider = await providerRegistry.getProvider(.genericHook) else {
             return IPCResponse(success: false, message: "Generic hook provider unavailable")
         }
-        
+
         do {
             if let event = try genericProvider.parseLifecyclePayload(data: data) {
                 await eventBus.publish(agentEvent: event)
@@ -297,10 +302,10 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         } catch {
             return IPCResponse(success: false, message: "Failed to parse emit event: \(error.localizedDescription)")
         }
-        
+
         return IPCResponse(success: false, message: "Could not emit event")
     }
-    
+
     private func handleTestFocus() async -> IPCResponse {
         // Find frontmost application to simulate
         guard let front = NSWorkspace.shared.frontmostApplication else {
@@ -320,16 +325,16 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
             workspace: testWs,
             originContext: testOrigin
         )
-        
+
         let decision = await focusController.handleSessionCompletion(
             session: testSession,
             config: config,
             focusLock: focusLock
         )
-        
+
         return IPCResponse(success: true, message: "Test focus evaluated: \(decision.explanation)")
     }
-    
+
     private func handleTestNotification() async -> IPCResponse {
         logger.info("Triggering test notification via delegate")
         if let handler = testNotificationHandler {
@@ -339,7 +344,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
             return IPCResponse(success: false, message: "Notification handler not configured")
         }
     }
-    
+
     private func handleShutdown(request: IPCRequest) -> IPCResponse {
         if let required = sessionToken {
             guard let provided = request.authToken, provided == required else {
@@ -347,7 +352,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
                 return IPCResponse(success: false, message: "Unauthorized: quit/shutdown command requires valid local session token")
             }
         }
-        
+
         logger.info("Service shutdown authorized and initiated over IPC")
         if let handler = shutdownHandler {
             handler()

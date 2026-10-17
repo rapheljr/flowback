@@ -52,6 +52,25 @@ public actor SessionManager {
         return Array(all.prefix(limit))
     }
 
+    /// Returns all sessions associated with a specific workspace or project
+    public func getSessions(inWorkspace workspace: String) -> [AgentSession] {
+        let clean = workspace.trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased()
+        guard !clean.isEmpty else { return [] }
+        return sessions.values.filter { s in
+            guard let ws = s.workspace else { return false }
+            let sClean = ws.trimmingCharacters(in: CharacterSet(charactersIn: "/")).lowercased()
+            return sClean == clean || sClean.hasSuffix("/" + clean) || clean.hasSuffix("/" + sClean)
+        }.sorted { $0.startedAt > $1.startedAt }
+    }
+
+    /// Returns all sessions sharing the same project name
+    public func getSessions(matchingProject projectName: String) -> [AgentSession] {
+        let clean = projectName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !clean.isEmpty else { return [] }
+        return sessions.values.filter { $0.projectName.lowercased() == clean }
+            .sorted { $0.startedAt > $1.startedAt }
+    }
+
     // MARK: - Proactive Discovery Merging
 
     @discardableResult
@@ -111,6 +130,17 @@ public actor SessionManager {
                         if updated.workspace == nil { updated.workspace = s.workspace }
                         if updated.originContext == nil { updated.originContext = s.originContext }
                         if let err = s.errorDescription { updated.errorDescription = err }
+
+                        // Merge conversation metadata without clobbering existing valid titles
+                        if let title = s.conversationTitle, !title.isEmpty { updated.conversationTitle = title }
+                        if let summary = s.taskSummary, !summary.isEmpty { updated.taskSummary = summary }
+                        if let url = s.conversationURL { updated.conversationURL = url }
+                        if let cId = s.conversationID { updated.conversationID = cId }
+                        if let eId = s.executionID { updated.executionID = eId }
+                        if let pId = s.parentSessionID { updated.parentSessionID = pId }
+                        if s.focusCapability != .windowOnly { updated.focusCapability = s.focusCapability }
+                        if s.isRemote { updated.isRemote = true }
+
                         sessions[s.id] = updated
 
                         await timeline.record(
@@ -119,7 +149,7 @@ public actor SessionManager {
                             summary: isReactivating
                                 ? "Discovered session reactivation: \(existing.state.rawValue) -> \(s.state.rawValue)"
                                 : "Discovered state transition: \(existing.state.rawValue) -> \(s.state.rawValue)",
-                            details: s.projectName
+                            details: updated.displayTitle
                         )
 
                         if let storage = storageDelegate {
@@ -133,7 +163,15 @@ public actor SessionManager {
                             type: eventType,
                             workspace: updated.workspace,
                             origin: updated.originContext,
-                            metadata: s.metadata
+                            metadata: s.metadata,
+                            conversationID: updated.conversationID,
+                            conversationTitle: updated.conversationTitle,
+                            taskSummary: updated.taskSummary,
+                            executionID: updated.executionID,
+                            parentSessionID: updated.parentSessionID,
+                            conversationURL: updated.conversationURL,
+                            focusCapability: updated.focusCapability,
+                            isRemote: updated.isRemote
                         )
                         generatedEvents.append(event)
 
@@ -144,7 +182,7 @@ public actor SessionManager {
                         logger.warning("Ignoring invalid discovered state transition from \(existing.state.rawValue) to \(s.state.rawValue) for session \(s.id)")
                     }
                 } else {
-                    // State unchanged: enrich missing context/workspace if available without duplicate notifications
+                    // State unchanged: enrich missing context/workspace/title if available without duplicate notifications
                     var updated = existing
                     var didEnrich = false
                     if updated.workspace == nil, let ws = s.workspace {
@@ -155,8 +193,45 @@ public actor SessionManager {
                         updated.originContext = origin
                         didEnrich = true
                     }
+                    if (updated.conversationTitle == nil || updated.conversationTitle!.isEmpty),
+                       let title = s.conversationTitle, !title.isEmpty {
+                        updated.conversationTitle = title
+                        didEnrich = true
+                    }
+                    if (updated.taskSummary == nil || updated.taskSummary!.isEmpty),
+                       let summary = s.taskSummary, !summary.isEmpty {
+                        updated.taskSummary = summary
+                        didEnrich = true
+                    }
+                    if updated.conversationURL == nil, let url = s.conversationURL {
+                        updated.conversationURL = url
+                        didEnrich = true
+                    }
+                    if updated.conversationID == nil, let cId = s.conversationID {
+                        updated.conversationID = cId
+                        didEnrich = true
+                    }
+                    if updated.executionID == nil, let eId = s.executionID {
+                        updated.executionID = eId
+                        didEnrich = true
+                    }
+                    if updated.parentSessionID == nil, let pId = s.parentSessionID {
+                        updated.parentSessionID = pId
+                        didEnrich = true
+                    }
+                    if s.focusCapability != .windowOnly && updated.focusCapability == .windowOnly {
+                        updated.focusCapability = s.focusCapability
+                        didEnrich = true
+                    }
+                    if s.isRemote && !updated.isRemote {
+                        updated.isRemote = true
+                        didEnrich = true
+                    }
                     if didEnrich {
                         sessions[s.id] = updated
+                        if let storage = storageDelegate {
+                            try? await storage.saveSession(updated)
+                        }
                     }
                 }
             } else {
@@ -165,7 +240,7 @@ public actor SessionManager {
                 await timeline.record(
                     sessionID: s.id,
                     category: "Discovery",
-                    summary: "Active session discovered: \(s.projectName) (\(s.providerID.rawValue))",
+                    summary: "Active session discovered: \(s.displayTitle) (\(s.providerDisplayName))",
                     details: s.workspace ?? "Unknown workspace"
                 )
                 if let storage = storageDelegate {
@@ -181,7 +256,15 @@ public actor SessionManager {
                         type: (s.state == .starting) ? .agentStarted : (s.state == .waiting ? .agentWaiting : .agentRunning),
                         workspace: s.workspace,
                         origin: s.originContext,
-                        metadata: s.metadata
+                        metadata: s.metadata,
+                        conversationID: s.conversationID,
+                        conversationTitle: s.conversationTitle,
+                        taskSummary: s.taskSummary,
+                        executionID: s.executionID,
+                        parentSessionID: s.parentSessionID,
+                        conversationURL: s.conversationURL,
+                        focusCapability: s.focusCapability,
+                        isRemote: s.isRemote
                     )
                     generatedEvents.append(event)
                     if let bus = eventBus {
@@ -216,13 +299,74 @@ public actor SessionManager {
         var session = sessions[event.sessionID] ?? AgentSession(
             id: event.sessionID,
             providerID: event.providerID,
-            providerSessionID: event.metadata["conversationId"] ?? event.metadata["sessionId"],
+            providerSessionID: event.conversationID ?? event.metadata["conversationId"] ?? event.metadata["sessionId"],
             state: .starting,
             workspace: event.workspace,
             originContext: event.origin,
             startedAt: event.timestamp,
-            updatedAt: event.timestamp
+            updatedAt: event.timestamp,
+            conversationID: event.conversationID,
+            conversationTitle: event.conversationTitle,
+            taskSummary: event.taskSummary,
+            executionID: event.executionID,
+            parentSessionID: event.parentSessionID,
+            conversationURL: event.conversationURL,
+            focusCapability: event.focusCapability,
+            isRemote: event.isRemote
         )
+
+        // Title update event without changing session identity or state
+        if event.type == .conversationTitleUpdated {
+            if let newTitle = event.conversationTitle, !newTitle.isEmpty {
+                session.conversationTitle = newTitle
+                session.updatedAt = event.timestamp
+                await timeline.record(
+                    sessionID: session.id,
+                    category: "Title",
+                    summary: "Conversation title updated",
+                    details: newTitle
+                )
+                sessions[session.id] = session
+                if let storage = storageDelegate {
+                    try? await storage.saveSession(session)
+                }
+            }
+            return session
+        }
+
+        // Update conversation metadata if provided
+        if let title = event.conversationTitle, !title.isEmpty {
+            if session.conversationTitle != title {
+                session.conversationTitle = title
+                await timeline.record(
+                    sessionID: session.id,
+                    category: "Title",
+                    summary: "Conversation title updated",
+                    details: title
+                )
+            }
+        }
+        if let summary = event.taskSummary, !summary.isEmpty {
+            session.taskSummary = summary
+        }
+        if let cId = event.conversationID, !cId.isEmpty {
+            session.conversationID = cId
+        }
+        if let eId = event.executionID, !eId.isEmpty {
+            session.executionID = eId
+        }
+        if let pId = event.parentSessionID {
+            session.parentSessionID = pId
+        }
+        if let url = event.conversationURL {
+            session.conversationURL = url
+        }
+        if let cap = event.focusCapability {
+            session.focusCapability = cap
+        }
+        if let remote = event.isRemote {
+            session.isRemote = remote
+        }
 
         // Update origin if provided and currently missing
         if session.originContext == nil, let origin = event.origin {
@@ -320,7 +464,7 @@ public actor SessionManager {
             var session = mutSession
             // Remote cloud agents run on external infrastructure independently of the local Mac.
             // They must not be marked cancelled on local restart or wake; their state is reconciled via provider discovery.
-            if session.providerID == .cursorBackground {
+            if session.providerID == .cursorBackground || session.isRemote {
                 continue
             }
 

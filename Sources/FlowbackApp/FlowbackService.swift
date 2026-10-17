@@ -322,8 +322,8 @@ public final class FlowbackService: NSObject, ObservableObject {
                 sessionID: session.id,
                 providerID: session.providerID,
                 priority: priority,
-                title: "\(session.providerID.rawValue) \(session.state.displayName)",
-                message: "\(session.projectName) finished with \(session.state.rawValue)",
+                title: "\(session.providerDisplayName): \(session.displayTitle)",
+                message: "\(session.projectName) • \(session.state.displayName)",
                 workspace: session.workspace
             )
             await attentionArbiter.enqueue(req)
@@ -339,7 +339,7 @@ public final class FlowbackService: NSObject, ObservableObject {
                 // Show actionable notification
                 await notificationManager.sendAttentionNotification(
                     session: session,
-                    title: "\(session.providerID.rawValue) Finished",
+                    title: "\(session.providerDisplayName): \(session.displayTitle)",
                     body: "\(session.projectName) • \(decision.explanation)"
                 )
             }
