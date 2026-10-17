@@ -110,25 +110,36 @@ func runVisualParitySuites() async {
     }
 
     // Deterministic sample data representing typical real-world multi-agent state
+    let fixedDate = Date(timeIntervalSince1970: 1729188000)
+
     let sampleSessions: [AgentSession] = [
         AgentSession(
+            id: AgentSessionID("00000000-0000-0000-0000-000000000001"),
             providerID: .antigravity,
             state: .running,
             workspace: "/Users/dev/flowback",
+            startedAt: fixedDate,
+            updatedAt: fixedDate,
             conversationTitle: "Implement multi-agent focus coordination",
             taskSummary: "Synthesizing UI hierarchy and active workspace windows"
         ),
         AgentSession(
+            id: AgentSessionID("00000000-0000-0000-0000-000000000002"),
             providerID: .claudeCode,
             state: .completed,
             workspace: "/Users/dev/vorssaint-utils",
+            startedAt: fixedDate,
+            updatedAt: fixedDate,
             conversationTitle: "Audit battery efficiency and energy metrics",
             taskSummary: "Completed SMC power sampling and profile generation"
         ),
         AgentSession(
+            id: AgentSessionID("00000000-0000-0000-0000-000000000003"),
             providerID: .copilot,
             state: .waiting,
             workspace: "/Users/dev/flowback",
+            startedAt: fixedDate,
+            updatedAt: fixedDate,
             conversationTitle: "Shared repository pull request check",
             taskSummary: "Waiting for user review and approval on branch"
         )
@@ -146,28 +157,36 @@ func runVisualParitySuites() async {
 
     let sampleTimeline: [TimelineEntry] = [
         TimelineEntry(
+            id: "tl-001",
             sessionID: sampleSessions[0].id,
+            timestamp: fixedDate,
             category: "focus",
             summary: "Activated Antigravity Terminal Window",
             details: "Target window ID 4022 in Ghostty (Workspace: /Users/dev/flowback)",
             decisionExplanation: "User intent evaluation matched active terminal"
         ),
         TimelineEntry(
+            id: "tl-002",
             sessionID: sampleSessions[1].id,
+            timestamp: fixedDate.addingTimeInterval(120),
             category: "lifecycle",
             summary: "Claude Code session transitioned to completed",
             details: "Agent completed execution in 4m 12s",
             decisionExplanation: "CLI exit code 0 detected"
         ),
         TimelineEntry(
+            id: "tl-003",
             sessionID: sampleSessions[2].id,
+            timestamp: fixedDate.addingTimeInterval(240),
             category: "policy",
             summary: "Focus switch deferred (Protected App)",
             details: "Zoom (us.zoom.xos) is currently frontmost in screen share mode",
             decisionExplanation: "Meeting protection rule suppressed automatic window focus"
         ),
         TimelineEntry(
+            id: "tl-004",
             sessionID: sampleSessions[0].id,
+            timestamp: fixedDate.addingTimeInterval(360),
             category: "alert",
             summary: "Focus Lock engaged for 30 minutes",
             details: "User manual override via menu bar",
