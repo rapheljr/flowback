@@ -15,21 +15,30 @@ Flowback assigns an honest, evidence-backed support level to every integrated pr
 * **`partial`**: Material capabilities work, but material limitations remain.
 * **`planned`**: Not yet implemented.
 
+### Verification Tiers
+To ensure technical accuracy, Flowback distinguishes four verification states:
+* **`Implemented`**: Adapter class and data models exist in the codebase conforming to `AgentProvider`.
+* **`Unit-Tested`**: Individual payload parsing, error normalization, and deduplication verified by unit tests.
+* **`Integration-Tested`**: Configuration backup/mutation, local plugin/hook installation, protocol IPC boundary, injectable HTTP transport (pagination, rate-limiting, error handling), and session manager event bus propagation verified in deterministic test suites.
+* **`Runtime-Verified`**: End-to-end execution verified against an active, live instance of the target software with real credentials in a real user environment.
+
 ---
 
 ## Provider Support Matrix
 
 | Provider | Support Level | Event Source | Lifecycle Coverage | Context Capture | Restoration Capability | Verified Status |
 |---|---|---|---|---|---|---|
-| **Google Antigravity** | `native-lifecycle` | `~/.gemini/config/hooks.json` (`Stop` hook) | Started, Running, Idle, Completed, Failed | IDE process, window, workspace | Exact Window & Workspace | **LOCALLY_VERIFIED** |
-| **Windsurf** | `native-lifecycle` | `~/.codeium/windsurf/hooks.json` (Cascade Hooks) | Started, Running, Progress, PermissionRequired, Completed, Failed | Process, window, workspace | Exact Window & Workspace | **LOCALLY_VERIFIED** |
-| **OpenCode** | `native-lifecycle` | `~/.config/opencode/plugins/flowback.js` (Plugin API) | Started, Running, PermissionRequired, Progress, Completed, Cancelled, Failed | Process, workspace | Workspace Window / App Activation | **LOCALLY_VERIFIED** |
-| **Cursor Background Agent** | `adapter` / `native-lifecycle` | `https://api.cursor.com/v1/agents` + Local Window | Running, Waiting, PermissionRequired, Completed, Failed, Cancelled, Subagents | Cloud API, Git repo/branch, PR URL, local workspace | Workspace Window / PR Browser Fallback | **LOCALLY_VERIFIED** |
-| **Claude Code** | `adapter` | CLI wrapper & terminal hooks | Running, Waiting, Completed | Terminal process & window | Workspace Window / App Activation | **LOCALLY_VERIFIED** |
-| **OpenAI Codex** | `adapter` | Codex CLI hooks & process tracker | Running, PermissionRequired, Completed | Process & workspace | App Activation Only | **LOCALLY_VERIFIED** |
-| **Gemini CLI** | `adapter` | Command watcher / CLI hook | Running, Completed, Failed | Terminal working dir | Workspace Window | **LOCALLY_VERIFIED** |
-| **Aider** | `adapter` | Git watcher & process tracking | Running, Completed | Terminal process & workspace | App Activation Only | **LOCALLY_VERIFIED** |
-| **Generic Hook** | `generic-protocol` | Unix domain socket (`/tmp` / `~/.flowback`) | All 12 normalized lifecycle events | Explicit JSON payload | Exact Window & Workspace | **LOCALLY_VERIFIED** |
+| **Google Antigravity** | `native-lifecycle` | `~/.gemini/config/hooks.json` (`Stop` hook) | Started, Running, Idle, Completed, Failed | IDE process, window, workspace | Exact Window & Workspace | **Integration-Tested** (Mock & Transcripts) |
+| **Windsurf** | `native-lifecycle` | `~/.codeium/windsurf/hooks.json` (Cascade Hooks) | Started, Running, Progress, PermissionRequired, Completed, Failed | Process, window, workspace | Exact Window & Workspace | **Integration-Tested** (Mock Cascade Hooks) |
+| **OpenCode** | `native-lifecycle` | `~/.config/opencode/plugins/flowback.js` (Plugin API) | Started, Running, PermissionRequired, Progress, Completed, Cancelled, Failed | Process, workspace | Workspace Window / App Activation | **Integration-Tested** (Mock Context & Socket IPC) |
+| **Cursor Background Agent** | `adapter` / `native-lifecycle` | `https://api.cursor.com/v1/agents` + Local Window | Running, Waiting, PermissionRequired, Completed, Failed, Cancelled, Subagents | Cloud API, Git repo/branch, PR URL, local workspace | Workspace Window / PR Browser Fallback | **Integration-Tested** (Injectable Transport & Mock API) |
+| **Claude Code** | `adapter` | CLI wrapper & terminal hooks | Running, Waiting, Completed | Terminal process & window | Workspace Window / App Activation | **Integration-Tested** |
+| **OpenAI Codex** | `adapter` | Codex CLI hooks & process tracker | Running, PermissionRequired, Completed | Process & workspace | App Activation Only | **Integration-Tested** |
+| **Gemini CLI** | `adapter` | Command watcher / CLI hook | Running, Completed, Failed | Terminal working dir | Workspace Window | **Integration-Tested** |
+| **Aider** | `adapter` | Git watcher & process tracking | Running, Completed | Terminal process & workspace | App Activation Only | **Integration-Tested** |
+| **Generic Hook** | `generic-protocol` | Unix domain socket (`/tmp` / `~/.flowback`) | All 12 normalized lifecycle events | Explicit JSON payload | Exact Window & Workspace | **Integration-Tested** |
+
+> **Note on Runtime Verification:** Live runtime verification of Windsurf, OpenCode, and Cursor Cloud Agents requires running live third-party applications and providing live API keys (`CURSOR_API_KEY`). Flowback tests these integrations through deterministic mock harnesses and socket boundaries without exposing live credentials or touching user environments during automated testing.
 
 ---
 
