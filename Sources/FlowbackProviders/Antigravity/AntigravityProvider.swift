@@ -106,10 +106,10 @@ public final class AntigravityProvider: AgentProvider, Sendable {
         
         if let err = payload.error, !err.isEmpty {
             eventType = .agentFailed
-        } else if hookName == "preinvocation" || (payload.invocationNum != nil && payload.terminationReason == nil) {
-            eventType = (payload.invocationNum == 1) ? .agentStarted : .agentRunning
         } else if hookName == "postinvocation" {
             eventType = .agentProgress
+        } else if hookName == "preinvocation" || (hookName == nil && payload.invocationNum != nil && payload.terminationReason == nil) {
+            eventType = (payload.invocationNum == 1) ? .agentStarted : .agentRunning
         } else if payload.fullyIdle == true {
             eventType = .agentCompleted
         } else if hookName == "stop" || payload.terminationReason != nil {
@@ -118,6 +118,10 @@ public final class AntigravityProvider: AgentProvider, Sendable {
             eventType = .agentRunning
         }
         
+        let isCLI = payload.transcriptPath?.contains("antigravity-cli") == true ||
+                    payload.artifactDirectoryPath?.contains("antigravity-cli") == true
+        let resolvedProviderID = isCLI ? AgentProviderID.antigravityCLI : providerID
+
         // Resolve Origin Context
         var origin: OriginContext?
         let targetBundle = "com.google.antigravity-ide"
@@ -145,12 +149,37 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                     windowTitle: winTitle,
                     workspacePath: ws
                 )
+            } else if isCLI {
+                // Resolve terminal origin for CLI invocations
+                let terminalBundles = ["com.mitchellh.ghostty", "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.Warp-Stable", "co.zeit.hyper"]
+                if let termApp = NSWorkspace.shared.runningApplications.first(where: { terminalBundles.contains($0.bundleIdentifier ?? "") }) {
+                    var winID: UInt32?
+                    var winTitle = "\(folderName) — \(termApp.localizedName ?? "Terminal")"
+                    if let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
+                        for win in windowList {
+                            let pid = win[kCGWindowOwnerPID as String] as? Int32 ?? 0
+                            let title = win[kCGWindowName as String] as? String ?? ""
+                            if pid == termApp.processIdentifier && title.localizedCaseInsensitiveContains(folderName) {
+                                winID = win[kCGWindowNumber as String] as? UInt32
+                                winTitle = title
+                                break
+                            }
+                        }
+                    }
+                    origin = OriginContext(
+                        bundleIdentifier: termApp.bundleIdentifier ?? "com.apple.Terminal",
+                        processIdentifier: termApp.processIdentifier,
+                        windowIdentifier: winID,
+                        windowTitle: winTitle,
+                        workspacePath: ws
+                    )
+                }
             }
         }
         
         return AgentEvent(
             timestamp: Date(),
-            providerID: providerID,
+            providerID: resolvedProviderID,
             sessionID: AgentSessionID(payload.conversationId),
             type: eventType,
             workspace: primaryWorkspace,
@@ -164,8 +193,7 @@ public final class AntigravityProvider: AgentProvider, Sendable {
         let fm = FileManager.default
         let searchRoots = brainPaths ?? [
             ("~/.gemini/antigravity-ide/brain" as NSString).expandingTildeInPath,
-            ("~/.gemini/antigravity/brain" as NSString).expandingTildeInPath,
-            ("~/.gemini/antigravity-cli/brain" as NSString).expandingTildeInPath
+            ("~/.gemini/antigravity/brain" as NSString).expandingTildeInPath
         ]
         
         let now = Date()
@@ -230,8 +258,28 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                 let lines = (tailStr.isEmpty ? headStr : tailStr).components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
                 guard let lastLine = lines.last else { continue }
                 
-                // If last line indicates fully completed and stopped idle without background tasks, skip
-                if lastLine.contains("\"fullyIdle\":true") && now.timeIntervalSince(modDate) > 300 {
+                // Check if last line indicates fully completed and stopped idle without background tasks
+                var hasActiveTasks = false
+                if fm.fileExists(atPath: tasksPath), let taskFiles = try? fm.contentsOfDirectory(atPath: tasksPath) {
+                    for tf in taskFiles where !tf.hasPrefix(".") {
+                        let tPath = (tasksPath as NSString).appendingPathComponent(tf)
+                        if let tAttrs = try? fm.attributesOfItem(atPath: tPath),
+                           let tMod = tAttrs[.modificationDate] as? Date,
+                           now.timeIntervalSince(tMod) < 300 {
+                            hasActiveTasks = true
+                            break
+                        }
+                    }
+                }
+                
+                let isModelDoneWithoutTools = lastLine.contains("\"source\":\"MODEL\"") &&
+                    lastLine.contains("\"type\":\"PLANNER_RESPONSE\"") &&
+                    lastLine.contains("\"status\":\"DONE\"") &&
+                    !lastLine.contains("\"tool_calls\"")
+                
+                let isCompleted = (isModelDoneWithoutTools || lastLine.contains("\"fullyIdle\":true")) && !hasActiveTasks
+                
+                if isCompleted && now.timeIntervalSince(modDate) > 300 {
                     continue
                 }
                 
@@ -272,11 +320,32 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                     }
                 }
                 
-                // Pattern 4: -> /Users/... mapping
+                // Pattern 4: /Users/... -> CorpusName mapping (Antigravity system prompt format) or -> /Users/...
+                if workspacePath == nil, let uriRange = chunkStr.range(of: "(/[^\\s\n\"']+)\\s*->", options: .regularExpression) {
+                    let uriLine = String(chunkStr[uriRange])
+                    let pathPart = uriLine.components(separatedBy: "->").first?.trimmingCharacters(in: .whitespaces)
+                    if let p = pathPart, fm.fileExists(atPath: p) {
+                        workspacePath = p
+                    }
+                }
                 if workspacePath == nil, let uriRange = chunkStr.range(of: "->\\s*(/[^\\n\\s]+)", options: .regularExpression) {
                     let uriLine = String(chunkStr[uriRange])
                     let pathPart = uriLine.replacingOccurrences(of: "->", with: "").trimmingCharacters(in: .whitespaces)
-                    workspacePath = pathPart
+                    if fm.fileExists(atPath: pathPart) {
+                        workspacePath = pathPart
+                    }
+                }
+                
+                // Pattern 4b: "workspacePaths": ["/Users/..."]
+                if workspacePath == nil, let wsRange = chunkStr.range(of: "\"workspacePaths\":\\s*\\[\\s*\"([^\"]+)\"", options: .regularExpression) {
+                    let matched = String(chunkStr[wsRange])
+                    let comps = matched.components(separatedBy: "\"")
+                    if comps.count >= 4 {
+                        let candidate = comps[3].replacingOccurrences(of: "\\/", with: "/")
+                        if fm.fileExists(atPath: candidate) {
+                            workspacePath = candidate
+                        }
+                    }
                 }
                 
                 // Pattern 5: file:///Users/...
@@ -318,15 +387,17 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                     }
                 }
                 
+                let sessionState: AgentState = isCompleted ? .completed : .running
                 let session = AgentSession(
                     id: AgentSessionID(convID),
                     providerID: .antigravity,
                     providerSessionID: convID,
-                    state: .running,
+                    state: sessionState,
                     workspace: workspacePath,
                     originContext: origin,
                     startedAt: createDate,
-                    updatedAt: modDate
+                    updatedAt: modDate,
+                    completedAt: isCompleted ? modDate : nil
                 )
                 
                 discovered.append(session)

@@ -61,16 +61,32 @@ public actor SessionManager {
 
         for s in discovered {
             if let existing = sessions[s.id] {
+                let wasInterruptedByRestart = existing.state == .cancelled &&
+                    existing.errorDescription == "Interrupted by system restart or application relaunch"
+                let isReactivating = (existing.state.isTerminal && s.state.isActive)
+
                 // 1. Stale protection: reject discovery results older than existing session update
-                if s.updatedAt < existing.updatedAt.addingTimeInterval(-2.0) {
-                    logger.debug("Dropped stale discovered session \(s.id) (timestamp \(s.updatedAt) < existing \(existing.updatedAt))")
-                    continue
+                // Exemptions:
+                // a) Recovery from restart reconciliation (agent is still alive)
+                // b) Genuine multi-turn reactivation where new activity occurred
+                let isStale = s.updatedAt < existing.updatedAt.addingTimeInterval(-2.0)
+                if isStale {
+                    if wasInterruptedByRestart && s.state.isActive {
+                        // Recover session that was prematurely marked cancelled on restart
+                        logger.info("Recovering active session \(s.id) after system restart")
+                    } else if isReactivating && (existing.completedAt == nil || s.updatedAt >= existing.completedAt!.addingTimeInterval(-2.0)) {
+                        // Multi-turn reactivation
+                    } else {
+                        logger.debug("Dropped stale discovered session \(s.id) (timestamp \(s.updatedAt) < existing \(existing.updatedAt))")
+                        continue
+                    }
                 }
 
                 // 2. Meaningful state change detection
                 if s.state != existing.state {
-                    // Check if state transition is legally valid according to finite state machine
-                    if stateMachine.canTransition(from: existing.state, to: s.state) {
+                    // Check if state transition is legally valid according to finite state machine or multi-turn reactivation
+                    let canTransition = stateMachine.canTransition(from: existing.state, to: s.state) || isReactivating || wasInterruptedByRestart
+                    if canTransition {
                         let eventType: AgentEventType
                         switch s.state {
                         case .completed: eventType = .agentCompleted
@@ -88,6 +104,9 @@ public actor SessionManager {
                         updated.updatedAt = s.updatedAt > existing.updatedAt ? s.updatedAt : now
                         if s.state.isTerminal {
                             updated.completedAt = updated.updatedAt
+                        } else {
+                            updated.completedAt = nil
+                            updated.errorDescription = nil
                         }
                         if updated.workspace == nil { updated.workspace = s.workspace }
                         if updated.originContext == nil { updated.originContext = s.originContext }
@@ -97,7 +116,9 @@ public actor SessionManager {
                         await timeline.record(
                             sessionID: s.id,
                             category: "Discovery",
-                            summary: "Discovered state transition: \(existing.state.rawValue) -> \(s.state.rawValue)",
+                            summary: isReactivating
+                                ? "Discovered session reactivation: \(existing.state.rawValue) -> \(s.state.rawValue)"
+                                : "Discovered state transition: \(existing.state.rawValue) -> \(s.state.rawValue)",
                             details: s.projectName
                         )
 
@@ -177,7 +198,9 @@ public actor SessionManager {
 
     public func handleEvent(_ event: AgentEvent) async -> AgentSession {
         // Stale & Out-of-order protection: reject events older than current session update
-        if let existing = sessions[event.sessionID], event.timestamp < existing.updatedAt.addingTimeInterval(-2.0) {
+        // Exempt reactivating a terminal session with a live active event (e.g. user submitted new prompt in multi-turn conversation)
+        let isReactivating = (sessions[event.sessionID]?.state.isTerminal == true) && (event.type.mappedState?.isActive == true)
+        if !isReactivating, let existing = sessions[event.sessionID], event.timestamp < existing.updatedAt.addingTimeInterval(-2.0) {
             let staleMsg = "Dropped stale/out-of-order event \(event.type.rawValue) for session " +
                 "\(event.sessionID.rawValue): timestamp is older than last update"
             logger.warning("\(staleMsg)")
@@ -219,29 +242,45 @@ public actor SessionManager {
 
         // Target state mapping
         if let targetState = event.type.mappedState {
-            do {
-                let newState = try stateMachine.transition(from: session.state, to: targetState)
+            if session.state.isTerminal && targetState.isActive {
+                // Multi-turn prompt resumption / reactivation from terminal state
                 let oldState = session.state
-                session.state = newState
+                session.state = targetState
+                session.completedAt = nil
+                session.errorDescription = event.metadata["error"]
                 session.updatedAt = event.timestamp
-
-                if newState.isTerminal {
-                    session.completedAt = event.timestamp
-                }
-
-                if let err = event.metadata["error"], !err.isEmpty {
-                    session.errorDescription = err
-                }
 
                 await timeline.record(
                     sessionID: session.id,
                     category: "State",
-                    summary: "State changed: \(oldState.rawValue) -> \(newState.rawValue)",
+                    summary: "Session reactivated: \(oldState.rawValue) -> \(targetState.rawValue)",
                     details: event.type.rawValue
                 )
+            } else {
+                do {
+                    let newState = try stateMachine.transition(from: session.state, to: targetState)
+                    let oldState = session.state
+                    session.state = newState
+                    session.updatedAt = event.timestamp
 
-            } catch {
-                logger.warning("State transition failed for session \(session.id): \(error.localizedDescription)")
+                    if newState.isTerminal {
+                        session.completedAt = event.timestamp
+                    }
+
+                    if let err = event.metadata["error"], !err.isEmpty {
+                        session.errorDescription = err
+                    }
+
+                    await timeline.record(
+                        sessionID: session.id,
+                        category: "State",
+                        summary: "State changed: \(oldState.rawValue) -> \(newState.rawValue)",
+                        details: event.type.rawValue
+                    )
+
+                } catch {
+                    logger.warning("State transition failed for session \(session.id): \(error.localizedDescription)")
+                }
             }
         }
 

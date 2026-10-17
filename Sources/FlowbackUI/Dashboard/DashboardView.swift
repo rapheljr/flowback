@@ -37,21 +37,53 @@ public enum DashboardTab: String, CaseIterable, Identifiable {
 
 public final class DashboardViewModel: ObservableObject {
     @Published public var selectedTab: DashboardTab
+    @Published public var activeSessions: [AgentSession] = []
+    @Published public var allSessions: [AgentSession] = []
+    @Published public var attentionQueue: [AttentionRequest] = []
+    @Published public var timelineEntries: [TimelineEntry] = []
+    @Published public var providerHealths: [ProviderHealth] = []
+    @Published public var permissionStatus: PermissionStatus = PermissionStatus()
+    @Published public var config: PolicyConfiguration = .default
+    @Published public var focusLock: FocusLockState = FocusLockState()
+    @Published public var isDatabaseReady: Bool = true
+    @Published public var isStorageDurable: Bool = true
+    @Published public var storageRecoveryNotice: String?
+    @Published public var isIPCReady: Bool = true
+    @Published public var feedbackMessage: String?
     
-    public init(selectedTab: DashboardTab = .overview) {
+    public init(
+        selectedTab: DashboardTab = .overview,
+        activeSessions: [AgentSession] = [],
+        allSessions: [AgentSession] = [],
+        attentionQueue: [AttentionRequest] = [],
+        timelineEntries: [TimelineEntry] = [],
+        providerHealths: [ProviderHealth] = [],
+        permissionStatus: PermissionStatus = PermissionStatus(),
+        config: PolicyConfiguration = .default,
+        focusLock: FocusLockState = FocusLockState(),
+        isDatabaseReady: Bool = true,
+        isStorageDurable: Bool = true,
+        storageRecoveryNotice: String? = nil,
+        isIPCReady: Bool = true
+    ) {
         self.selectedTab = selectedTab
+        self.activeSessions = activeSessions
+        self.allSessions = allSessions
+        self.attentionQueue = attentionQueue
+        self.timelineEntries = timelineEntries
+        self.providerHealths = providerHealths
+        self.permissionStatus = permissionStatus
+        self.config = config
+        self.focusLock = focusLock
+        self.isDatabaseReady = isDatabaseReady
+        self.isStorageDurable = isStorageDurable
+        self.storageRecoveryNotice = storageRecoveryNotice
+        self.isIPCReady = isIPCReady
     }
 }
 
 public struct DashboardView: View {
-    @Binding var activeSessions: [AgentSession]
-    @Binding var allSessions: [AgentSession]
-    @Binding var attentionQueue: [AttentionRequest]
-    @Binding var timelineEntries: [TimelineEntry]
-    @Binding var providerHealths: [ProviderHealth]
-    @Binding var permissionStatus: PermissionStatus
-    @Binding var config: PolicyConfiguration
-    @Binding var focusLock: FocusLockState
+    @ObservedObject public var viewModel: DashboardViewModel
     
     public var onFocusSession: (AgentSession) -> Void
     public var onSaveConfig: (PolicyConfiguration) -> Void
@@ -59,23 +91,62 @@ public struct DashboardView: View {
     public var onTestFocus: () -> Void
     public var onTestNotification: () -> Void
     public var onRefresh: () -> Void
-    public var isDatabaseReady: Bool = true
-    public var isStorageDurable: Bool = true
-    public var storageRecoveryNotice: String?
-    public var isIPCReady: Bool = true
     
-    @ObservedObject public var viewModel: DashboardViewModel
+    private var externalActiveSessions: Binding<[AgentSession]>?
+    private var externalAllSessions: Binding<[AgentSession]>?
+    private var externalAttentionQueue: Binding<[AttentionRequest]>?
+    private var externalTimelineEntries: Binding<[TimelineEntry]>?
+    private var externalProviderHealths: Binding<[ProviderHealth]>?
+    private var externalPermissionStatus: Binding<PermissionStatus>?
+    private var externalConfig: Binding<PolicyConfiguration>?
+    private var externalFocusLock: Binding<FocusLockState>?
+    
+    var activeSessionsBinding: Binding<[AgentSession]> {
+        externalActiveSessions ?? $viewModel.activeSessions
+    }
+    var attentionQueueBinding: Binding<[AttentionRequest]> {
+        externalAttentionQueue ?? $viewModel.attentionQueue
+    }
+    var configBinding: Binding<PolicyConfiguration> {
+        externalConfig ?? $viewModel.config
+    }
+    var focusLockBinding: Binding<FocusLockState> {
+        externalFocusLock ?? $viewModel.focusLock
+    }
+    
+    var activeSessions: [AgentSession] {
+        externalActiveSessions?.wrappedValue ?? viewModel.activeSessions
+    }
+    var allSessions: [AgentSession] {
+        externalAllSessions?.wrappedValue ?? viewModel.allSessions
+    }
+    var attentionQueue: [AttentionRequest] {
+        externalAttentionQueue?.wrappedValue ?? viewModel.attentionQueue
+    }
+    var timelineEntries: [TimelineEntry] {
+        externalTimelineEntries?.wrappedValue ?? viewModel.timelineEntries
+    }
+    var providerHealths: [ProviderHealth] {
+        externalProviderHealths?.wrappedValue ?? viewModel.providerHealths
+    }
+    var permissionStatus: PermissionStatus {
+        externalPermissionStatus?.wrappedValue ?? viewModel.permissionStatus
+    }
+    var isDatabaseReady: Bool { viewModel.isDatabaseReady }
+    var isStorageDurable: Bool { viewModel.isStorageDurable }
+    var storageRecoveryNotice: String? { viewModel.storageRecoveryNotice }
+    var isIPCReady: Bool { viewModel.isIPCReady }
     
     public init(
         viewModel: DashboardViewModel = DashboardViewModel(),
-        activeSessions: Binding<[AgentSession]>,
-        allSessions: Binding<[AgentSession]>,
-        attentionQueue: Binding<[AttentionRequest]>,
-        timelineEntries: Binding<[TimelineEntry]>,
-        providerHealths: Binding<[ProviderHealth]>,
-        permissionStatusBinding: Binding<PermissionStatus>,
-        config: Binding<PolicyConfiguration>,
-        focusLock: Binding<FocusLockState>,
+        activeSessions: Binding<[AgentSession]>? = nil,
+        allSessions: Binding<[AgentSession]>? = nil,
+        attentionQueue: Binding<[AttentionRequest]>? = nil,
+        timelineEntries: Binding<[TimelineEntry]>? = nil,
+        providerHealths: Binding<[ProviderHealth]>? = nil,
+        permissionStatusBinding: Binding<PermissionStatus>? = nil,
+        config: Binding<PolicyConfiguration>? = nil,
+        focusLock: Binding<FocusLockState>? = nil,
         isDatabaseReady: Bool = true,
         isStorageDurable: Bool = true,
         storageRecoveryNotice: String? = nil,
@@ -88,25 +159,24 @@ public struct DashboardView: View {
         onRefresh: @escaping () -> Void = {}
     ) {
         self.viewModel = viewModel
-        self._activeSessions = activeSessions
-        self._allSessions = allSessions
-        self._attentionQueue = attentionQueue
-        self._timelineEntries = timelineEntries
-        self._providerHealths = providerHealths
-        self._permissionStatus = permissionStatusBinding
-        self._config = config
-        self._focusLock = focusLock
-        self.isDatabaseReady = isDatabaseReady
-        self.isDatabaseReady = isDatabaseReady
-        self.isStorageDurable = isStorageDurable
-        self.storageRecoveryNotice = storageRecoveryNotice
-        self.isIPCReady = isIPCReady
+        self.externalActiveSessions = activeSessions
+        self.externalAllSessions = allSessions
+        self.externalAttentionQueue = attentionQueue
+        self.externalTimelineEntries = timelineEntries
+        self.externalProviderHealths = providerHealths
+        self.externalPermissionStatus = permissionStatusBinding
+        self.externalConfig = config
+        self.externalFocusLock = focusLock
         self.onFocusSession = onFocusSession
         self.onSaveConfig = onSaveConfig
         self.onRepairAntigravity = onRepairAntigravity
         self.onTestFocus = onTestFocus
         self.onTestNotification = onTestNotification
         self.onRefresh = onRefresh
+        self.viewModel.isDatabaseReady = isDatabaseReady
+        self.viewModel.isStorageDurable = isStorageDurable
+        self.viewModel.storageRecoveryNotice = storageRecoveryNotice
+        self.viewModel.isIPCReady = isIPCReady
     }
     
     public var body: some View {
@@ -138,9 +208,9 @@ public struct DashboardView: View {
                     switch viewModel.selectedTab {
                     case .overview:
                         OverviewView(
-                            activeSessions: $activeSessions,
-                            attentionQueue: $attentionQueue,
-                            focusLock: $focusLock,
+                            activeSessions: activeSessionsBinding,
+                            attentionQueue: attentionQueueBinding,
+                            focusLock: focusLockBinding,
                             onFocusSession: onFocusSession,
                             onRefresh: onRefresh
                         )
@@ -156,7 +226,10 @@ public struct DashboardView: View {
                         )
                     case .applications:
                         ApplicationsView(
-                            protectedApps: $config.protectedApplications
+                            protectedApps: Binding(
+                                get: { configBinding.wrappedValue.protectedApplications },
+                                set: { configBinding.wrappedValue.protectedApplications = $0 }
+                            )
                         )
                     case .diagnostics:
                         DiagnosticsView(
@@ -172,7 +245,7 @@ public struct DashboardView: View {
                         )
                     case .settings:
                         SettingsView(
-                            config: $config,
+                            config: configBinding,
                             onSave: onSaveConfig
                         )
                     }
