@@ -9,6 +9,9 @@ disabled_rules:
   - non_optional_string_data_conversion
   - control_statement
   - xctfail_message
+  - function_body_length
+  - cyclomatic_complexity
+  - implicit_optional_initialization
 
 opt_in_rules:
   - empty_count

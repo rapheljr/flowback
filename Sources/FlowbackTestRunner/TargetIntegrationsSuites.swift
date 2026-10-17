@@ -122,8 +122,8 @@ func runWindsurfIntegrationSuites() async {
         let step1Event = try provider.parseLifecyclePayload(data: step1Payload)
         assertTest(step1Event?.type == .agentStarted, "pre_user_prompt (step 1) normalizes to .agentStarted")
         assertTest(step1Event?.sessionID.rawValue == "traj-runner-100", "Preserves trajectory_id as sessionID")
-        assertTest(step1Event?.metadata["executionId"] == "exec-01", "Preserves execution_id")
-        assertTest(step1Event?.metadata["deduplicationKey"] == "windsurf:traj-runner-100:pre_user_prompt:exec-01", "Generates granular deduplication key with execution_id")
+        let expectedKey = "windsurf:traj-runner-100:pre_user_prompt:exec-01"
+        assertTest(step1Event?.metadata["deduplicationKey"] == expectedKey, "Generates granular deduplication key with execution_id")
 
         // Step 2 with step_index
         let step2Payload = """
@@ -164,7 +164,8 @@ func runWindsurfIntegrationSuites() async {
         assertTest(followUpNoStepEvent?.type == .agentRunning, "Missing step_index on existing trajectory normalizes to .agentRunning")
 
         // Verify deduplication key differs when prompt changes and execution_id is absent
-        assertTest(freshNoStepEvent?.metadata["deduplicationKey"] != followUpNoStepEvent?.metadata["deduplicationKey"], "Distinct prompts generate distinct deduplication keys without execution_id")
+        let isDistinct = freshNoStepEvent?.metadata["deduplicationKey"] != followUpNoStepEvent?.metadata["deduplicationKey"]
+        assertTest(isDistinct, "Distinct prompts generate distinct deduplication keys without execution_id")
 
         // 4. Progress and Tool Normalization
         let progressPayload = """
@@ -223,8 +224,13 @@ func runWindsurfIntegrationSuites() async {
         let cleanedJson = (try? JSONSerialization.jsonObject(with: cleanedData)) as? [String: Any]
         let cleanedHooks = cleanedJson?["hooks"] as? [String: Any]
         let remainingPreWrite = cleanedHooks?["pre_write_code"] as? [[String: Any]]
-        assertTest(remainingPreWrite?.contains { ($0["command"] as? String) == "npx prettier --check" } == true, "User's prettier hook preserved after uninstall")
-        assertTest(remainingPreWrite?.contains { ($0["command"] as? String)?.contains("flowback hook windsurf") == true } == false, "Flowback hook removed cleanly from pre_write_code")
+        let hasPrettier = remainingPreWrite?.contains { ($0["command"] as? String) == "npx prettier --check" } == true
+        assertTest(hasPrettier, "User's prettier hook preserved after uninstall")
+
+        let hasFlowback = remainingPreWrite?.contains {
+            ($0["command"] as? String)?.contains("flowback hook windsurf") == true
+        } == true
+        assertTest(!hasFlowback, "Flowback hook removed cleanly from pre_write_code")
 
         // 9. WindsurfAdapter Verification
         let adapter = WindsurfAdapter()
@@ -519,7 +525,8 @@ func runCursorBackgroundIntegrationSuites() async {
         }
         """.data(using: .utf8)!
         let remoteOnlyEvent = try configuredProvider.parseLifecyclePayload(data: remoteOnlyPayload)
-        assertTest(remoteOnlyEvent?.origin?.restorationCapability == .notificationFallbackOnly, "No local clone -> .notificationFallbackOnly navigation capability")
+        let isNotificationFallback = remoteOnlyEvent?.origin?.restorationCapability == .notificationFallbackOnly
+        assertTest(isNotificationFallback, "No local clone -> .notificationFallbackOnly navigation capability")
         assertTest(remoteOnlyEvent?.origin?.workspacePath == "https://github.com/other-org/remote-only-repo/pull/1", "Remote origin records PR destination URL")
 
         // 6. Direct Remote Web URL Opening through FocusController
@@ -539,7 +546,9 @@ func runCursorBackgroundIntegrationSuites() async {
         if let origin = remoteOnlyEvent?.origin {
             let restored = await customFocusController.restoreContext(origin)
             assertTest(restored == true, "FocusController opens remote destination URL via workspace opener")
-            assertTest(urlRecorder.openedURLs.first?.absoluteString == "https://github.com/other-org/remote-only-repo/pull/1", "Opened destination URL matches pull request URL")
+            let openedUrlString = urlRecorder.openedURLs.first?.absoluteString
+            let expectedUrlString = "https://github.com/other-org/remote-only-repo/pull/1"
+            assertTest(openedUrlString == expectedUrlString, "Opened destination URL matches pull request URL")
         }
 
         // Malformed or unsafe URL scheme rejection

@@ -271,7 +271,7 @@ public final class CursorBackgroundProvider: AgentProvider, @unchecked Sendable 
         }
 
         var allAgents: [CursorCloudAgent] = []
-        var nextCursor: String? = nil
+        var nextCursor: String?
         let maxPages = 5 // Bounded pagination safeguard
         var pageCount = 0
 
@@ -393,14 +393,38 @@ public final class CursorBackgroundProvider: AgentProvider, @unchecked Sendable 
         let repoName = (cleanRepo as NSString).lastPathComponent
         guard !repoName.isEmpty else { return nil }
 
+        let fm = FileManager.default
+
+        // Check CI runner environment workspace (e.g. GitHub Actions GITHUB_WORKSPACE)
+        if let envWorkspace = ProcessInfo.processInfo.environment["GITHUB_WORKSPACE"], !envWorkspace.isEmpty {
+            if (envWorkspace as NSString).lastPathComponent.lowercased() == repoName.lowercased() && fm.fileExists(atPath: envWorkspace) {
+                return envWorkspace
+            }
+            let candidateInEnv = (envWorkspace as NSString).appendingPathComponent(repoName)
+            if fm.fileExists(atPath: candidateInEnv) {
+                return candidateInEnv
+            }
+        }
+
+        // Check current working directory
+        let currentDir = fm.currentDirectoryPath
+        if (currentDir as NSString).lastPathComponent.lowercased() == repoName.lowercased() && fm.fileExists(atPath: currentDir) {
+            return currentDir
+        }
+        let candidateInCwd = (currentDir as NSString).appendingPathComponent(repoName)
+        if fm.fileExists(atPath: candidateInCwd) {
+            return candidateInCwd
+        }
+
         let candidateRoots = [
             (NSHomeDirectory() as NSString).appendingPathComponent("workspace/projects"),
             (NSHomeDirectory() as NSString).appendingPathComponent("Projects"),
             (NSHomeDirectory() as NSString).appendingPathComponent("Developer"),
-            (NSHomeDirectory() as NSString).appendingPathComponent("src")
+            (NSHomeDirectory() as NSString).appendingPathComponent("src"),
+            (NSHomeDirectory() as NSString).appendingPathComponent("work"),
+            (NSHomeDirectory() as NSString).appendingPathComponent("Documents")
         ]
 
-        let fm = FileManager.default
         for root in candidateRoots {
             let directCandidate = (root as NSString).appendingPathComponent(repoName)
             if fm.fileExists(atPath: directCandidate) {
