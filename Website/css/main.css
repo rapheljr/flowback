@@ -927,6 +927,97 @@ tr:last-child td {
   flex-shrink: 0;
 }
 
+/* Membership Levels Grid */
+.membership-levels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 2rem 0;
+  text-align: left;
+}
+
+.membership-level-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  min-width: 0;
+}
+
+.membership-level-card:hover {
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.membership-level-card.featured-level {
+  border-color: rgba(255, 221, 0, 0.45);
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(255, 221, 0, 0.04) 100%);
+}
+
+[data-theme="light"] .membership-level-card.featured-level {
+  border-color: rgba(217, 119, 6, 0.4);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(217, 119, 6, 0.04) 100%);
+}
+
+.membership-level-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.membership-level-price {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  margin-bottom: 0.15rem;
+  line-height: 1.2;
+}
+
+[data-theme="light"] .membership-level-price {
+  color: var(--accent-blue);
+}
+
+.membership-level-price small {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.membership-level-yearly {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.membership-level-benefits {
+  list-style: none;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: auto;
+  padding: 0;
+}
+
+.membership-level-benefits li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  line-height: 1.4;
+}
+
+.membership-level-benefits li span.check {
+  color: var(--accent-emerald);
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
 .thank-you-card {
   max-width: 850px;
   margin: 0 auto;
@@ -1073,7 +1164,8 @@ tr:last-child td {
 
   .grid-2,
   .grid-3,
-  .support-tiers {
+  .support-tiers,
+  .membership-levels-grid {
     grid-template-columns: 1fr;
   }
 

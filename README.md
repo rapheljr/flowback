@@ -73,9 +73,10 @@ Flowback runs as a lightweight native menu bar application accompanied by a nati
 | **OpenAI Codex** | **Supported** | Process & CLI Hooks | Process monitoring and state translation |
 | **Gemini CLI** | **Supported** | CLI Hook Integration | Post-execution hook callback |
 | **Aider** | **Supported** | Git & Terminal Integration | File watcher and terminal notification |
+| **Windsurf** | **Supported** | Official Cascade JSON Hooks + Transcripts | `~/.codeium/windsurf/hooks.json` (`pre_user_prompt`, `post_cascade_response`, `pre_run_command`, etc.) + `~/.codeium/windsurf/transcripts/` |
+| **OpenCode** | **Supported** | Official Plugin Architecture | `~/.config/opencode/plugins/flowback.js` event subscriptions (`session.*`, `tool.execute.*`) over local IPC |
+| **Cursor Background Agent** | **Supported** | Cloud Agents API + Local Window Adapter | Remote `api.cursor.com/v1/agents` lifecycle tracking, subagents, repo/branch metadata + local window heuristics |
 | **Generic Hook Protocol** | **Supported** | POSIX Unix Domain Socket | Emits schema v1 JSON over `~/.flowback/flowback.sock` |
-| **Windsurf / OpenCode** | **Partial support** | Editor & Process Adapter | Active transcript scanning; native hooks planned |
-| **Cursor Background Agent** | **Partial support** | Editor Adapter & IPC | Window restoration supported; subagent hook planned |
 | **Custom Local Scripts** | **Supported** | CLI Emit | `flowback emit '{"event":"agent.completed",...}'` |
 
 ### Supported Editors & Terminals
@@ -287,7 +288,15 @@ If Flowback helps you stay in flow and protects your focus while your AI coding 
 * ☕ **Support on Buy Me a Coffee:** [https://buymeacoffee.com/flowback](https://buymeacoffee.com/flowback)
 * 🌐 **Support Page:** [https://rapheljr.github.io/flowback/support/](https://rapheljr.github.io/flowback/support/)
 
-Your contributions directly fund feature development (new agent and editor adapters), focus arbitration reliability, and ongoing compatibility with upcoming macOS releases.
+### Ways to Support
+* **One-Time Support:** A quick coffee ($5) or suggested packs ($10 / $25) to accelerate day-to-day bug fixes and agent adapters.
+* **Monthly Memberships:** 5 accessible levels from **Bronze ($1/mo)** to **Diamond ($5/mo)** (with 17% annual savings) providing dependable runway for continuous test automation and releases.
+
+### Where Your Contributions Go
+1. **Build useful features and integrations:** Expand adapters for emerging AI coding agents, editors, and terminal emulators.
+2. **Fix bugs and improve reliability:** Strengthen window arbitration, eliminate focus thrashing, and optimize Accessibility APIs.
+3. **Maintain Flowback as macOS and AI tools evolve:** Keep pace with new macOS releases (Sonoma, Sequoia, and beyond) and Swift compiler updates.
+4. **Keep building an independent developer tool:** Guarantee Flowback remains offline-first, private, and 100% free under the MIT License.
 
 ---
 
