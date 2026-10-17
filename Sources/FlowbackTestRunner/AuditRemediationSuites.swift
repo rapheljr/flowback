@@ -685,45 +685,56 @@ func runAuditRemediationSuites() async {
         await Task.yield()
         assertTest(singleRefreshCount == 1, "C-01: Single event triggers exactly 1 UI refresh after interval")
 
+        final class ValueBox<T> {
+            var value: T
+            init(_ value: T) { self.value = value }
+        }
+
         // 3. Final published state reflecting the latest event
         let stateScheduler = ManualSleepScheduler()
         var publishedState: String = ""
-        var currentSourceState: String = "Initial"
+        let stateBox = ValueBox<String>("Initial")
         let stateCoalescer = UIEventCoalescer(interval: 0.05, sleeper: { try await stateScheduler.sleep(seconds: $0) }) {
-            publishedState = currentSourceState
+            publishedState = stateBox.value
         }
         
         for i in 1...500 {
-            currentSourceState = "Update-\(i)"
+            stateBox.value = "Update-\(i)"
             stateCoalescer.schedule()
         }
         await stateScheduler.waitUntilSleeping()
         stateScheduler.advance()
-        await Task.yield()
+        while stateCoalescer.executionCount == 0 {
+            await Task.yield()
+        }
         assertTest(publishedState == "Update-500", "C-01: Published UI state accurately captures the latest event (Update-500)")
 
         // 4. Events arriving during an executing refresh
         let overlapScheduler = ManualSleepScheduler()
         var overlapPublishedValue = 0
-        var sourceValue = 0
+        let sourceBox = ValueBox<Int>(0)
         let overlapCoalescer = UIEventCoalescer(interval: 0.05, sleeper: { try await overlapScheduler.sleep(seconds: $0) }) {
-            overlapPublishedValue = sourceValue
+            overlapPublishedValue = sourceBox.value
         }
         
-        sourceValue = 100
+        sourceBox.value = 100
         overlapCoalescer.schedule()
         await overlapScheduler.waitUntilSleeping()
         overlapScheduler.advance()
-        await Task.yield()
+        while overlapCoalescer.executionCount == 0 {
+            await Task.yield()
+        }
         assertTest(overlapPublishedValue == 100, "C-01: Initial execution published value 100")
         
         // Next event arrives
-        sourceValue = 200
+        sourceBox.value = 200
         overlapCoalescer.schedule()
         assertTest(overlapCoalescer.isPending, "C-01: Subsequent event triggers pending state")
         await overlapScheduler.waitUntilSleeping()
         overlapScheduler.advance()
-        await Task.yield()
+        while overlapCoalescer.executionCount < 2 {
+            await Task.yield()
+        }
         assertTest(overlapPublishedValue == 200, "C-01: Subsequent event published updated value 200")
         assertTest(overlapCoalescer.executionCount == 2, "C-01: Cleanly executed 2 distinct cycles across arrival boundary")
 
