@@ -83,7 +83,9 @@ public actor SessionRepository: SessionStorageDelegate {
     }
 
     public func fetchActiveSessions() async throws -> [AgentSession] {
-        let sql = "SELECT \(Self.sessionColumnsProjection) FROM sessions WHERE state IN ('starting', 'running', 'waiting', 'permissionRequired', 'paused') ORDER BY started_at DESC;"
+        let sql = "SELECT \(Self.sessionColumnsProjection) FROM sessions " +
+                  "WHERE state IN ('starting', 'running', 'waiting', 'permissionRequired', 'paused') " +
+                  "ORDER BY started_at DESC;"
         return try await db.query(sql: sql, bindings: []) { stmt -> AgentSession in
             try Self.mapRowToSession(stmt)
         }

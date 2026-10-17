@@ -191,7 +191,9 @@ public final class WindsurfProvider: AgentProvider, @unchecked Sendable {
             }
         }
 
-        let promptFirstLine = payload.tool_info?.prompt?.components(separatedBy: "\n").first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty })?.trimmingCharacters(in: .whitespaces)
+        let promptLines = payload.tool_info?.prompt?.components(separatedBy: "\n")
+        let promptFirstLine = promptLines?.first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty })?
+            .trimmingCharacters(in: .whitespaces)
         let convTitle = promptFirstLine.map { String($0.prefix(120)) }
 
         return AgentEvent(

@@ -118,7 +118,10 @@ public final class WindowController: WindowControlling, @unchecked Sendable {
             let cleanCandTitle = c.title.trimmingCharacters(in: .whitespacesAndNewlines)
             let titleNotEmpty = !cleanTargetTitle.isEmpty && !cleanCandTitle.isEmpty
             let exactTitleMatch = titleNotEmpty && (cleanTargetTitle == cleanCandTitle)
-            let partialTitleMatch = titleNotEmpty && (cleanTargetTitle.localizedCaseInsensitiveContains(cleanCandTitle) || cleanCandTitle.localizedCaseInsensitiveContains(cleanTargetTitle))
+            let partialTitleMatch = titleNotEmpty && (
+                cleanTargetTitle.localizedCaseInsensitiveContains(cleanCandTitle) ||
+                cleanCandTitle.localizedCaseInsensitiveContains(cleanTargetTitle)
+            )
 
             var score = 0
             if boundsMatch && exactTitleMatch {
@@ -184,15 +187,17 @@ public final class WindowController: WindowControlling, @unchecked Sendable {
             var posRef: CFTypeRef?
             _ = AXUIElementCopyAttributeValue(axWin, kAXPositionAttribute as CFString, &posRef)
             var axPoint = CGPoint.zero
-            if let posVal = posRef {
-                AXValueGetValue(posVal as! AXValue, .cgPoint, &axPoint)
+            if let posVal = posRef, CFGetTypeID(posVal) == AXValueGetTypeID() {
+                let axVal = unsafeDowncast(posVal, to: AXValue.self)
+                AXValueGetValue(axVal, .cgPoint, &axPoint)
             }
 
             var sizeRef: CFTypeRef?
             _ = AXUIElementCopyAttributeValue(axWin, kAXSizeAttribute as CFString, &sizeRef)
             var axSize = CGSize.zero
-            if let sizeVal = sizeRef {
-                AXValueGetValue(sizeVal as! AXValue, .cgSize, &axSize)
+            if let sizeVal = sizeRef, CFGetTypeID(sizeVal) == AXValueGetTypeID() {
+                let axVal = unsafeDowncast(sizeVal, to: AXValue.self)
+                AXValueGetValue(axVal, .cgSize, &axSize)
             }
 
             candidates.append(AccessibleWindowAttributes(title: axTitle, position: axPoint, size: axSize))

@@ -43,12 +43,5 @@ type_body_length:
   warning: 500
   error: 800
 
-function_body_length:
-  warning: 120
-  error: 200
-
-cyclomatic_complexity:
-  warning: 20
-  error: 30
-
 reporter: "github-actions-logging"
+

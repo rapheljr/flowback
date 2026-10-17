@@ -32,4 +32,85 @@ public struct BrainTranscriptParser: Sendable {
 
         return nil
     }
+
+    /// Extracts workspace path from transcript content
+    public static func extractWorkspacePath(from text: String) -> String? {
+        let userHome = NSHomeDirectory()
+
+        // 1. Antigravity system prompt format: [URI] -> [CorpusName]
+        if let uriRange = text.range(of: "(/[^\\s\n\"']+)\\s*->", options: .regularExpression) {
+            let uriLine = String(text[uriRange])
+            if let pathPart = uriLine.components(separatedBy: "->").first?.trimmingCharacters(in: .whitespaces),
+               pathPart.hasPrefix("/") {
+                return pathPart
+            }
+        }
+
+        // 1b. Reverse format: -> /path/...
+        if let uriRange = text.range(of: "->\\s*(/[^\\n\\s\"']+)", options: .regularExpression) {
+            let uriLine = String(text[uriRange])
+            let pathPart = uriLine.replacingOccurrences(of: "->", with: "").trimmingCharacters(in: .whitespaces)
+            if pathPart.hasPrefix("/") {
+                return pathPart
+            }
+        }
+
+        // 2. Explicit JSON field: "workspacePaths": ["/path/..."]
+        if let wsRange = text.range(of: "\"workspacePaths\":\\s*\\[\\s*\"([^\"]+)\"", options: .regularExpression) {
+            let matched = String(text[wsRange])
+            let comps = matched.components(separatedBy: "\"")
+            if comps.count >= 4 {
+                let candidate = comps[3].replacingOccurrences(of: "\\/", with: "/")
+                if candidate.hasPrefix("/") {
+                    return candidate
+                }
+            }
+        }
+
+        // 3. Explicit JSON field: "Cwd": "..."
+        if let cwdRange = text.range(of: "\"Cwd\":\\s*\"([^\"]+)\"", options: .regularExpression) {
+            let matched = String(text[cwdRange])
+            let comps = matched.components(separatedBy: "\"")
+            if comps.count >= 4 {
+                return comps[3].replacingOccurrences(of: "\\/", with: "/")
+            }
+        }
+
+        // 4. Active Document: /path/...
+        if let docRange = text.range(of: "Active Document:\\s*([^\\n]+)", options: .regularExpression) {
+            let docLine = String(text[docRange])
+            let pathPart = docLine.replacingOccurrences(of: "Active Document:", with: "").trimmingCharacters(in: .whitespaces)
+            if let firstSlash = pathPart.firstIndex(of: "/") {
+                let fullPath = String(pathPart[firstSlash...])
+                let comps = fullPath.components(separatedBy: "/workspace/projects/")
+                if comps.count > 1, let proj = comps.last?.components(separatedBy: "/").first, !proj.isEmpty {
+                    return (userHome as NSString).appendingPathComponent("workspace/projects/\(proj)")
+                } else {
+                    return (fullPath as NSString).deletingLastPathComponent
+                }
+            }
+        }
+
+        // 5. file:///Users/... URI
+        let filePattern = "file://(/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+/[^/\\s\n\"']+)"
+        if let fileUriRange = text.range(of: filePattern, options: .regularExpression) {
+            let fileLine = String(text[fileUriRange])
+            let pathPart = fileLine.replacingOccurrences(of: "file://", with: "").trimmingCharacters(in: .whitespaces)
+            let comps = pathPart.components(separatedBy: "/workspace/projects/")
+            if comps.count > 1, let proj = comps.last?.components(separatedBy: "/").first, !proj.isEmpty {
+                return (userHome as NSString).appendingPathComponent("workspace/projects/\(proj)")
+            }
+        }
+
+        // 6. Fallback heuristic: /workspace/projects/<name>
+        if let projRange = text.range(of: "/workspace/projects/([A-Za-z0-9_-]+)", options: .regularExpression) {
+            let matched = String(text[projRange])
+            let comps = matched.components(separatedBy: "/workspace/projects/")
+            if comps.count > 1, let proj = comps.last?.components(separatedBy: "/").first, !proj.isEmpty {
+                return (userHome as NSString).appendingPathComponent("workspace/projects/\(proj)")
+            }
+        }
+
+        return nil
+    }
 }

@@ -37,13 +37,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
         let fm = FileManager.default
         let dirExists = fm.fileExists(atPath: cliDir)
 
-        var detectedBinary: String?
-        for path in binaryPaths {
-            if fm.fileExists(atPath: path) {
-                detectedBinary = path
-                break
-            }
-        }
+        let detectedBinary = binaryPaths.first { fm.fileExists(atPath: $0) }
 
         let isInstalled = dirExists || (detectedBinary != nil)
         let hooksPath = (globalConfigPath as NSString).appendingPathComponent("hooks.json")
@@ -279,7 +273,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                 }
 
                 let dbInfo = fetchFromConversationDB(conversationID: convID)
-                let workspacePath = extractWorkspacePath(from: chunkStr) ?? dbInfo.workspace
+                let workspacePath = BrainTranscriptParser.extractWorkspacePath(from: chunkStr) ?? dbInfo.workspace
                 let convTitle = dbInfo.title ?? extractConversationTitle(from: chunkStr)
                 let origin = resolveTerminalOrigin(forWorkspace: workspacePath)
                 let sessionState: AgentState = isCompleted ? .completed : .running
@@ -399,52 +393,6 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                 return ws
             }
         }
-        return nil
-    }
-
-    private func extractWorkspacePath(from text: String) -> String? {
-        let userHome = NSHomeDirectory()
-        let fm = FileManager.default
-
-        // Pattern 1: /workspace/projects/<name>
-        if let projRange = text.range(of: "/workspace/projects/([A-Za-z0-9_-]+)", options: .regularExpression) {
-            let matched = String(text[projRange])
-            let comps = matched.components(separatedBy: "/workspace/projects/")
-            if comps.count > 1, let proj = comps.last?.components(separatedBy: "/").first, !proj.isEmpty {
-                return (userHome as NSString).appendingPathComponent("workspace/projects/\(proj)")
-            }
-        }
-
-        // Pattern 2: "Cwd":"...path..."
-        if let cwdRange = text.range(of: "\"Cwd\":\\s*\"([^\"]+)\"", options: .regularExpression) {
-            let matched = String(text[cwdRange])
-            let comps = matched.components(separatedBy: "\"")
-            if comps.count >= 4 {
-                return comps[3].replacingOccurrences(of: "\\/", with: "/")
-            }
-        }
-
-        // Pattern 3: /Users/... -> CorpusName mapping
-        if let uriRange = text.range(of: "(/[^\\s\n\"']+)\\s*->", options: .regularExpression) {
-            let uriLine = String(text[uriRange])
-            let pathPart = uriLine.components(separatedBy: "->").first?.trimmingCharacters(in: .whitespaces)
-            if let p = pathPart, fm.fileExists(atPath: p) {
-                return p
-            }
-        }
-
-        // Pattern 4: "workspacePaths": ["/Users/..."]
-        if let wsRange = text.range(of: "\"workspacePaths\":\\s*\\[\\s*\"([^\"]+)\"", options: .regularExpression) {
-            let matched = String(text[wsRange])
-            let comps = matched.components(separatedBy: "\"")
-            if comps.count >= 4 {
-                let candidate = comps[3].replacingOccurrences(of: "\\/", with: "/")
-                if fm.fileExists(atPath: candidate) {
-                    return candidate
-                }
-            }
-        }
-
         return nil
     }
 

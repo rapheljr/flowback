@@ -97,7 +97,6 @@ public final class FlowbackService: NSObject, ObservableObject {
         await uiCoalescer?.flush()
     }
 
-
     // MARK: - Authoritative Lifecycle Start
 
     public func start() async {

@@ -358,45 +358,45 @@ public func runConversationAwarenessSuites() async {
         let codexRunningJson = """
         {"id": "codex-1", "state": "running", "workspace": "/test", "title": "Codex Task"}
         """.data(using: .utf8)!
-        let codexRunningEvent = try! codex.parseLifecyclePayload(data: codexRunningJson)
+        let codexRunningEvent = try codex.parseLifecyclePayload(data: codexRunningJson)
         assertTest(codexRunningEvent?.type == .agentRunning, "Codex 'running' maps to .agentRunning")
         assertTest(codexRunningEvent?.focusCapability == .windowOnly, "Codex focus capability is strictly .windowOnly")
 
         let codexWaitJson = """
         {"id": "codex-1", "state": "waiting", "workspace": "/test"}
         """.data(using: .utf8)!
-        let codexWaitEvent = try! codex.parseLifecyclePayload(data: codexWaitJson)
+        let codexWaitEvent = try codex.parseLifecyclePayload(data: codexWaitJson)
         assertTest(codexWaitEvent?.type == .agentWaiting, "Codex 'waiting' maps to .agentWaiting")
 
         let codexPermJson = """
         {"id": "codex-1", "state": "permission_required", "workspace": "/test"}
         """.data(using: .utf8)!
-        let codexPermEvent = try! codex.parseLifecyclePayload(data: codexPermJson)
+        let codexPermEvent = try codex.parseLifecyclePayload(data: codexPermJson)
         assertTest(codexPermEvent?.type == .agentPermissionRequired, "Codex 'permission_required' maps to .agentPermissionRequired")
 
         let codexFailJson = """
         {"id": "codex-1", "state": "failed", "workspace": "/test"}
         """.data(using: .utf8)!
-        let codexFailEvent = try! codex.parseLifecyclePayload(data: codexFailJson)
+        let codexFailEvent = try codex.parseLifecyclePayload(data: codexFailJson)
         assertTest(codexFailEvent?.type == .agentFailed, "Codex 'failed' maps to .agentFailed")
 
         let codexCancelJson = """
         {"id": "codex-1", "state": "cancelled", "workspace": "/test"}
         """.data(using: .utf8)!
-        let codexCancelEvent = try! codex.parseLifecyclePayload(data: codexCancelJson)
+        let codexCancelEvent = try codex.parseLifecyclePayload(data: codexCancelJson)
         assertTest(codexCancelEvent?.type == .agentCancelled, "Codex 'cancelled' maps to .agentCancelled")
 
         let codexDoneJson = """
         {"id": "codex-1", "state": "completed", "workspace": "/test"}
         """.data(using: .utf8)!
-        let codexDoneEvent = try! codex.parseLifecyclePayload(data: codexDoneJson)
+        let codexDoneEvent = try codex.parseLifecyclePayload(data: codexDoneJson)
         assertTest(codexDoneEvent?.type == .agentCompleted, "Codex 'completed' maps to .agentCompleted")
 
         // Unknown Codex status does NOT imply completed
         let codexUnknownJson = """
         {"id": "codex-1", "state": "some_arbitrary_unseen_state", "workspace": "/test"}
         """.data(using: .utf8)!
-        let codexUnknownEvent = try! codex.parseLifecyclePayload(data: codexUnknownJson)
+        let codexUnknownEvent = try codex.parseLifecyclePayload(data: codexUnknownJson)
         assertTest(codexUnknownEvent?.type == .agentRunning, "Unknown Codex state safely defaults to .agentRunning (never implies completion)")
 
         // B. Aider
@@ -407,39 +407,39 @@ public func runConversationAwarenessSuites() async {
         let aiderStartJson = """
         {"session_id": "aider-1", "status": "started", "workspace": "/test", "message": "Refactoring"}
         """.data(using: .utf8)!
-        let aiderStartEvent = try! aider.parseLifecyclePayload(data: aiderStartJson)
+        let aiderStartEvent = try aider.parseLifecyclePayload(data: aiderStartJson)
         assertTest(aiderStartEvent?.type == .agentRunning, "Aider 'started' maps to .agentRunning")
         assertTest(aiderStartEvent?.focusCapability == .windowOnly, "Aider focus capability is strictly .windowOnly")
 
         let aiderWaitJson = """
         {"session_id": "aider-1", "status": "waiting", "workspace": "/test"}
         """.data(using: .utf8)!
-        let aiderWaitEvent = try! aider.parseLifecyclePayload(data: aiderWaitJson)
+        let aiderWaitEvent = try aider.parseLifecyclePayload(data: aiderWaitJson)
         assertTest(aiderWaitEvent?.type == .agentWaiting, "Aider 'waiting' maps to .agentWaiting")
 
         let aiderConfirmJson = """
         {"session_id": "aider-1", "event": "confirm", "workspace": "/test"}
         """.data(using: .utf8)!
-        let aiderConfirmEvent = try! aider.parseLifecyclePayload(data: aiderConfirmJson)
+        let aiderConfirmEvent = try aider.parseLifecyclePayload(data: aiderConfirmJson)
         assertTest(aiderConfirmEvent?.type == .agentPermissionRequired, "Aider 'confirm' event maps to .agentPermissionRequired")
 
         let aiderErrorJson = """
         {"session_id": "aider-1", "status": "error", "workspace": "/test"}
         """.data(using: .utf8)!
-        let aiderErrorEvent = try! aider.parseLifecyclePayload(data: aiderErrorJson)
+        let aiderErrorEvent = try aider.parseLifecyclePayload(data: aiderErrorJson)
         assertTest(aiderErrorEvent?.type == .agentFailed, "Aider 'error' maps to .agentFailed")
 
         let aiderDoneJson = """
         {"session_id": "aider-1", "status": "done", "workspace": "/test"}
         """.data(using: .utf8)!
-        let aiderDoneEvent = try! aider.parseLifecyclePayload(data: aiderDoneJson)
+        let aiderDoneEvent = try aider.parseLifecyclePayload(data: aiderDoneJson)
         assertTest(aiderDoneEvent?.type == .agentCompleted, "Aider 'done' maps to .agentCompleted")
 
         // Unknown / malformed Aider event does NOT imply completion
         let aiderUnknownJson = """
         {"session_id": "aider-1", "status": "unknown_custom_event", "workspace": "/test"}
         """.data(using: .utf8)!
-        let aiderUnknownEvent = try! aider.parseLifecyclePayload(data: aiderUnknownJson)
+        let aiderUnknownEvent = try aider.parseLifecyclePayload(data: aiderUnknownJson)
         assertTest(aiderUnknownEvent?.type == .agentRunning, "Unknown Aider event safely defaults to .agentRunning (never implies completion)")
 
         // C. Cursor Background Agent
@@ -453,7 +453,7 @@ public func runConversationAwarenessSuites() async {
             "targetRef": "feature/branch"
         }
         """.data(using: .utf8)!
-        let cursorEvent = try! cursorBg.parseLifecyclePayload(data: cursorJson)
+        let cursorEvent = try cursorBg.parseLifecyclePayload(data: cursorJson)
         assertTest(cursorEvent?.focusCapability == .externalURL, "Cursor cloud agent focus capability is strictly .externalURL")
         assertTest(cursorEvent?.isRemote == true, "Cursor cloud agent marked as remote")
     }
@@ -464,14 +464,14 @@ public func runConversationAwarenessSuites() async {
     await testGroup("Schema V2 Migration Integrity, Idempotency, and Failure Rollback") {
         let dbPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("flowback_test_v2_migration_\(UUID().uuidString).sqlite")
         let db = SQLiteDatabase(path: dbPath)
-        try! await db.open()
+        try await db.open()
 
         // 1. Setup V1 database fixture with legacy records
-        try! await db.runInTransaction {
+        try await db.runInTransaction {
             try await Migrations.applyMigrationV1(db: db)
         }
-        try! await db.setUserVersion(1)
-        let v1 = try! await db.getUserVersion()
+        try await db.setUserVersion(1)
+        let v1 = try await db.getUserVersion()
         assertTest(v1 == 1, "Initial isolated fixture initialized at Schema V1")
 
         // Insert legacy session record
@@ -479,15 +479,15 @@ public func runConversationAwarenessSuites() async {
         INSERT INTO sessions (id, provider_id, state, workspace, started_at, updated_at)
         VALUES ('legacy-sess-1', 'codex', 'running', '/Users/abin/projects/legacy', 1700000000.0, 1700000000.0);
         """
-        try! await db.execute(sql: insertLegacySql)
+        try await db.execute(sql: insertLegacySql)
 
         // 2. Normal V1-to-V2 migration
-        try! await Migrations.apply(db: db)
-        let v2 = try! await db.getUserVersion()
+        try await Migrations.apply(db: db)
+        let v2 = try await db.getUserVersion()
         assertTest(v2 == 2, "Database successfully upgraded from V1 to V2")
 
         // Verify preservation of legacy records
-        let legacyRows = try! await db.query(sql: "SELECT id, provider_id, workspace FROM sessions WHERE id = 'legacy-sess-1';") { stmt in
+        let legacyRows = try await db.query(sql: "SELECT id, provider_id, workspace FROM sessions WHERE id = 'legacy-sess-1';") { stmt in
             (
                 String(cString: sqlite3_column_text(stmt, 0)),
                 String(cString: sqlite3_column_text(stmt, 1)),
@@ -500,7 +500,7 @@ public func runConversationAwarenessSuites() async {
         assertTest(legacyRows.first?.2 == "/Users/abin/projects/legacy", "Legacy workspace matches")
 
         // Verify all expected V2 columns exist via PRAGMA table_info
-        let columns = try! await db.query(sql: "PRAGMA table_info(sessions);") { stmt in
+        let columns = try await db.query(sql: "PRAGMA table_info(sessions);") { stmt in
             String(cString: sqlite3_column_text(stmt, 1))
         }
         let colSet = Set(columns)
@@ -524,11 +524,11 @@ public func runConversationAwarenessSuites() async {
         // 4. Injected SQLite failure and transaction rollback
         let dbFailPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("flowback_test_v2_fail_\(UUID().uuidString).sqlite")
         let dbFail = SQLiteDatabase(path: dbFailPath)
-        try! await dbFail.open()
-        try! await dbFail.runInTransaction {
+        try await dbFail.open()
+        try await dbFail.runInTransaction {
             try await Migrations.applyMigrationV1(db: dbFail)
         }
-        try! await dbFail.setUserVersion(1)
+        try await dbFail.setUserVersion(1)
 
         // Simulate an injected failure during migration by running a block that fails
         var didRollback = false
@@ -541,7 +541,7 @@ public func runConversationAwarenessSuites() async {
             didRollback = true
         }
         assertTest(didRollback, "Injected SQLite error properly propagated out of transaction")
-        let failVersion = try! await dbFail.getUserVersion()
+        let failVersion = try await dbFail.getUserVersion()
         assertTest(failVersion == 1, "Failed migration leaves user_version at 1 without advancing")
         await dbFail.close()
         try? FileManager.default.removeItem(atPath: dbFailPath)
@@ -549,8 +549,8 @@ public func runConversationAwarenessSuites() async {
         // 5. Reopening the migrated database and round-tripping records
         await db.close()
         let dbReopened = SQLiteDatabase(path: dbPath)
-        try! await dbReopened.open()
-        let reopenedVersion = try! await dbReopened.getUserVersion()
+        try await dbReopened.open()
+        let reopenedVersion = try await dbReopened.getUserVersion()
         assertTest(reopenedVersion == 2, "Reopened database retains Schema V2")
 
         let repo = SessionRepository(db: dbReopened)
@@ -565,8 +565,8 @@ public func runConversationAwarenessSuites() async {
             executionID: "step-2",
             focusCapability: .workspaceAndConversation
         )
-        try! await repo.saveSession(newSession)
-        let loaded = try! await repo.fetchSession(id: newSession.id)
+        try await repo.saveSession(newSession)
+        let loaded = try await repo.fetchSession(id: newSession.id)
         assertTest(loaded?.conversationID == "agy-reopened-conv", "Session round-tripped cleanly after reopening V2 database")
         assertTest(loaded?.conversationTitle == "Reopening Verification Test", "Session title round-tripped cleanly")
 
