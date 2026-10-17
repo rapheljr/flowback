@@ -28,7 +28,7 @@ final class SQLiteDatabaseTests: XCTestCase {
         try await Migrations.apply(db: db)
         
         let versionAfterMigration = try await db.getUserVersion()
-        XCTAssertEqual(versionAfterMigration, 1)
+        XCTAssertEqual(versionAfterMigration, Migrations.currentVersion)
         
         // Test basic insert and query
         try await db.execute(sql: "INSERT INTO settings (key, value_json) VALUES ('test_key', '{\"val\": 123}');")
