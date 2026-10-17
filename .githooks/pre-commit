@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Flowback pre-commit hook: runs local verification before committing
+echo "Running pre-commit verification..."
+"$(git rev-parse --show-toplevel)/Scripts/verify_all.sh"
