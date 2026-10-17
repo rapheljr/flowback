@@ -859,6 +859,7 @@ await runCloudDiscoveryAndLifecycleRegressionSuites()
 await runAntigravityReactivationAndTranscriptSuites()
 await runAntigravityCLIIntegrationSuites()
 await runConversationAwarenessSuites()
+await runAuditRemediationSuites()
 
 print("\n================================================================")
 print("TEST RESULTS SUMMARY")

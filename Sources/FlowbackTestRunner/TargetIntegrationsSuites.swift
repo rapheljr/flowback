@@ -1059,7 +1059,7 @@ func runAntigravityCLIIntegrationSuites() async {
         let installedData = (try? Data(contentsOf: URL(fileURLWithPath: hooksPath))) ?? Data()
         let installedJson = (try? JSONSerialization.jsonObject(with: installedData)) as? [String: Any]
         assertTest(installedJson?["user_custom_hook"] != nil, "User custom hook preserved alongside Flowback hook")
-        let fbHook = installedJson?["flowback-agent-focus"] as? [String: Any]
+        let fbHook = (installedJson?["flowback-antigravity-cli"] ?? installedJson?["flowback-agent-focus"]) as? [String: Any]
         let stopCmds = fbHook?["Stop"] as? [[String: Any]]
         let stopCmdStr = stopCmds?.first?["command"] as? String ?? ""
         assertTest(stopCmdStr.contains("flowback hook antigravity-cli"), "Stop hook command targets flowback hook antigravity-cli")
@@ -1169,7 +1169,7 @@ func runAntigravityCLIIntegrationSuites() async {
         let remainingData = (try? Data(contentsOf: URL(fileURLWithPath: hooksPath))) ?? Data()
         let remainingJson = (try? JSONSerialization.jsonObject(with: remainingData)) as? [String: Any]
         assertTest(remainingJson?["user_custom_hook"] != nil, "User custom hook preserved after Flowback uninstall")
-        assertTest(remainingJson?["flowback-agent-focus"] == nil, "Flowback hook cleanly removed on uninstall")
+        assertTest(remainingJson?["flowback-antigravity-cli"] == nil && remainingJson?["flowback-agent-focus"] == nil, "Flowback hook cleanly removed on uninstall")
     }
 }
 

@@ -67,8 +67,15 @@ public actor SessionRepository: SessionStorageDelegate {
         ])
     }
 
+    public static let sessionColumnsProjection = """
+        id, provider_id, provider_session_id, state, task_id, workspace, \
+        origin_context_json, started_at, updated_at, completed_at, error_description, metadata_json, \
+        conversation_title, conversation_id, task_summary, execution_id, parent_session_id, \
+        conversation_url, focus_capability, is_remote
+        """
+
     public func fetchSession(id: AgentSessionID) async throws -> AgentSession? {
-        let sql = "SELECT * FROM sessions WHERE id = ? LIMIT 1;"
+        let sql = "SELECT \(Self.sessionColumnsProjection) FROM sessions WHERE id = ? LIMIT 1;"
         let rows = try await db.query(sql: sql, bindings: [id.rawValue]) { stmt -> AgentSession in
             try Self.mapRowToSession(stmt)
         }
@@ -76,14 +83,14 @@ public actor SessionRepository: SessionStorageDelegate {
     }
 
     public func fetchActiveSessions() async throws -> [AgentSession] {
-        let sql = "SELECT * FROM sessions WHERE state IN ('starting', 'running', 'waiting', 'permissionRequired', 'paused') ORDER BY started_at DESC;"
+        let sql = "SELECT \(Self.sessionColumnsProjection) FROM sessions WHERE state IN ('starting', 'running', 'waiting', 'permissionRequired', 'paused') ORDER BY started_at DESC;"
         return try await db.query(sql: sql, bindings: []) { stmt -> AgentSession in
             try Self.mapRowToSession(stmt)
         }
     }
 
     public func fetchRecentSessions(limit: Int = 20) async throws -> [AgentSession] {
-        let sql = "SELECT * FROM sessions ORDER BY started_at DESC LIMIT ?;"
+        let sql = "SELECT \(Self.sessionColumnsProjection) FROM sessions ORDER BY started_at DESC LIMIT ?;"
         return try await db.query(sql: sql, bindings: [limit]) { stmt -> AgentSession in
             try Self.mapRowToSession(stmt)
         }
@@ -123,68 +130,81 @@ public actor SessionRepository: SessionStorageDelegate {
 
     private static func mapRowToSession(_ stmt: OpaquePointer) throws -> AgentSession {
         let colCount = sqlite3_column_count(stmt)
+        var colMap: [String: Int32] = [:]
+        for i in 0..<colCount {
+            if let namePtr = sqlite3_column_name(stmt, i) {
+                colMap[String(cString: namePtr)] = i
+            }
+        }
 
-        let idStr = String(cString: sqlite3_column_text(stmt, 0))
-        let providerStr = String(cString: sqlite3_column_text(stmt, 1))
+        func colIdx(_ name: String, fallback: Int32) -> Int32? {
+            if let found = colMap[name] {
+                return found
+            }
+            return fallback < colCount ? fallback : nil
+        }
 
-        let providerSessionId: String? = sqlite3_column_type(stmt, 2) != SQLITE_NULL ? String(cString: sqlite3_column_text(stmt, 2)) : nil
-        let stateStr = String(cString: sqlite3_column_text(stmt, 3))
-        let taskIdStr: String? = sqlite3_column_type(stmt, 4) != SQLITE_NULL ? String(cString: sqlite3_column_text(stmt, 4)) : nil
-        let workspace: String? = sqlite3_column_type(stmt, 5) != SQLITE_NULL ? String(cString: sqlite3_column_text(stmt, 5)) : nil
+        func textVal(_ name: String, altName: String? = nil, fallback: Int32) -> String? {
+            let idx = colIdx(name, fallback: fallback) ?? (altName.flatMap { colIdx($0, fallback: fallback) })
+            guard let validIdx = idx,
+                  sqlite3_column_type(stmt, validIdx) != SQLITE_NULL,
+                  let ptr = sqlite3_column_text(stmt, validIdx) else {
+                return nil
+            }
+            return String(cString: ptr)
+        }
+
+        func doubleVal(_ name: String, fallback: Int32) -> Double? {
+            guard let idx = colIdx(name, fallback: fallback),
+                  sqlite3_column_type(stmt, idx) != SQLITE_NULL else {
+                return nil
+            }
+            return sqlite3_column_double(stmt, idx)
+        }
+
+        func intVal(_ name: String, fallback: Int32) -> Int32? {
+            guard let idx = colIdx(name, fallback: fallback),
+                  sqlite3_column_type(stmt, idx) != SQLITE_NULL else {
+                return nil
+            }
+            return sqlite3_column_int(stmt, idx)
+        }
+
+        let idStr = textVal("id", fallback: 0) ?? ""
+        let providerStr = textVal("provider_id", fallback: 1) ?? ""
+        let providerSessionId = textVal("provider_session_id", fallback: 2)
+        let stateStr = textVal("state", fallback: 3) ?? "unknown"
+        let taskIdStr = textVal("task_id", fallback: 4)
+        let workspace = textVal("workspace", fallback: 5)
 
         var origin: OriginContext?
-        if sqlite3_column_type(stmt, 6) != SQLITE_NULL, let originStr = sqlite3_column_text(stmt, 6) {
-            let data = Data(String(cString: originStr).utf8)
+        if let originStr = textVal("origin_context_json", altName: "origin_context", fallback: 6) {
+            let data = Data(originStr.utf8)
             origin = try? JSONDecoder().decode(OriginContext.self, from: data)
         }
 
-        let startedAt = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 7))
-        let updatedAt = Date(timeIntervalSince1970: sqlite3_column_double(stmt, 8))
-        let completedAt: Date? = sqlite3_column_type(stmt, 9) != SQLITE_NULL ? Date(timeIntervalSince1970: sqlite3_column_double(stmt, 9)) : nil
-        let errorDesc: String? = sqlite3_column_type(stmt, 10) != SQLITE_NULL ? String(cString: sqlite3_column_text(stmt, 10)) : nil
+        let startedAt = Date(timeIntervalSince1970: doubleVal("started_at", fallback: 7) ?? 0)
+        let updatedAt = Date(timeIntervalSince1970: doubleVal("updated_at", fallback: 8) ?? 0)
+        let completedAt: Date? = doubleVal("completed_at", fallback: 9).map { Date(timeIntervalSince1970: $0) }
+        let errorDesc = textVal("error_description", fallback: 10)
 
         var metadata: [String: String] = [:]
-        if sqlite3_column_type(stmt, 11) != SQLITE_NULL, let metaStr = sqlite3_column_text(stmt, 11) {
-            let data = Data(String(cString: metaStr).utf8)
+        if let metaStr = textVal("metadata_json", altName: "metadata", fallback: 11) {
+            let data = Data(metaStr.utf8)
             metadata = (try? JSONDecoder().decode([String: String].self, from: data)) ?? [:]
         }
 
         let state = AgentState(rawValue: stateStr) ?? .unknown
 
         // V2 Migration fields (nullable with backwards-compatible defaults)
-        var convTitle: String?
-        var convId: String?
-        var taskSummary: String?
-        var execId: String?
-        var parentSessId: AgentSessionID?
-        var convUrl: URL?
-        var focusCap: ConversationFocusCapability?
-        var isRemote = false
-
-        if colCount > 12 && sqlite3_column_type(stmt, 12) != SQLITE_NULL {
-            convTitle = String(cString: sqlite3_column_text(stmt, 12))
-        }
-        if colCount > 13 && sqlite3_column_type(stmt, 13) != SQLITE_NULL {
-            convId = String(cString: sqlite3_column_text(stmt, 13))
-        }
-        if colCount > 14 && sqlite3_column_type(stmt, 14) != SQLITE_NULL {
-            taskSummary = String(cString: sqlite3_column_text(stmt, 14))
-        }
-        if colCount > 15 && sqlite3_column_type(stmt, 15) != SQLITE_NULL {
-            execId = String(cString: sqlite3_column_text(stmt, 15))
-        }
-        if colCount > 16 && sqlite3_column_type(stmt, 16) != SQLITE_NULL {
-            parentSessId = AgentSessionID(String(cString: sqlite3_column_text(stmt, 16)))
-        }
-        if colCount > 17 && sqlite3_column_type(stmt, 17) != SQLITE_NULL {
-            convUrl = URL(string: String(cString: sqlite3_column_text(stmt, 17)))
-        }
-        if colCount > 18 && sqlite3_column_type(stmt, 18) != SQLITE_NULL {
-            focusCap = ConversationFocusCapability(rawValue: String(cString: sqlite3_column_text(stmt, 18)))
-        }
-        if colCount > 19 {
-            isRemote = sqlite3_column_int(stmt, 19) != 0
-        }
+        var convTitle = textVal("conversation_title", fallback: 12)
+        var convId = textVal("conversation_id", fallback: 13)
+        var taskSummary = textVal("task_summary", fallback: 14)
+        var execId = textVal("execution_id", fallback: 15)
+        var parentSessId = textVal("parent_session_id", fallback: 16).map { AgentSessionID($0) }
+        var convUrl = textVal("conversation_url", fallback: 17).flatMap { URL(string: $0) }
+        let focusCap = textVal("focus_capability", fallback: 18).flatMap { ConversationFocusCapability(rawValue: $0) }
+        let isRemote = (intVal("is_remote", fallback: 19) ?? 0) != 0
 
         // Fallbacks from metadata if V1 row
         if convTitle == nil { convTitle = metadata["title"] ?? metadata["conversation_title"] }

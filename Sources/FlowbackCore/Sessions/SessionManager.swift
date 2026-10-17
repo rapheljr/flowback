@@ -12,6 +12,7 @@ public protocol SessionStorageDelegate: AnyObject, Sendable {
 
 /// Coordinates agent session lifecycle, state transitions, and timeline tracking
 public actor SessionManager {
+    public let maxCompletedSessionsInMemory: Int
     private var sessions: [AgentSessionID: AgentSession] = [:]
     private let stateMachine = AgentStateMachine()
     private let timeline: TimelineTracker
@@ -21,11 +22,13 @@ public actor SessionManager {
     public init(
         timeline: TimelineTracker = .shared,
         storageDelegate: SessionStorageDelegate? = nil,
-        eventBus: EventBus? = nil
+        eventBus: EventBus? = nil,
+        maxCompletedSessionsInMemory: Int = 100
     ) {
         self.timeline = timeline
         self.storageDelegate = storageDelegate
         self.eventBus = eventBus
+        self.maxCompletedSessionsInMemory = maxCompletedSessionsInMemory
     }
 
     public func setStorageDelegate(_ delegate: SessionStorageDelegate) {
@@ -34,8 +37,37 @@ public actor SessionManager {
 
     // MARK: - Session Retrieval
 
-    public func getSession(id: AgentSessionID) -> AgentSession? {
-        sessions[id]
+    public func getSession(id: AgentSessionID) async -> AgentSession? {
+        if let cached = sessions[id] {
+            return cached
+        }
+        if let stored = try? await storageDelegate?.fetchSession(id: id) {
+            sessions[id] = stored
+            enforceRetentionPolicy()
+            return stored
+        }
+        return nil
+    }
+
+    private func enforceRetentionPolicy() {
+        let terminal = sessions.values.filter { $0.state.isTerminal }
+        if terminal.count > maxCompletedSessionsInMemory {
+            let sortedOldest = terminal.sorted {
+                ($0.completedAt ?? $0.updatedAt) < ($1.completedAt ?? $1.updatedAt)
+            }
+            let excess = terminal.count - maxCompletedSessionsInMemory
+            for i in 0..<min(excess, sortedOldest.count) {
+                sessions.removeValue(forKey: sortedOldest[i].id)
+            }
+        }
+    }
+
+    public var inMemoryCompletedSessionCount: Int {
+        sessions.values.filter { $0.state.isTerminal }.count
+    }
+
+    public var inMemoryTotalSessionCount: Int {
+        sessions.count
     }
 
     public func getActiveSessions() -> [AgentSession] {
@@ -437,6 +469,7 @@ public actor SessionManager {
         )
 
         sessions[session.id] = session
+        enforceRetentionPolicy()
 
         if let storage = storageDelegate {
             do {

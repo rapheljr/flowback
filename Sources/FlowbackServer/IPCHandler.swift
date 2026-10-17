@@ -251,20 +251,6 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
             return IPCResponse(success: true, message: "Provider '\(provName)' not registered (safe pass-through)", data: allowData)
         }
 
-        var isPreInvocation = false
-        var isPostInvocation = false
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            if let hookName = json["hook_event_name"] as? String {
-                if hookName.caseInsensitiveCompare("PreInvocation") == .orderedSame {
-                    isPreInvocation = true
-                } else if hookName.caseInsensitiveCompare("PostInvocation") == .orderedSame {
-                    isPostInvocation = true
-                }
-            } else if json["invocationNum"] != nil && json["terminationReason"] == nil {
-                isPreInvocation = true
-            }
-        }
-
         do {
             if let event = try provider.parseLifecyclePayload(data: data) {
                 await eventBus.publish(agentEvent: event)
@@ -274,15 +260,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
             logger.error("Failed to parse hook payload for \(provName): \(error.localizedDescription)")
         }
 
-        let responseStr: String
-        if isPreInvocation {
-            responseStr = "{\"injectSteps\":[]}"
-        } else if isPostInvocation {
-            responseStr = "{}"
-        } else {
-            responseStr = "{\"decision\":\"allow\"}"
-        }
-        let responseData = responseStr.data(using: .utf8)
+        let responseData = provider.generateHookResponse(for: data) ?? allowData
         return IPCResponse(success: true, message: "Hook ingested", data: responseData)
     }
 

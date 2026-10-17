@@ -60,25 +60,58 @@ public final class FlowbackService: NSObject, ObservableObject {
     @Published public var configuration: PolicyConfiguration = .default
     @Published public var focusLock: FocusLockState = FocusLockState()
 
+    public let lifecycleCoordinator = LifecycleCoordinator()
+    private var isPerformingMaintenance = false
+
     // Dashboard window & navigation model
     private var dashboardWindow: NSWindow?
     private let dashboardViewModel = DashboardViewModel()
 
-    public override init() {
+    // UI Event Coalescer
+    public private(set) var uiCoalescer: UIEventCoalescer!
+
+    public init(uiCoalesceInterval: TimeInterval = 0.05) {
         super.init()
+        self.uiCoalescer = UIEventCoalescer(interval: uiCoalesceInterval) { [weak self] in
+            await self?.updateMinimalUIState()
+        }
     }
+
+    public override convenience init() {
+        self.init(uiCoalesceInterval: 0.05)
+    }
+
+    public func setUICoalesceInterval(_ interval: TimeInterval) {
+        self.uiCoalescer?.stop()
+        self.uiCoalescer = UIEventCoalescer(interval: interval) { [weak self] in
+            await self?.updateMinimalUIState()
+        }
+    }
+
+    public func setUICoalescer(_ coalescer: UIEventCoalescer) {
+        self.uiCoalescer?.stop()
+        self.uiCoalescer = coalescer
+    }
+
+    public func flushPendingUIUpdates() async {
+        await uiCoalescer?.flush()
+    }
+
 
     // MARK: - Authoritative Lifecycle Start
 
     public func start() async {
-        guard lifecycleState != .starting && lifecycleState != .ready else {
+        let currentCoordState = await lifecycleCoordinator.currentState
+        guard currentCoordState != .starting && currentCoordState != .ready else {
             logger.warning("FlowbackService start() invoked while state is \(self.lifecycleState.rawValue); ignoring duplicate invocation.")
             return
         }
 
         logger.info("Starting Flowback Universal Context & Focus Manager...")
+        try? await lifecycleCoordinator.transition(to: .starting)
         lifecycleState = .starting
         startupErrorMessage = nil
+        uiCoalescer?.reset()
 
         // 1. Storage setup & corruption recovery
         let dbPath = ("~/.flowback/flowback.sqlite" as NSString).expandingTildeInPath
@@ -183,19 +216,17 @@ public final class FlowbackService: NSObject, ObservableObject {
         await refreshUIState()
 
         // 10. Conclude startup state
-        if isIPCReady && isDatabaseReady {
-            lifecycleState = .ready
-            logger.info("Flowback initialized and monitoring (State: ready).")
-        } else {
-            lifecycleState = .degraded
-            logger.warning("Flowback initialized in degraded state. IPC: \(self.isIPCReady), DB: \(self.isDatabaseReady)")
-        }
+        let targetState: ServiceLifecycleState = (isIPCReady && isDatabaseReady) ? .ready : .degraded
+        try? await lifecycleCoordinator.transition(to: targetState)
+        lifecycleState = targetState
+        logger.info("Flowback initialized and monitoring (State: \(targetState.rawValue)).")
     }
 
     // MARK: - Authoritative Single Shutdown Coordinator
 
     public func stop() async {
-        guard lifecycleState != .stopping && lifecycleState != .stopped else {
+        let currentCoordState = await lifecycleCoordinator.currentState
+        guard currentCoordState != .stopping && currentCoordState != .stopped else {
             logger.info("FlowbackService stop() called while state is \(self.lifecycleState.rawValue); ignoring duplicate invocation.")
             return
         }
@@ -203,41 +234,44 @@ public final class FlowbackService: NSObject, ObservableObject {
         logger.info("Stopping Flowback Universal Context & Focus Manager...")
         lifecycleState = .stopping
 
+        await lifecycleCoordinator.stop()
+
         // 1. Stop IPC server immediately so no new requests are accepted
-        socketServer?.stop()
-        isIPCReady = false
+        self.socketServer?.stop()
+        self.isIPCReady = false
 
         // 2. Cancel and clean up background tasks
-        agentEventsTask?.cancel()
-        agentEventsTask = nil
-        backgroundRefreshTask?.cancel()
-        backgroundRefreshTask = nil
+        self.agentEventsTask?.cancel()
+        self.agentEventsTask = nil
+        self.backgroundRefreshTask?.cancel()
+        self.backgroundRefreshTask = nil
+        self.uiCoalescer?.stop()
 
         // 3. Reset and finish all active event bus stream continuations
-        await eventBus.finishAll()
+        await self.eventBus.finishAll()
 
         // 4. Remove all registered workspace notification center observers
-        for token in workspaceObserverTokens {
+        for token in self.workspaceObserverTokens {
             NSWorkspace.shared.notificationCenter.removeObserver(token)
         }
-        workspaceObserverTokens.removeAll()
+        self.workspaceObserverTokens.removeAll()
 
         // 5. Remove global hotkey monitors
-        if let monitor = globalHotkeyMonitor {
+        if let monitor = self.globalHotkeyMonitor {
             NSEvent.removeMonitor(monitor)
-            globalHotkeyMonitor = nil
+            self.globalHotkeyMonitor = nil
         }
 
         // 6. Teardown MenuBar status item
-        if !isHeadless {
-            menuBarController.teardown()
+        if !self.isHeadless {
+            self.menuBarController.teardown()
         }
 
         // 7. Close companion dashboard window if open
-        if let win = dashboardWindow {
+        if let win = self.dashboardWindow {
             win.delegate = nil
             win.close()
-            dashboardWindow = nil
+            self.dashboardWindow = nil
         }
 
         // 8. Close persistent SQLite database
@@ -262,6 +296,7 @@ public final class FlowbackService: NSObject, ObservableObject {
         agentEventsTask = nil
         backgroundRefreshTask?.cancel()
         backgroundRefreshTask = nil
+        uiCoalescer?.stop()
         for token in workspaceObserverTokens {
             NSWorkspace.shared.notificationCenter.removeObserver(token)
         }
@@ -345,7 +380,7 @@ public final class FlowbackService: NSObject, ObservableObject {
             }
         }
 
-        await refreshUIState()
+        uiCoalescer?.schedule()
     }
 
     // MARK: - System Observers
@@ -436,36 +471,25 @@ public final class FlowbackService: NSObject, ObservableObject {
 
     // MARK: - UI State Refresh
 
-    public func refreshUIState() async {
+    /// Lightweight UI state update executing on the hot event path without filesystem discovery or process execution
+    public func updateMinimalUIState() async {
         guard lifecycleState == .ready || lifecycleState == .degraded else { return }
-
-        // Proactively scan for live running agent sessions across providers
-        let discovered = await providerRegistry.discoverAllActiveSessions()
-        if !discovered.isEmpty {
-            await sessionManager.mergeDiscoveredSessions(discovered)
-        }
 
         let active = await sessionManager.getActiveSessions()
         let all = await sessionManager.getAllSessions()
         let recent = await sessionManager.getRecentSessions(limit: 10)
         let queue = await attentionArbiter.pendingRequests()
-        let healths = await providerRegistry.checkAllHealth()
-        let perms = await PermissionManager.shared.currentStatus()
         let timeline = await timelineTracker.allRecentEntries(limit: 50)
 
         self.activeSessions = active
         self.allSessions = all
         self.attentionQueue = queue
-        self.providerHealths = healths
-        self.permissionStatus = perms
         self.timelineEntries = timeline
 
-        // Proactively synchronize published properties of dashboardViewModel for instant reactive UI re-renders
+        // Synchronize published properties of dashboardViewModel for instant reactive UI re-renders
         dashboardViewModel.activeSessions = active
         dashboardViewModel.allSessions = all
         dashboardViewModel.attentionQueue = queue
-        dashboardViewModel.providerHealths = healths
-        dashboardViewModel.permissionStatus = perms
         dashboardViewModel.timelineEntries = timeline
         dashboardViewModel.config = configuration
         dashboardViewModel.focusLock = focusLock
@@ -482,6 +506,37 @@ public final class FlowbackService: NSObject, ObservableObject {
                 focusLock: focusLock
             )
         }
+    }
+
+    /// Authoritative reconciliation and provider health check run periodically, on startup, or upon manual user request
+    public func refreshUIState() async {
+        guard lifecycleState == .ready || lifecycleState == .degraded else { return }
+        guard !isPerformingMaintenance else { return }
+        isPerformingMaintenance = true
+        defer { isPerformingMaintenance = false }
+
+        // 1. Storage maintenance: prune completed sessions older than 30 days while retaining recent 50
+        if let repo = sessionRepository {
+            _ = try? await repo.pruneCompletedSessions(olderThanDays: 30, keepMinCount: 50)
+        }
+
+        // 2. Proactively scan for unobserved running agent sessions across providers
+        let discovered = await providerRegistry.discoverAllActiveSessions()
+        if !discovered.isEmpty {
+            await sessionManager.mergeDiscoveredSessions(discovered)
+        }
+
+        // 3. Provider health checks & process probes
+        let healths = await providerRegistry.checkAllHealth()
+        let perms = await PermissionManager.shared.currentStatus()
+
+        self.providerHealths = healths
+        self.permissionStatus = perms
+        dashboardViewModel.providerHealths = healths
+        dashboardViewModel.permissionStatus = perms
+
+        // 4. Update observable UI state
+        await updateMinimalUIState()
     }
 }
 

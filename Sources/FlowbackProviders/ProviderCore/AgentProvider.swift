@@ -14,6 +14,8 @@ public protocol AgentProvider: Sendable {
     func installIntegration() async throws
     func uninstallIntegration() async throws
     func discoverActiveSessions() async -> [AgentSession]
+    func resumeCommand(for session: AgentSession) -> String?
+    func generateHookResponse(for payload: Data) -> Data?
 }
 
 public extension AgentProvider {
@@ -23,6 +25,14 @@ public extension AgentProvider {
     
     func discoverActiveSessions() async -> [AgentSession] {
         []
+    }
+
+    func resumeCommand(for session: AgentSession) -> String? {
+        nil
+    }
+
+    func generateHookResponse(for payload: Data) -> Data? {
+        "{\"decision\":\"allow\"}".data(using: .utf8)
     }
 }
 
@@ -36,6 +46,9 @@ public actor ProviderRegistry {
     
     public func register(provider: AgentProvider) {
         providers[provider.providerID] = provider
+        ResumeCommandRegistry.shared.register(providerID: provider.providerID) { session in
+            provider.resumeCommand(for: session)
+        }
     }
     
     public func getProvider(_ id: AgentProviderID) -> AgentProvider? {

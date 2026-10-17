@@ -56,7 +56,7 @@ public actor FocusController {
         )
 
         switch decision {
-        case .restoreOrigin(_, let reason):
+        case .restoreOrigin(_, let reason), .restoreDestination(_, let reason):
             // Check cooldown before restoring
             let canRestore = await arbiter.canRestoreFocusNow()
             if !canRestore {
@@ -159,29 +159,24 @@ public actor FocusController {
         }
 
         // Priority 2: CLI / Terminal resume command for Terminal-based agents
-        if session.providerID == .antigravityCLI || session.providerID == .claudeCode {
-            if let origin = session.originContext {
-                // Try raising the exact terminal window
-                let adapter = adapterRegistry.findAdapter(for: origin.bundleIdentifier) ?? GenericApplicationAdapter()
-                let restored = await adapter.restoreContext(
-                    context: origin,
-                    appController: appController,
-                    windowController: windowController
+        if let resumeHint = ResumeCommandRegistry.shared.resumeCommand(for: session), let origin = session.originContext {
+            // Try raising the exact terminal window
+            let adapter = adapterRegistry.findAdapter(for: origin.bundleIdentifier) ?? GenericApplicationAdapter()
+            let restored = await adapter.restoreContext(
+                context: origin,
+                appController: appController,
+                windowController: windowController
+            )
+            if restored {
+                return RestorationResult(
+                    outcome: .resumeHintPresented,
+                    sessionID: session.id,
+                    providerID: session.providerID,
+                    conversationID: convID,
+                    conversationTitle: convTitle,
+                    targetDescription: origin.displayLabel,
+                    message: "Activated workspace terminal window with resume hint: (\(resumeHint))"
                 )
-                if restored {
-                    let resumeHint = (session.providerID == .antigravityCLI)
-                        ? "agy --conversation \(convID)"
-                        : "claude resume \(convID)"
-                    return RestorationResult(
-                        outcome: .resumeHintPresented,
-                        sessionID: session.id,
-                        providerID: session.providerID,
-                        conversationID: convID,
-                        conversationTitle: convTitle,
-                        targetDescription: origin.displayLabel,
-                        message: "Activated workspace terminal window with resume hint: (\(resumeHint))"
-                    )
-                }
             }
         }
 
@@ -231,13 +226,11 @@ public actor FocusController {
         )
 
         if restored {
-            // Determine honest outcome based on provider capability and restored context
+            // Determine honest outcome based on restored context:
+            // Activating an application window or matching a workspace directory does not confirm internal conversation selection.
             let outcome: RestorationOutcome
             let message: String
-            if session.focusCapability == .exactConversation {
-                outcome = .exactConversationRestored
-                message = "Restored exact conversation for \(origin.displayLabel)"
-            } else if origin.workspacePath != nil {
+            if origin.workspacePath != nil {
                 outcome = .workspaceActivatedOnly
                 message = "Activated workspace window for \(origin.displayLabel)"
             } else {

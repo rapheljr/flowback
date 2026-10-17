@@ -82,4 +82,12 @@ public final class ClaudeCodeProvider: AgentProvider, Sendable {
     public func uninstallIntegration() async throws {
         logger.info("Claude Code integration reset")
     }
+
+    public func resumeCommand(for session: AgentSession) -> String? {
+        guard let convID = session.conversationID ?? session.providerSessionID, !convID.isEmpty else {
+            return nil
+        }
+        let formattedID = convID.contains(" ") ? "\"\(convID)\"" : convID
+        return "claude resume \(formattedID)"
+    }
 }

@@ -16,10 +16,11 @@ public protocol ApplicationAdapter: Sendable {
     ) async -> Bool
 }
 
-/// Registry that finds the best adapter for a given application
+/// Thread-safe registry that finds the best adapter for a given application
 public final class ApplicationAdapterRegistry: @unchecked Sendable {
     public static let shared = ApplicationAdapterRegistry()
     
+    private let lock = NSLock()
     private var adapters: [ApplicationAdapter] = []
     
     public init() {
@@ -27,11 +28,16 @@ public final class ApplicationAdapterRegistry: @unchecked Sendable {
     }
     
     public func register(adapter: ApplicationAdapter) {
-        adapters.append(adapter)
+        lock.withLock {
+            adapters.append(adapter)
+        }
     }
     
     public func findAdapter(for bundleIdentifier: String) -> ApplicationAdapter? {
-        adapters.first { $0.canHandle(bundleIdentifier: bundleIdentifier) }
+        let snapshot: [ApplicationAdapter] = lock.withLock {
+            adapters
+        }
+        return snapshot.first { $0.canHandle(bundleIdentifier: bundleIdentifier) }
     }
     
     private func registerDefaultAdapters() {

@@ -73,15 +73,13 @@ public struct AgentSession: Identifiable, Codable, Hashable, Sendable {
         self.parentSessionID = parentSessionID
         self.conversationURL = conversationURL
 
-        let defaultRemote = (providerID == .cursorBackground)
-        self.isRemote = isRemote ?? defaultRemote
+        let defaultRemote = isRemote ?? (conversationURL != nil && originContext == nil)
+        self.isRemote = defaultRemote
 
         if let cap = focusCapability {
             self.focusCapability = cap
-        } else if providerID == .cursorBackground {
+        } else if defaultRemote {
             self.focusCapability = .externalURL
-        } else if providerID == .antigravityCLI || providerID == .claudeCode {
-            self.focusCapability = .workspaceAndConversation
         } else {
             self.focusCapability = .windowOnly
         }
@@ -156,15 +154,13 @@ public struct AgentSession: Identifiable, Codable, Hashable, Sendable {
             self.conversationURL = nil
         }
 
-        let decodedRemote = try container.decodeIfPresent(Bool.self, forKey: .isRemote)
-        self.isRemote = decodedRemote ?? (self.providerID == .cursorBackground)
+        let defaultRemote = try container.decodeIfPresent(Bool.self, forKey: .isRemote) ?? (self.conversationURL != nil && self.originContext == nil)
+        self.isRemote = defaultRemote
 
         if let cap = try container.decodeIfPresent(ConversationFocusCapability.self, forKey: .focusCapability) {
             self.focusCapability = cap
-        } else if self.providerID == .cursorBackground {
+        } else if defaultRemote {
             self.focusCapability = .externalURL
-        } else if self.providerID == .antigravityCLI || self.providerID == .claudeCode {
-            self.focusCapability = .workspaceAndConversation
         } else {
             self.focusCapability = .windowOnly
         }

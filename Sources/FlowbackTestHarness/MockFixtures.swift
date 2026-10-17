@@ -48,6 +48,11 @@ public final class MockWindowController: WindowControlling, @unchecked Sendable 
     }
     
     public func raiseWindow(windowID: UInt32, pid: Int32) -> Bool {
+        if !windowsMock.isEmpty {
+            guard windowsMock.contains(where: { $0.windowID == windowID && $0.processIdentifier == pid }) else {
+                return false
+            }
+        }
         raisedWindowIDs.append(windowID)
         return true
     }

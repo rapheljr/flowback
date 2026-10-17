@@ -48,16 +48,21 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
         let isInstalled = dirExists || (detectedBinary != nil)
         let hooksPath = (globalConfigPath as NSString).appendingPathComponent("hooks.json")
         var hookInstalled = false
-
         if fm.fileExists(atPath: hooksPath),
            let data = try? Data(contentsOf: URL(fileURLWithPath: hooksPath)),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            hookInstalled = json["flowback-agent-focus"] != nil
+            if let hook = (json["flowback-antigravity-cli"] ?? json["flowback-agent-focus"]) as? [String: Any] {
+                let stopCmds = hook["Stop"] as? [[String: Any]]
+                let cmdStr = stopCmds?.first?["command"] as? String ?? ""
+                if cmdStr.contains("flowback hook antigravity-cli") {
+                    hookInstalled = true
+                }
+            }
         }
 
         var version: String?
         if let bin = detectedBinary {
-            version = probeBinaryVersion(atPath: bin)
+            version = await probeBinaryVersion(atPath: bin)
         }
 
         let statusMessage: String
@@ -83,29 +88,21 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
         )
     }
 
-    private func probeBinaryVersion(atPath path: String) -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: path)
-        process.arguments = ["--version"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
+    private func probeBinaryVersion(atPath path: String) async -> String? {
         do {
-            try process.run()
-            let deadline = Date().addingTimeInterval(1.0)
-            while process.isRunning && Date() < deadline {
-                Thread.sleep(forTimeInterval: 0.02)
-            }
-            if !process.isRunning && process.terminationStatus == 0 {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                if let str = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !str.isEmpty {
+            let result = try await AsyncProcessRunner.run(
+                executablePath: path,
+                arguments: ["--version"],
+                timeoutSeconds: 1.5
+            )
+            if result.exitCode == 0 {
+                let str = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !str.isEmpty {
                     return str
                 }
-            } else if process.isRunning {
-                process.terminate()
             }
         } catch {
-            logger.debug("Failed to probe version for \(path): \(error.localizedDescription)")
+            logger.debug("Failed to asynchronously probe version for \(path): \(error.localizedDescription)")
         }
         return nil
     }
@@ -524,9 +521,15 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             "Stop": [["type": "command", "command": cmd, "timeout": 5]]
         ]
 
-        hooksDict["flowback-agent-focus"] = flowbackHook
+        hooksDict["flowback-antigravity-cli"] = flowbackHook
+        if let legacy = hooksDict["flowback-agent-focus"] as? [String: Any] {
+            let legacyCmd = ((legacy["Stop"] as? [[String: Any]])?.first?["command"] as? String) ?? ""
+            if legacyCmd.contains("flowback hook antigravity-cli") {
+                hooksDict.removeValue(forKey: "flowback-agent-focus")
+            }
+        }
         let outputData = try JSONSerialization.data(withJSONObject: hooksDict, options: [.prettyPrinted, .sortedKeys])
-        try outputData.write(to: URL(fileURLWithPath: hooksPath))
+        try outputData.write(to: URL(fileURLWithPath: hooksPath), options: .atomic)
         logger.info("Successfully installed Flowback hooks for Antigravity CLI to \(hooksPath)")
     }
 
@@ -540,10 +543,45 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             return
         }
 
-        if hooksDict.removeValue(forKey: "flowback-agent-focus") != nil {
-            let outputData = try JSONSerialization.data(withJSONObject: hooksDict, options: [.prettyPrinted, .sortedKeys])
-            try outputData.write(to: URL(fileURLWithPath: hooksPath))
-            logger.info("Removed Flowback hook from \(hooksPath)")
+        var didRemove = false
+        if hooksDict.removeValue(forKey: "flowback-antigravity-cli") != nil {
+            didRemove = true
         }
+        if let legacy = hooksDict["flowback-agent-focus"] as? [String: Any] {
+            let legacyCmd = ((legacy["Stop"] as? [[String: Any]])?.first?["command"] as? String) ?? ""
+            if legacyCmd.contains("flowback hook antigravity-cli") {
+                hooksDict.removeValue(forKey: "flowback-agent-focus")
+                didRemove = true
+            }
+        }
+
+        if didRemove {
+            let outputData = try JSONSerialization.data(withJSONObject: hooksDict, options: [.prettyPrinted, .sortedKeys])
+            try outputData.write(to: URL(fileURLWithPath: hooksPath), options: .atomic)
+            logger.info("Removed Flowback CLI hook from \(hooksPath)")
+        }
+    }
+
+    public func resumeCommand(for session: AgentSession) -> String? {
+        guard let convID = session.conversationID ?? session.providerSessionID, !convID.isEmpty else {
+            return nil
+        }
+        let formattedID = convID.contains(" ") ? "\"\(convID)\"" : convID
+        return "agy --conversation \(formattedID)"
+    }
+
+    public func generateHookResponse(for payload: Data) -> Data? {
+        if let json = try? JSONSerialization.jsonObject(with: payload) as? [String: Any] {
+            if let hookName = json["hook_event_name"] as? String {
+                if hookName.caseInsensitiveCompare("PreInvocation") == .orderedSame {
+                    return "{\"injectSteps\":[]}".data(using: .utf8)
+                } else if hookName.caseInsensitiveCompare("PostInvocation") == .orderedSame {
+                    return "{}".data(using: .utf8)
+                }
+            } else if json["invocationNum"] != nil && json["terminationReason"] == nil {
+                return "{\"injectSteps\":[]}".data(using: .utf8)
+            }
+        }
+        return "{\"decision\":\"allow\"}".data(using: .utf8)
     }
 }
