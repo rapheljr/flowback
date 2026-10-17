@@ -860,6 +860,8 @@ await runAntigravityReactivationAndTranscriptSuites()
 await runAntigravityCLIIntegrationSuites()
 await runConversationAwarenessSuites()
 await runAuditRemediationSuites()
+await runVorssaintDiscoverySuites()
+await runVisualParitySuites()
 
 print("\n================================================================")
 print("TEST RESULTS SUMMARY")
