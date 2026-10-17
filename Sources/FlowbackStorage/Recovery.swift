@@ -91,7 +91,9 @@ public final class RecoveryManager: Sendable {
                         isDurable: false,
                         isRecovered: true,
                         backupPath: backupPath,
-                        recoveryNotice: "Warning: Operating in transient in-memory storage fallback. Changes will NOT persist across restarts. Damaged database preserved at \(backupPath ?? "unknown")."
+                        recoveryNotice: "Warning: Operating in transient in-memory storage fallback. "
+                            + "Changes will NOT persist across restarts. "
+                            + "Damaged database preserved at \(backupPath ?? "unknown")."
                     )
                 } catch {
                     logger.fault("Fatal: even in-memory database fallback failed: \(error.localizedDescription)")

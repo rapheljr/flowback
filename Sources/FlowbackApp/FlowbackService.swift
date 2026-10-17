@@ -13,7 +13,7 @@ import OSLog
 private let logger = Logger(subsystem: "com.flowback.app", category: "FlowbackService")
 
 @MainActor
-public final class FlowbackService: NSObject, ObservableObject, MenuBarActionDelegate, NotificationActionDelegate, NSWindowDelegate {
+public final class FlowbackService: NSObject, ObservableObject {
     public static let shared = FlowbackService()
     
     // Lifecycle State
@@ -462,9 +462,11 @@ public final class FlowbackService: NSObject, ObservableObject, MenuBarActionDel
             )
         }
     }
-    
-    // MARK: - MenuBarActionDelegate
-    
+}
+
+// MARK: - MenuBarActionDelegate
+
+extension FlowbackService: MenuBarActionDelegate {
     public func didRequestRefresh() {
         Task { [weak self] in
             await self?.refreshUIState()
@@ -505,9 +507,11 @@ public final class FlowbackService: NSObject, ObservableObject, MenuBarActionDel
     public func didRequestQuit() {
         requestQuit()
     }
-    
-    // MARK: - NotificationActionDelegate
-    
+}
+
+// MARK: - NotificationActionDelegate
+
+extension FlowbackService: NotificationActionDelegate {
     public func didRequestFocus(sessionID: AgentSessionID) async {
         if let session = await sessionManager.getSession(id: sessionID) {
             _ = await focusController.manualFocusSession(session)
@@ -517,9 +521,11 @@ public final class FlowbackService: NSObject, ObservableObject, MenuBarActionDel
     public func didRequestReview() async {
         openDashboardWindow(tab: .overview)
     }
-    
-    // MARK: - Dashboard Window Management & NSWindowDelegate
-    
+}
+
+// MARK: - Dashboard Window Management & NSWindowDelegate
+
+extension FlowbackService: NSWindowDelegate {
     public func windowWillClose(_ notification: Notification) {
         if let win = notification.object as? NSWindow, win === dashboardWindow {
             dashboardWindow = nil

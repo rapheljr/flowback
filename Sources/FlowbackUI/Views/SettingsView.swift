@@ -3,7 +3,7 @@ import FlowbackCore
 
 public final class SettingsViewModel: ObservableObject {
     @Published public var hasSavedRecently: Bool = false
-    @Published public var errorMessage: String? = nil
+    @Published public var errorMessage: String?
     public init() {}
 }
 

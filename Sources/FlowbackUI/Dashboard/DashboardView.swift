@@ -61,7 +61,7 @@ public struct DashboardView: View {
     public var onRefresh: () -> Void
     public var isDatabaseReady: Bool = true
     public var isStorageDurable: Bool = true
-    public var storageRecoveryNotice: String? = nil
+    public var storageRecoveryNotice: String?
     public var isIPCReady: Bool = true
     
     @ObservedObject public var viewModel: DashboardViewModel
