@@ -169,6 +169,8 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
             }
         }
 
+        let convTitle = payload.title ?? payload.metadata?["title"] ?? payload.metadata?["prompt"]
+
         return AgentEvent(
             timestamp: Date(),
             providerID: providerID,
@@ -176,7 +178,11 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
             type: eventType,
             workspace: workspace,
             origin: origin,
-            metadata: metadata
+            metadata: metadata,
+            conversationID: sId,
+            conversationTitle: convTitle,
+            focusCapability: .windowOnly,
+            isRemote: false
         )
     }
 
@@ -267,7 +273,9 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
                 state: .running,
                 originContext: origin,
                 startedAt: Date(),
-                updatedAt: Date()
+                updatedAt: Date(),
+                focusCapability: .windowOnly,
+                isRemote: false
             )
             sessions.append(s)
         }

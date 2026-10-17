@@ -12,6 +12,13 @@ public struct GenericHookPayload: Codable, Sendable {
     public let taskId: String?
     public let workspace: String?
     public let timestamp: String?
+    public let conversationId: String?
+    public let title: String?
+    public let taskSummary: String?
+    public let executionId: String?
+    public let parentSessionId: String?
+    public let conversationUrl: String?
+    public let focusCapability: String?
     public let metadata: [String: String]?
     
     public init(
@@ -22,6 +29,13 @@ public struct GenericHookPayload: Codable, Sendable {
         taskId: String? = nil,
         workspace: String? = nil,
         timestamp: String? = nil,
+        conversationId: String? = nil,
+        title: String? = nil,
+        taskSummary: String? = nil,
+        executionId: String? = nil,
+        parentSessionId: String? = nil,
+        conversationUrl: String? = nil,
+        focusCapability: String? = nil,
         metadata: [String: String]? = nil
     ) {
         self.schemaVersion = schemaVersion
@@ -31,6 +45,13 @@ public struct GenericHookPayload: Codable, Sendable {
         self.taskId = taskId
         self.workspace = workspace
         self.timestamp = timestamp
+        self.conversationId = conversationId
+        self.title = title
+        self.taskSummary = taskSummary
+        self.executionId = executionId
+        self.parentSessionId = parentSessionId
+        self.conversationUrl = conversationUrl
+        self.focusCapability = focusCapability
         self.metadata = metadata
     }
 }
@@ -72,12 +93,28 @@ public final class GenericHookProvider: AgentProvider, Sendable {
         let sessID = AgentSessionID(payload.sessionId)
         let eventType = AgentEventType(rawValue: payload.event) ?? .agentCompleted
         
+        let convID = payload.conversationId ?? payload.sessionId
+        let convTitle = payload.title ?? payload.metadata?["title"] ?? payload.metadata?["prompt"]
+        let taskSummary = payload.taskSummary ?? payload.metadata?["taskSummary"]
+        let execID = payload.executionId ?? payload.taskId
+        let parentID = payload.parentSessionId
+        let convURL = payload.conversationUrl
+        let focusCap = payload.focusCapability.flatMap { ConversationFocusCapability(rawValue: $0) } ?? .windowOnly
+
         return AgentEvent(
             providerID: provID,
             sessionID: sessID,
             type: eventType,
             workspace: payload.workspace,
-            metadata: payload.metadata ?? [:]
+            metadata: payload.metadata ?? [:],
+            conversationID: convID,
+            conversationTitle: convTitle,
+            taskSummary: taskSummary,
+            executionID: execID,
+            parentSessionID: parentID.map { AgentSessionID($0) },
+            conversationURL: convURL.flatMap { URL(string: $0) },
+            focusCapability: focusCap,
+            isRemote: false
         )
     }
     

@@ -227,6 +227,11 @@ public final class CursorBackgroundProvider: AgentProvider, @unchecked Sendable 
             )
         }
 
+        let conversationURL: String? = agent.prUrl ?? "https://cursor.com/agents/\(agent.id)"
+        let title: String? = agent.summary
+        let taskSummary: String? = agent.branchName ?? agent.targetRef ?? agent.repos?.first?.startingRef
+        let focusCap: ConversationFocusCapability = .externalURL
+
         return AgentEvent(
             timestamp: Date(),
             providerID: providerID,
@@ -234,7 +239,15 @@ public final class CursorBackgroundProvider: AgentProvider, @unchecked Sendable 
             type: eventType,
             workspace: matchedWorkspacePath ?? remoteDestinationURL,
             origin: origin,
-            metadata: metadata
+            metadata: metadata,
+            conversationID: agentId,
+            conversationTitle: title,
+            taskSummary: taskSummary,
+            executionID: agent.latestRunId,
+            parentSessionID: agent.parentAgentId.map { AgentSessionID($0) },
+            conversationURL: conversationURL.flatMap { URL(string: $0) },
+            focusCapability: focusCap,
+            isRemote: true
         )
     }
 
@@ -371,6 +384,11 @@ public final class CursorBackgroundProvider: AgentProvider, @unchecked Sendable 
                 restorationCapability: localWs != nil ? .workspaceWindow : (remoteDestination != nil ? .notificationFallbackOnly : .unsupported)
             )
 
+            let conversationURL: String? = agent.prUrl ?? "https://cursor.com/agents/\(agent.id)"
+            let title: String? = agent.summary
+            let taskSummary: String? = agent.branchName ?? agent.targetRef ?? agent.repos?.first?.startingRef
+            let focusCap: ConversationFocusCapability = .externalURL
+
             let session = AgentSession(
                 id: AgentSessionID(agent.id),
                 providerID: providerID,
@@ -378,7 +396,15 @@ public final class CursorBackgroundProvider: AgentProvider, @unchecked Sendable 
                 state: state,
                 workspace: localWs ?? remoteDestination,
                 originContext: origin,
-                metadata: metadata
+                metadata: metadata,
+                conversationID: agent.id,
+                conversationTitle: title,
+                taskSummary: taskSummary,
+                executionID: agent.latestRunId,
+                parentSessionID: agent.parentAgentId.map { AgentSessionID($0) },
+                conversationURL: conversationURL.flatMap { URL(string: $0) },
+                focusCapability: focusCap,
+                isRemote: true
             )
             discovered.append(session)
         }

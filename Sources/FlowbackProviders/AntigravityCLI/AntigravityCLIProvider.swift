@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import CoreGraphics
+import SQLite3
 import FlowbackCore
 import OSLog
 
@@ -11,11 +12,11 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
     public let displayName = "Antigravity CLI"
     public let isSupported = true
     public let supportLevel = ProviderSupportLevel.nativeLifecycle
-    
+
     private let globalConfigPath: String
     private let cliDir: String
     private let binaryPaths: [String]
-    
+
     public init(
         globalConfigPath: String = ("~/.gemini/config" as NSString).expandingTildeInPath,
         cliDir: String = ("~/.gemini/antigravity-cli" as NSString).expandingTildeInPath,
@@ -31,11 +32,11 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             "/usr/local/bin/gemini"
         ]
     }
-    
+
     public func checkHealth() async -> ProviderHealth {
         let fm = FileManager.default
         let dirExists = fm.fileExists(atPath: cliDir)
-        
+
         var detectedBinary: String?
         for path in binaryPaths {
             if fm.fileExists(atPath: path) {
@@ -43,22 +44,22 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                 break
             }
         }
-        
+
         let isInstalled = dirExists || (detectedBinary != nil)
         let hooksPath = (globalConfigPath as NSString).appendingPathComponent("hooks.json")
         var hookInstalled = false
-        
+
         if fm.fileExists(atPath: hooksPath),
            let data = try? Data(contentsOf: URL(fileURLWithPath: hooksPath)),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             hookInstalled = json["flowback-agent-focus"] != nil
         }
-        
+
         var version: String?
         if let bin = detectedBinary {
             version = probeBinaryVersion(atPath: bin)
         }
-        
+
         let statusMessage: String
         if !isInstalled {
             statusMessage = "Antigravity CLI (agy) not detected on system"
@@ -67,7 +68,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
         } else {
             statusMessage = "Integration active and healthy via hooks.json"
         }
-        
+
         return ProviderHealth(
             providerID: providerID,
             displayName: displayName,
@@ -81,7 +82,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             supportLevel: .nativeLifecycle
         )
     }
-    
+
     private func probeBinaryVersion(atPath path: String) -> String? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: path)
@@ -108,7 +109,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
         }
         return nil
     }
-    
+
     public func parseLifecyclePayload(data: Data) throws -> AgentEvent? {
         let decoder = JSONDecoder()
         if let payload = try? decoder.decode(AntigravityHookPayload.self, from: data) {
@@ -118,7 +119,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                 "terminationReason": payload.terminationReason ?? "unknown",
                 "modelName": payload.modelName ?? "auto"
             ]
-            
+
             if let execNum = payload.executionNum {
                 metadata["executionNum"] = "\(execNum)"
             }
@@ -131,10 +132,10 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             if let fullyIdle = payload.fullyIdle {
                 metadata["fullyIdle"] = "\(fullyIdle)"
             }
-            
+
             let eventType: AgentEventType
             let hookName = payload.hook_event_name?.lowercased()
-            
+
             if let err = payload.error, !err.isEmpty {
                 eventType = .agentFailed
             } else if hookName == "postinvocation" {
@@ -148,9 +149,14 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             } else {
                 eventType = .agentRunning
             }
-            
+
             let origin = resolveTerminalOrigin(forWorkspace: primaryWorkspace)
-            
+            let convTitle = payload.conversation_title
+            if let t = convTitle, !t.isEmpty {
+                metadata["title"] = t
+                metadata["conversation_title"] = t
+            }
+
             return AgentEvent(
                 timestamp: Date(),
                 providerID: providerID,
@@ -158,19 +164,25 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                 type: eventType,
                 workspace: primaryWorkspace,
                 origin: origin,
-                metadata: metadata
+                metadata: metadata,
+                conversationID: payload.conversationId,
+                conversationTitle: convTitle,
+                executionID: payload.executionNum.map { "\($0)" },
+                focusCapability: .workspaceAndConversation,
+                isRemote: false
             )
         }
-        
+
         // Fallback: Generic JSON payload
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return nil
         }
-        
+
         let sessionID = (json["session_id"] as? String) ?? (json["id"] as? String) ?? UUID().uuidString
         let status = (json["status"] as? String) ?? (json["state"] as? String) ?? "completed"
         let workspace = (json["workspace"] as? String) ?? (json["cwd"] as? String)
-        
+        let convTitle = json["title"] as? String ?? json["prompt"] as? String ?? json["task"] as? String
+
         let eventType: AgentEventType
         switch status {
         case "permission_required":
@@ -184,9 +196,11 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
         default:
             eventType = .agentCompleted
         }
-        
+
         let origin = resolveTerminalOrigin(forWorkspace: workspace)
-        
+        var metadata = ["status": status]
+        if let t = convTitle, !t.isEmpty { metadata["title"] = t }
+
         return AgentEvent(
             timestamp: Date(),
             providerID: providerID,
@@ -194,17 +208,21 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             type: eventType,
             workspace: workspace,
             origin: origin,
-            metadata: ["status": status]
+            metadata: metadata,
+            conversationID: sessionID,
+            conversationTitle: convTitle,
+            focusCapability: .workspaceAndConversation,
+            isRemote: false
         )
     }
-    
+
     // swiftlint:disable:next function_body_length cyclomatic_complexity
     public func discoverActiveSessions() async -> [AgentSession] {
         let fm = FileManager.default
         let now = Date()
         var discovered: [AgentSession] = []
         var seenIDs = Set<String>()
-        
+
         // 1. Scan brain directory for active transcripts
         let brainDir = (cliDir as NSString).appendingPathComponent("brain")
         if fm.fileExists(atPath: brainDir),
@@ -214,12 +232,12 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                 let logsDir = (convPath as NSString).appendingPathComponent(".system_generated/logs")
                 let transcriptPath = (logsDir as NSString).appendingPathComponent("transcript.jsonl")
                 let tasksPath = (convPath as NSString).appendingPathComponent(".system_generated/tasks")
-                
+
                 guard fm.fileExists(atPath: transcriptPath) else { continue }
                 let attrs = (try? fm.attributesOfItem(atPath: transcriptPath)) ?? [:]
                 let modDate = attrs[.modificationDate] as? Date ?? Date.distantPast
                 let createDate = attrs[.creationDate] as? Date ?? modDate
-                
+
                 var recentlyActive = (now.timeIntervalSince(modDate) < 1200)
                 if !recentlyActive, fm.fileExists(atPath: tasksPath),
                    let taskFiles = try? fm.contentsOfDirectory(atPath: tasksPath) {
@@ -232,15 +250,15 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                         }
                     }
                 }
-                
+
                 guard recentlyActive else { continue }
-                
+
                 guard let fileHandle = FileHandle(forReadingAtPath: transcriptPath) else { continue }
                 let fileSize = fileHandle.seekToEndOfFile()
                 fileHandle.seek(toFileOffset: 0)
                 let headData = fileHandle.readData(ofLength: Int(min(fileSize, 65536)))
                 let headStr = String(data: headData, encoding: .utf8) ?? ""
-                
+
                 var tailStr = ""
                 if fileSize > 65536 {
                     let tailOffset = max(65536, fileSize - 65536)
@@ -249,7 +267,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                     tailStr = String(data: tailData, encoding: .utf8) ?? ""
                 }
                 fileHandle.closeFile()
-                
+
                 let chunkStr = headStr + "\n" + tailStr
                 let lines = (tailStr.isEmpty ? headStr : tailStr).components(separatedBy: "\n").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
                 guard let lastLine = lines.last else { continue }
@@ -257,16 +275,18 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                     lastLine.contains("\"type\":\"PLANNER_RESPONSE\"") &&
                     lastLine.contains("\"status\":\"DONE\"") &&
                     !lastLine.contains("\"tool_calls\"")
-                
+
                 let isCompleted = (isModelDoneWithoutTools || lastLine.contains("\"fullyIdle\":true"))
                 if isCompleted && now.timeIntervalSince(modDate) > 300 {
                     continue
                 }
-                
-                let workspacePath = extractWorkspacePath(from: chunkStr)
+
+                let dbInfo = fetchFromConversationDB(conversationID: convID)
+                let workspacePath = extractWorkspacePath(from: chunkStr) ?? dbInfo.workspace
+                let convTitle = dbInfo.title ?? extractConversationTitle(from: chunkStr)
                 let origin = resolveTerminalOrigin(forWorkspace: workspacePath)
                 let sessionState: AgentState = isCompleted ? .completed : .running
-                
+
                 seenIDs.insert(convID)
                 discovered.append(AgentSession(
                     id: AgentSessionID(convID),
@@ -277,11 +297,15 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                     originContext: origin,
                     startedAt: createDate,
                     updatedAt: modDate,
-                    completedAt: isCompleted ? modDate : nil
+                    completedAt: isCompleted ? modDate : nil,
+                    conversationID: convID,
+                    conversationTitle: convTitle,
+                    focusCapability: .workspaceAndConversation,
+                    isRemote: false
                 ))
             }
         }
-        
+
         // 2. Scan presence locks for active CLI sessions
         let presenceDir = (cliDir as NSString).appendingPathComponent("presence")
         if fm.fileExists(atPath: presenceDir),
@@ -289,14 +313,15 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             for lock in lockFiles where lock.hasSuffix(".lock") {
                 let convID = String(lock.dropLast(5))
                 guard !seenIDs.contains(convID) else { continue }
-                
+
                 let lockPath = (presenceDir as NSString).appendingPathComponent(lock)
                 let attrs = (try? fm.attributesOfItem(atPath: lockPath)) ?? [:]
                 let modDate = attrs[.modificationDate] as? Date ?? Date.distantPast
-                
+
                 // If lock was updated within 30 minutes, consider it potentially active
                 if now.timeIntervalSince(modDate) < 1800 {
-                    let ws = findWorkspaceFromHistory(forConversationID: convID)
+                    let dbInfo = fetchFromConversationDB(conversationID: convID)
+                    let ws = dbInfo.workspace ?? findWorkspaceFromHistory(forConversationID: convID)
                     let origin = resolveTerminalOrigin(forWorkspace: ws)
                     seenIDs.insert(convID)
                     discovered.append(AgentSession(
@@ -307,15 +332,62 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                         workspace: ws,
                         originContext: origin,
                         startedAt: modDate,
-                        updatedAt: modDate
+                        updatedAt: modDate,
+                        conversationID: convID,
+                        conversationTitle: dbInfo.title,
+                        focusCapability: .workspaceAndConversation,
+                        isRemote: false
                     ))
                 }
             }
         }
-        
+
         return discovered
     }
-    
+
+    private func fetchFromConversationDB(conversationID: String) -> (title: String?, workspace: String?) {
+        let dbPath = (cliDir as NSString).appendingPathComponent("conversation_summaries.db")
+        guard FileManager.default.fileExists(atPath: dbPath) else { return (nil, nil) }
+
+        var db: OpaquePointer?
+        guard sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK, let database = db else {
+            return (nil, nil)
+        }
+        defer { sqlite3_close(database) }
+
+        let query = "SELECT title, workspace_uris FROM conversation_summaries WHERE conversation_id = ? LIMIT 1;"
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(database, query, -1, &stmt, nil) == SQLITE_OK, let statement = stmt else {
+            return (nil, nil)
+        }
+        defer { sqlite3_finalize(statement) }
+
+        sqlite3_bind_text(statement, 1, (conversationID as NSString).utf8String, -1, nil)
+
+        if sqlite3_step(statement) == SQLITE_ROW {
+            var title: String?
+            if let titlePtr = sqlite3_column_text(statement, 0) {
+                let t = String(cString: titlePtr).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !t.isEmpty { title = t }
+            }
+            var workspace: String?
+            if let urisPtr = sqlite3_column_text(statement, 1) {
+                let urisStr = String(cString: urisPtr)
+                if let data = urisStr.data(using: .utf8),
+                   let urisArray = try? JSONSerialization.jsonObject(with: data) as? [String],
+                   let firstUri = urisArray.first {
+                    workspace = firstUri.replacingOccurrences(of: "file://", with: "")
+                }
+            }
+            return (title, workspace)
+        }
+        return (nil, nil)
+    }
+
+    private func extractConversationTitle(from text: String) -> String? {
+        BrainTranscriptParser.extractConversationTitle(from: text)
+    }
+
     private func findWorkspaceFromHistory(forConversationID convID: String) -> String? {
         let historyPath = (cliDir as NSString).appendingPathComponent("history.jsonl")
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: historyPath)),
@@ -332,7 +404,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
         }
         return nil
     }
-    
+
     private func extractWorkspacePath(from text: String) -> String? {
         let userHome = NSHomeDirectory()
         let fm = FileManager.default
@@ -378,11 +450,11 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
 
         return nil
     }
-    
+
     private func resolveTerminalOrigin(forWorkspace workspace: String?) -> OriginContext? {
         guard let ws = workspace else { return nil }
         let folderName = (ws as NSString).lastPathComponent
-        
+
         let terminalBundles = [
             "com.mitchellh.ghostty",
             "com.apple.Terminal",
@@ -393,7 +465,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             "net.kovidgoyal.kitty",
             "com.github.wez.wezterm"
         ]
-        
+
         let runningApps = NSWorkspace.shared.runningApplications
         var matchedApp: NSRunningApplication?
         for bundle in terminalBundles {
@@ -402,9 +474,9 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                 break
             }
         }
-        
+
         guard let app = matchedApp else { return nil }
-        
+
         var winID: UInt32?
         var winTitle = "\(folderName) — \(app.localizedName ?? "Terminal")"
         if let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
@@ -418,7 +490,7 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
                 }
             }
         }
-        
+
         return OriginContext(
             bundleIdentifier: app.bundleIdentifier ?? "com.apple.Terminal",
             processIdentifier: app.processIdentifier,
@@ -427,23 +499,23 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             workspacePath: ws
         )
     }
-    
+
     public func installIntegration() async throws {
         let fm = FileManager.default
         let hooksPath = (globalConfigPath as NSString).appendingPathComponent("hooks.json")
         try fm.createDirectory(atPath: globalConfigPath, withIntermediateDirectories: true)
-        
+
         var hooksDict: [String: Any] = [:]
         if fm.fileExists(atPath: hooksPath) {
             let backupPath = "\(hooksPath).bak.\(Int(Date().timeIntervalSince1970))"
             try? fm.copyItem(atPath: hooksPath, toPath: backupPath)
-            
+
             if let data = try? Data(contentsOf: URL(fileURLWithPath: hooksPath)),
                let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 hooksDict = existing
             }
         }
-        
+
         let cmd = "export PATH=\"/opt/homebrew/bin:$HOME/.local/bin:/usr/local/bin:$PATH\"; flowback hook antigravity-cli"
         let flowbackHook: [String: Any] = [
             "enabled": true,
@@ -451,23 +523,23 @@ public final class AntigravityCLIProvider: AgentProvider, Sendable {
             "PostInvocation": [["type": "command", "command": cmd, "timeout": 5]],
             "Stop": [["type": "command", "command": cmd, "timeout": 5]]
         ]
-        
+
         hooksDict["flowback-agent-focus"] = flowbackHook
         let outputData = try JSONSerialization.data(withJSONObject: hooksDict, options: [.prettyPrinted, .sortedKeys])
         try outputData.write(to: URL(fileURLWithPath: hooksPath))
         logger.info("Successfully installed Flowback hooks for Antigravity CLI to \(hooksPath)")
     }
-    
+
     public func uninstallIntegration() async throws {
         let fm = FileManager.default
         let hooksPath = (globalConfigPath as NSString).appendingPathComponent("hooks.json")
         guard fm.fileExists(atPath: hooksPath) else { return }
-        
+
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: hooksPath)),
               var hooksDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return
         }
-        
+
         if hooksDict.removeValue(forKey: "flowback-agent-focus") != nil {
             let outputData = try JSONSerialization.data(withJSONObject: hooksDict, options: [.prettyPrinted, .sortedKeys])
             try outputData.write(to: URL(fileURLWithPath: hooksPath))

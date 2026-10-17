@@ -177,6 +177,12 @@ public final class AntigravityProvider: AgentProvider, Sendable {
             }
         }
         
+        let convTitle = payload.conversation_title
+        if let t = convTitle, !t.isEmpty {
+            metadata["title"] = t
+            metadata["conversation_title"] = t
+        }
+
         return AgentEvent(
             timestamp: Date(),
             providerID: resolvedProviderID,
@@ -184,8 +190,17 @@ public final class AntigravityProvider: AgentProvider, Sendable {
             type: eventType,
             workspace: primaryWorkspace,
             origin: origin,
-            metadata: metadata
+            metadata: metadata,
+            conversationID: payload.conversationId,
+            conversationTitle: convTitle,
+            executionID: payload.executionNum.map { "\($0)" },
+            focusCapability: isCLI ? .workspaceAndConversation : .windowOnly,
+            isRemote: false
         )
+    }
+
+    private func extractConversationTitle(from text: String) -> String? {
+        BrainTranscriptParser.extractConversationTitle(from: text)
     }
     
     // swiftlint:disable:next function_body_length cyclomatic_complexity
@@ -387,6 +402,7 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                     }
                 }
                 
+                let convTitle = extractConversationTitle(from: chunkStr)
                 let sessionState: AgentState = isCompleted ? .completed : .running
                 let session = AgentSession(
                     id: AgentSessionID(convID),
@@ -397,7 +413,11 @@ public final class AntigravityProvider: AgentProvider, Sendable {
                     originContext: origin,
                     startedAt: createDate,
                     updatedAt: modDate,
-                    completedAt: isCompleted ? modDate : nil
+                    completedAt: isCompleted ? modDate : nil,
+                    conversationID: convID,
+                    conversationTitle: convTitle,
+                    focusCapability: .windowOnly,
+                    isRemote: false
                 )
                 
                 discovered.append(session)

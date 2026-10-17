@@ -10,6 +10,7 @@ public struct OpenCodeHookPayload: Codable, Sendable {
     public let workspace: String?
     public let timestamp: String?
     public let status: String?
+    public let title: String?
     public let tool: OpenCodeToolEvent?
     public let error: String?
     public let metadata: [String: String]?
@@ -23,6 +24,7 @@ public struct OpenCodeHookPayload: Codable, Sendable {
         workspace: String? = nil,
         timestamp: String? = nil,
         status: String? = nil,
+        title: String? = nil,
         tool: OpenCodeToolEvent? = nil,
         error: String? = nil,
         metadata: [String: String]? = nil
@@ -35,6 +37,7 @@ public struct OpenCodeHookPayload: Codable, Sendable {
         self.workspace = workspace
         self.timestamp = timestamp
         self.status = status
+        self.title = title
         self.tool = tool
         self.error = error
         self.metadata = metadata

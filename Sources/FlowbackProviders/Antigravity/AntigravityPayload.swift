@@ -16,6 +16,7 @@ public struct AntigravityHookPayload: Codable, Sendable {
     public let terminationReason: String?
     public let error: String?
     public let fullyIdle: Bool?
+    public let conversation_title: String?
     
     public init(
         hook_event_name: String? = nil,
@@ -30,7 +31,8 @@ public struct AntigravityHookPayload: Codable, Sendable {
         stepIdx: Int? = nil,
         terminationReason: String? = nil,
         error: String? = nil,
-        fullyIdle: Bool? = nil
+        fullyIdle: Bool? = nil,
+        conversation_title: String? = nil
     ) {
         self.hook_event_name = hook_event_name
         self.conversationId = conversationId
@@ -45,6 +47,7 @@ public struct AntigravityHookPayload: Codable, Sendable {
         self.terminationReason = terminationReason
         self.error = error
         self.fullyIdle = fullyIdle
+        self.conversation_title = conversation_title
     }
 }
 

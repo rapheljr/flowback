@@ -191,6 +191,9 @@ public final class WindsurfProvider: AgentProvider, @unchecked Sendable {
             }
         }
 
+        let promptFirstLine = payload.tool_info?.prompt?.components(separatedBy: "\n").first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty })?.trimmingCharacters(in: .whitespaces)
+        let convTitle = promptFirstLine.map { String($0.prefix(120)) }
+
         return AgentEvent(
             timestamp: Date(),
             providerID: providerID,
@@ -198,7 +201,12 @@ public final class WindsurfProvider: AgentProvider, @unchecked Sendable {
             type: eventType,
             workspace: workspaceRoot,
             origin: origin,
-            metadata: metadata
+            metadata: metadata,
+            conversationID: trajectoryId,
+            conversationTitle: convTitle,
+            executionID: execId,
+            focusCapability: .windowOnly,
+            isRemote: false
         )
     }
 
@@ -363,6 +371,18 @@ public final class WindsurfProvider: AgentProvider, @unchecked Sendable {
                     )
                 }
 
+                var convTitle: String?
+                if let promptRange = tailStr.range(of: "\"prompt\":\\s*\"([^\"]+)\"", options: .regularExpression) {
+                    let matched = String(tailStr[promptRange])
+                    let comps = matched.components(separatedBy: "\"")
+                    if comps.count >= 4 {
+                        let promptText = comps[3].replacingOccurrences(of: "\\n", with: " ").trimmingCharacters(in: .whitespaces)
+                        if !promptText.isEmpty {
+                            convTitle = String(promptText.prefix(120))
+                        }
+                    }
+                }
+
                 let session = AgentSession(
                     id: AgentSessionID(trajId),
                     providerID: .windsurf,
@@ -371,7 +391,11 @@ public final class WindsurfProvider: AgentProvider, @unchecked Sendable {
                     workspace: wsPath,
                     originContext: origin,
                     startedAt: createDate,
-                    updatedAt: modDate
+                    updatedAt: modDate,
+                    conversationID: trajId,
+                    conversationTitle: convTitle,
+                    focusCapability: .windowOnly,
+                    isRemote: false
                 )
                 discovered.append(session)
             }
