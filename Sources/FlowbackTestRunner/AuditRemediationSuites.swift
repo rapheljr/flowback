@@ -833,7 +833,9 @@ func runAuditRemediationSuites() async {
         }
         await perfScheduler.waitUntilSleeping()
         perfScheduler.advance()
-        await Task.yield()
+        while perfCoalescer.executionCount == 0 {
+            await Task.yield()
+        }
         
         assertTest(uncoalescedCount == 1000, "C-01: Baseline uncoalesced workload yields 1,000 UI synchronizations")
         assertTest(coalescedCount == 1, "C-01: Coalesced workload yields exactly 1 UI synchronization")
