@@ -16,14 +16,14 @@ public final class AgentsViewModel: ObservableObject {
 public struct AgentsView: View {
     public let sessions: [AgentSession]
     public var onFocusSession: (AgentSession) -> Void
-    
+
     @StateObject private var viewModel = AgentsViewModel()
-    
+
     public init(sessions: [AgentSession], onFocusSession: @escaping (AgentSession) -> Void) {
         self.sessions = sessions
         self.onFocusSession = onFocusSession
     }
-    
+
     public var filteredSessions: [AgentSession] {
         switch viewModel.filter {
         case .all: return sessions
@@ -32,7 +32,7 @@ public struct AgentsView: View {
         case .failed: return sessions.filter { $0.state == .failed }
         }
     }
-    
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -50,7 +50,7 @@ public struct AgentsView: View {
             }
             .padding(.horizontal, 24)
             .padding(.top, 20)
-            
+
             if filteredSessions.isEmpty {
                 Spacer()
                 HStack {
@@ -82,34 +82,72 @@ public struct AgentsView: View {
                             .foregroundColor(.accentColor)
                             .frame(width: 32)
                             .accessibilityHidden(true)
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(session.projectName)
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(session.displayTitle)
                                     .font(.headline)
-                                Text("(\(session.providerID.rawValue))")
+                                    .lineLimit(1)
+
+                                if sessions.filter({ $0.projectName == session.projectName }).count > 1 {
+                                    Text("Shared Repo")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 1)
+                                        .background(Color.orange.opacity(0.15))
+                                        .foregroundColor(.orange)
+                                        .cornerRadius(4)
+                                }
+                            }
+
+                            HStack(spacing: 6) {
+                                Text(session.providerDisplayName)
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(.secondary)
+                                Text("•")
+                                    .foregroundColor(.secondary)
+                                Text(session.projectName)
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
+                                Text("•")
+                                    .foregroundColor(.secondary)
+                                Text(session.focusCapability.displayLabel)
+                                    .font(.caption)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 1)
+                                    .background(session.focusCapability == .windowOnly ? Color.gray.opacity(0.15) : Color.blue.opacity(0.15))
+                                    .foregroundColor(session.focusCapability == .windowOnly ? .secondary : .accentColor)
+                                    .cornerRadius(3)
                             }
-                            if let origin = session.originContext {
-                                Text("Origin: \(origin.displayLabel)")
+
+                            if let summary = session.taskSummary, !summary.isEmpty {
+                                Text(summary)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
+                                    .lineLimit(1)
                             }
-                            Text("Duration: \(session.formattedDuration)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+
+                            HStack(spacing: 8) {
+                                if let origin = session.originContext {
+                                    Text("Origin: \(origin.displayLabel)")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                                Text("Duration: \(session.formattedDuration)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
                         }
-                        
+
                         Spacer()
-                        
+
                         StatusBadge(state: session.state)
-                        
+
                         Button("Focus") {
                             onFocusSession(session)
                         }
                         .buttonStyle(.bordered)
-                        .accessibilityLabel("Focus session \(session.projectName)")
+                        .accessibilityLabel("Focus session \(session.displayTitle)")
                         .accessibilityIdentifier("agent-focus-\(session.id.rawValue)")
                     }
                     .padding(.vertical, 6)

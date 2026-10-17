@@ -8,7 +8,7 @@ public struct OverviewView: View {
     @Binding var focusLock: FocusLockState
     public var onFocusSession: (AgentSession) -> Void
     public var onRefresh: () -> Void
-    
+
     public init(
         activeSessions: Binding<[AgentSession]>,
         attentionQueue: Binding<[AttentionRequest]>,
@@ -22,7 +22,7 @@ public struct OverviewView: View {
         self.onFocusSession = onFocusSession
         self.onRefresh = onRefresh
     }
-    
+
     public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -57,7 +57,7 @@ public struct OverviewView: View {
                     .cornerRadius(10)
                     .accessibilityIdentifier("overview-focus-lock-banner")
                 }
-                
+
                 // Stat Cards
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                     StatCard(
@@ -79,7 +79,7 @@ public struct OverviewView: View {
                         color: focusLock.isCurrentlyLocked ? .orange : .green
                     )
                 }
-                
+
                 // Attention Queue items
                 if !attentionQueue.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
@@ -102,7 +102,7 @@ public struct OverviewView: View {
                         }
                     }
                 }
-                
+
                 // Active Sessions
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -117,7 +117,7 @@ public struct OverviewView: View {
                         .help("Scan and refresh active agent sessions")
                         .accessibilityIdentifier("overview-refresh-button")
                     }
-                    
+
                     if activeSessions.isEmpty {
                         HStack {
                             Spacer()
@@ -144,11 +144,17 @@ public struct OverviewView: View {
                                     .fill(Color.blue)
                                     .frame(width: 10, height: 10)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(session.projectName)
+                                    Text(session.displayTitle)
                                         .font(.headline)
-                                    Text("\(session.providerID.rawValue) • Started \(session.formattedDuration) ago")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                    HStack(spacing: 4) {
+                                        Text("\(session.providerDisplayName) • \(session.projectName)")
+                                        Text("• \(session.focusCapability.displayLabel)")
+                                            .foregroundColor(session.focusCapability == .windowOnly ? .secondary : .accentColor)
+                                        Text("• \(session.formattedDuration)")
+                                    }
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                                 }
                                 Spacer()
                                 StatusBadge(state: session.state)
@@ -156,7 +162,7 @@ public struct OverviewView: View {
                                     onFocusSession(session)
                                 }
                                 .buttonStyle(.bordered)
-                                .accessibilityLabel("Restore focus to \(session.projectName)")
+                                .accessibilityLabel("Restore focus to \(session.displayTitle)")
                                 .accessibilityIdentifier("restore-focus-\(session.id.rawValue)")
                             }
                             .padding(12)
@@ -176,7 +182,7 @@ struct StatCard: View {
     let value: String
     let systemImage: String
     let color: Color
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
