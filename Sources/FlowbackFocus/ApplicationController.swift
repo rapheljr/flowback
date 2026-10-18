@@ -49,7 +49,7 @@ public final class ApplicationController: ApplicationControlling, @unchecked Sen
             let yieldBlock = {
                 MainActor.assumeIsolated {
                     if NSApplication.shared.activationPolicy() == .accessory {
-                        NSApplication.shared.activate(ignoringOtherApps: true)
+                        NSApplication.shared.activate()
                         NSApplication.shared.yieldActivation(to: application)
                     }
                 }
@@ -61,7 +61,7 @@ public final class ApplicationController: ApplicationControlling, @unchecked Sen
             }
             let success = application.activate(from: NSRunningApplication.current, options: [])
             if !success {
-                return application.activate(options: [.activateIgnoringOtherApps])
+                return application.activate(options: [])
             }
             return true
         } else {

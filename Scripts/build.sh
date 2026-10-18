@@ -19,18 +19,29 @@ cd "$PROJECT_ROOT"
 
 mkdir -p "$PROJECT_ROOT/dist/bin"
 
+# Suppress harmless Command Line Tools SDK path warnings on CLT-only macOS
+LINKER_FLAGS=(-Xlinker -w)
+
+build_swift_release() {
+    # On CLT-only macOS installations, Apple's Swift 6 build engine adds non-existent
+    # /Library/Developer/CommandLineTools/Developer search paths during intermediate module linking.
+    # We pass -Xlinker -w for product linking and filter harmless CLT search path warnings.
+    swift build -c release "$@" "${LINKER_FLAGS[@]}" 2>&1 | \
+        sed -E "/ld: warning: search path '\/Library\/Developer\/CommandLineTools\/Developer/d"
+}
+
 if [ "$TARGET_ARCH" = "universal" ]; then
     echo "Compiling Universal 2 binaries (arm64 + x86_64)..."
     STAGING_DIR="$(mktemp -d /tmp/flowback-universal.XXXXXX)"
     trap 'rm -rf "$STAGING_DIR"' EXIT
 
     echo "  -> Compiling arm64 slice..."
-    swift build -c release --triple arm64-apple-macosx14.0
+    build_swift_release --triple arm64-apple-macosx14.0
     cp "$PROJECT_ROOT/.build/release/Flowback" "$STAGING_DIR/Flowback-arm64"
     cp "$PROJECT_ROOT/.build/release/flowback-cli" "$STAGING_DIR/flowback-cli-arm64"
 
     echo "  -> Compiling x86_64 slice..."
-    swift build -c release --triple x86_64-apple-macosx14.0
+    build_swift_release --triple x86_64-apple-macosx14.0
     cp "$PROJECT_ROOT/.build/release/Flowback" "$STAGING_DIR/Flowback-x86_64"
     cp "$PROJECT_ROOT/.build/release/flowback-cli" "$STAGING_DIR/flowback-cli-x86_64"
 
@@ -55,7 +66,7 @@ if [ "$TARGET_ARCH" = "universal" ]; then
 elif [ "$TARGET_ARCH" = "arm64" ]; then
     echo "Compiling dedicated Apple Silicon (arm64) binary..."
     rm -f "$PROJECT_ROOT/.build/release/Flowback" "$PROJECT_ROOT/.build/release/flowback-cli"
-    swift build -c release --triple arm64-apple-macosx14.0
+    build_swift_release --triple arm64-apple-macosx14.0
     cp "$PROJECT_ROOT/.build/release/flowback-cli" "$PROJECT_ROOT/dist/bin/flowback"
     chmod +x "$PROJECT_ROOT/dist/bin/flowback"
 
@@ -68,7 +79,7 @@ elif [ "$TARGET_ARCH" = "arm64" ]; then
 elif [ "$TARGET_ARCH" = "x86_64" ]; then
     echo "Compiling dedicated Intel (x86_64) binary..."
     rm -f "$PROJECT_ROOT/.build/release/Flowback" "$PROJECT_ROOT/.build/release/flowback-cli"
-    swift build -c release --triple x86_64-apple-macosx14.0
+    build_swift_release --triple x86_64-apple-macosx14.0
     cp "$PROJECT_ROOT/.build/release/flowback-cli" "$PROJECT_ROOT/dist/bin/flowback"
     chmod +x "$PROJECT_ROOT/dist/bin/flowback"
 
@@ -81,7 +92,7 @@ elif [ "$TARGET_ARCH" = "x86_64" ]; then
 else
     echo "Compiling host architecture ($TARGET_ARCH)..."
     rm -f "$PROJECT_ROOT/.build/release/Flowback" "$PROJECT_ROOT/.build/release/flowback-cli"
-    swift build -c release
+    build_swift_release
     cp "$PROJECT_ROOT/.build/release/flowback-cli" "$PROJECT_ROOT/dist/bin/flowback"
     chmod +x "$PROJECT_ROOT/dist/bin/flowback"
 fi
