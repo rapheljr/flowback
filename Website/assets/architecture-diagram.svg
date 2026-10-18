@@ -1,126 +1,321 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 620" width="100%" height="100%">
   <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="50%" stop-color="#0b1120"/>
+      <stop offset="100%" stop-color="#060911"/>
+    </linearGradient>
+
+    <!-- Glass Box Gradients -->
     <linearGradient id="boxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e293b"/>
-      <stop offset="100%" stop-color="#0f172a"/>
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95"/>
     </linearGradient>
-    <linearGradient id="accentBox" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e1b4b"/>
-      <stop offset="100%" stop-color="#312e81"/>
+    <linearGradient id="accentCoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#2e1065" stop-opacity="0.95"/>
     </linearGradient>
-    <linearGradient id="hlGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="100%" stop-color="#818cf8"/>
+    <linearGradient id="engineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111827" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#1f2937" stop-opacity="0.95"/>
     </linearGradient>
-    <filter id="boxShadow">
-      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.3"/>
+
+    <!-- Pill & Badge Gradients -->
+    <linearGradient id="bluePill" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="emeraldPill" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="amberPill" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="purplePill" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#000000" flood-opacity="0.45"/>
     </filter>
-    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8"/>
+    <filter id="glowBlue" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Markers -->
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#38bdf8"/>
     </marker>
-    <marker id="arrow-indigo" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#818cf8"/>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#c084fc"/>
     </marker>
-    <marker id="arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#10b981"/>
+    <marker id="arrow-emerald" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#34d399"/>
     </marker>
-    <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 z" fill="#f59e0b"/>
+    <marker id="arrow-amber" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#fbbf24"/>
     </marker>
   </defs>
 
-  <rect width="1000" height="520" fill="#0b0f19" rx="16"/>
+  <!-- Canvas Background -->
+  <rect width="1100" height="620" rx="16" fill="url(#bgGrad)"/>
+  <rect width="1100" height="620" rx="16" fill="none" stroke="#1e293b" stroke-width="1.5"/>
 
-  <!-- Title -->
-  <text x="500" y="44" font-family="-apple-system, sans-serif" font-size="20" font-weight="700" fill="#f8fafc" text-anchor="middle">Flowback Decoupled Architecture &amp; Dataflow</text>
-  <text x="500" y="68" font-family="-apple-system, sans-serif" font-size="13" fill="#94a3b8" text-anchor="middle">Agent providers never steal focus directly — all events pass through the policy engine and attention arbiter</text>
+  <!-- Subtle Ambient Glow Orbs -->
+  <circle cx="200" cy="180" r="160" fill="#0284c7" opacity="0.04" filter="url(#glowBlue)"/>
+  <circle cx="600" cy="220" r="180" fill="#7c3aed" opacity="0.04" filter="url(#glowBlue)"/>
+  <circle cx="950" cy="180" r="160" fill="#059669" opacity="0.04" filter="url(#glowBlue)"/>
 
-  <!-- Layer 1: Agent Providers -->
-  <g transform="translate(40, 100)">
-    <rect width="200" height="180" rx="12" fill="url(#boxGrad)" stroke="#334155" stroke-width="1.5" filter="url(#boxShadow)"/>
-    <text x="100" y="32" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="#38bdf8" text-anchor="middle">Agent Providers</text>
-    
-    <rect x="20" y="50" width="160" height="26" rx="6" fill="#0f172a" stroke="#1e293b"/>
-    <text x="100" y="67" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Google Antigravity</text>
+  <!-- ======================================================== -->
+  <!-- Header Title & Badges                                    -->
+  <!-- ======================================================== -->
+  <g transform="translate(40, 36)">
+    <!-- Main Title -->
+    <text x="0" y="0" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" font-size="22" font-weight="700" fill="#f8fafc">Flowback Architecture &amp; Concurrency Pipeline</text>
+    <text x="0" y="24" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="13" fill="#94a3b8">Deterministic, cancellation-safe focus orchestration across AI agents, IDEs, and macOS window layers</text>
 
-    <rect x="20" y="82" width="160" height="26" rx="6" fill="#0f172a" stroke="#1e293b"/>
-    <text x="100" y="99" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Claude Code &amp; Codex</text>
-
-    <rect x="20" y="114" width="160" height="26" rx="6" fill="#0f172a" stroke="#1e293b"/>
-    <text x="100" y="131" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Antigravity CLI &amp; Aider</text>
-
-    <rect x="20" y="146" width="160" height="26" rx="6" fill="#0f172a" stroke="#1e293b"/>
-    <text x="100" y="163" font-family="-apple-system, sans-serif" font-size="12" fill="#cbd5e1" text-anchor="middle">Generic Hook Protocol</text>
+    <!-- Version & Hardening Pills (Right aligned) -->
+    <g transform="translate(850, -8)">
+      <rect width="84" height="26" rx="13" fill="#0284c7" fill-opacity="0.2" stroke="#38bdf8" stroke-width="1"/>
+      <text x="42" y="17" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle">v0.4.1 STABLE</text>
+    </g>
+    <g transform="translate(942, -8)">
+      <rect width="78" height="26" rx="13" fill="#059669" fill-opacity="0.2" stroke="#10b981" stroke-width="1"/>
+      <text x="39" y="17" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11" font-weight="700" fill="#34d399" text-anchor="middle">HARDENED</text>
+    </g>
   </g>
 
-  <!-- Arrow 1 -> 2 -->
-  <path d="M 240 190 L 290 190" stroke="#38bdf8" stroke-width="2.5" fill="none" marker-end="url(#arrow)"/>
-  <text x="265" y="178" font-family="-apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Event</text>
+  <!-- ======================================================== -->
+  <!-- COLUMN 1: Agent Providers & Hook Ingestion               -->
+  <!-- ======================================================== -->
+  <g transform="translate(40, 95)" filter="url(#cardShadow)">
+    <rect width="215" height="425" rx="14" fill="url(#boxGrad)" stroke="#334155" stroke-width="1.2"/>
 
-  <!-- Layer 2: Core Bus & State Machine -->
-  <g transform="translate(290, 100)">
-    <rect width="210" height="180" rx="12" fill="url(#boxGrad)" stroke="#334155" stroke-width="1.5" filter="url(#boxShadow)"/>
-    <text x="105" y="32" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="#a78bfa" text-anchor="middle">Event Bus &amp; State</text>
+    <!-- Column Header -->
+    <rect x="0" y="0" width="215" height="42" rx="14" fill="#0f172a" fill-opacity="0.6"/>
+    <circle cx="22" cy="21" r="5" fill="#38bdf8"/>
+    <text x="35" y="26" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="13" font-weight="700" fill="#f8fafc">1. Agent Providers</text>
 
-    <rect x="20" y="52" width="170" height="34" rx="6" fill="#0f172a" stroke="#1e293b"/>
-    <text x="105" y="73" font-family="-apple-system, sans-serif" font-size="12" fill="#e2e8f0" text-anchor="middle">Event Deduplicator (Sliding)</text>
+    <!-- Provider Badges -->
+    <g transform="translate(15, 52)">
+      <!-- Antigravity / CLI -->
+      <rect width="185" height="34" rx="8" fill="#0b1120" stroke="#1e293b" stroke-width="1"/>
+      <text x="14" y="21" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11.5" font-weight="600" fill="#e2e8f0">Google Antigravity &amp; agy</text>
 
-    <rect x="20" y="94" width="170" height="34" rx="6" fill="#0f172a" stroke="#1e293b"/>
-    <text x="105" y="115" font-family="-apple-system, sans-serif" font-size="12" fill="#e2e8f0" text-anchor="middle">Agent State Machine</text>
+      <!-- GitHub Copilot -->
+      <rect y="42" width="185" height="34" rx="8" fill="#0b1120" stroke="#1e293b" stroke-width="1"/>
+      <text x="14" y="63" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11.5" font-weight="600" fill="#e2e8f0">GitHub Copilot Agent</text>
 
-    <rect x="20" y="136" width="170" height="34" rx="6" fill="#0f172a" stroke="#1e293b"/>
-    <text x="105" y="157" font-family="-apple-system, sans-serif" font-size="12" fill="#e2e8f0" text-anchor="middle">Session Manager (SQLite)</text>
+      <!-- Claude Code & Codex -->
+      <rect y="84" width="185" height="34" rx="8" fill="#0b1120" stroke="#1e293b" stroke-width="1"/>
+      <text x="14" y="105" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11.5" font-weight="600" fill="#e2e8f0">Claude Code &amp; Codex</text>
+
+      <!-- Windsurf Cascade -->
+      <rect y="126" width="185" height="34" rx="8" fill="#0b1120" stroke="#1e293b" stroke-width="1"/>
+      <text x="14" y="147" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11.5" font-weight="600" fill="#e2e8f0">Windsurf Cascade</text>
+
+      <!-- Cursor Background -->
+      <rect y="168" width="185" height="34" rx="8" fill="#0b1120" stroke="#1e293b" stroke-width="1"/>
+      <text x="14" y="189" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11.5" font-weight="600" fill="#e2e8f0">Cursor Background Agent</text>
+
+      <!-- OpenCode & Aider -->
+      <rect y="210" width="185" height="34" rx="8" fill="#0b1120" stroke="#1e293b" stroke-width="1"/>
+      <text x="14" y="231" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11.5" font-weight="600" fill="#e2e8f0">OpenCode &amp; Aider</text>
+
+      <!-- Security / Sanitizer Card -->
+      <g transform="translate(0, 258)">
+        <rect width="185" height="95" rx="9" fill="#1e1b4b" fill-opacity="0.5" stroke="#4338ca" stroke-width="1"/>
+        <text x="12" y="20" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11" font-weight="700" fill="#a5b4fc">SecretSanitizer</text>
+        <text x="12" y="38" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#cbd5e1">• Strips Bearer Tokens &amp; Keys</text>
+        <text x="12" y="54" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#cbd5e1">• Scrubs User Paths &amp; Auth URLs</text>
+        <text x="12" y="70" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#cbd5e1">• 100% Local POSIX Isolation</text>
+        <rect x="12" y="78" width="161" height="2" rx="1" fill="#6366f1" opacity="0.4"/>
+      </g>
+    </g>
   </g>
 
-  <!-- Arrow 2 -> 3 -->
-  <path d="M 500 190 L 550 190" stroke="#818cf8" stroke-width="2.5" fill="none" marker-end="url(#arrow-indigo)"/>
-  <text x="525" y="178" font-family="-apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">State</text>
+  <!-- Connector 1 -> 2 -->
+  <path d="M 255 240 L 290 240" stroke="#38bdf8" stroke-width="2.5" fill="none" marker-end="url(#arrow-blue)"/>
+  <rect x="254" y="218" width="36" height="18" rx="4" fill="#0b1120" stroke="#1e293b" stroke-width="0.8"/>
+  <text x="272" y="230" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9" font-weight="700" fill="#38bdf8" text-anchor="middle">JSON</text>
 
-  <!-- Layer 3: Decision Engine -->
-  <g transform="translate(550, 85)">
-    <rect width="210" height="210" rx="12" fill="url(#accentBox)" stroke="#6366f1" stroke-width="2" filter="url(#boxShadow)"/>
-    <text x="105" y="32" font-family="-apple-system, sans-serif" font-size="14" font-weight="700" fill="#f8fafc" text-anchor="middle">Intent &amp; Arbitration</text>
+  <!-- ======================================================== -->
+  <!-- COLUMN 2: Event Stream & State Machine                   -->
+  <!-- ======================================================== -->
+  <g transform="translate(290, 95)" filter="url(#cardShadow)">
+    <rect width="215" height="425" rx="14" fill="url(#boxGrad)" stroke="#334155" stroke-width="1.2"/>
 
-    <rect x="18" y="50" width="174" height="42" rx="6" fill="#0f172a" stroke="#4338ca"/>
-    <text x="105" y="68" font-family="-apple-system, sans-serif" font-size="12" font-weight="600" fill="#38bdf8" text-anchor="middle">User Intent Engine</text>
-    <text x="105" y="84" font-family="-apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">CGEventSource Idle &lt; 5s</text>
+    <!-- Column Header -->
+    <rect x="0" y="0" width="215" height="42" rx="14" fill="#0f172a" fill-opacity="0.6"/>
+    <circle cx="22" cy="21" r="5" fill="#a855f7"/>
+    <text x="35" y="26" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="13" font-weight="700" fill="#f8fafc">2. Event &amp; State Bus</text>
 
-    <rect x="18" y="100" width="174" height="42" rx="6" fill="#0f172a" stroke="#4338ca"/>
-    <text x="105" y="118" font-family="-apple-system, sans-serif" font-size="12" font-weight="600" fill="#818cf8" text-anchor="middle">Attention Arbiter</text>
-    <text x="105" y="134" font-family="-apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Priority Queue &amp; Cooldown</text>
+    <!-- Component Modules -->
+    <g transform="translate(14, 52)">
+      <!-- Event Deduplicator -->
+      <rect width="187" height="66" rx="9" fill="#0b1120" stroke="#1e293b" stroke-width="1"/>
+      <text x="14" y="22" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="700" fill="#c084fc">Event Deduplicator</text>
+      <text x="14" y="39" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#94a3b8">Sliding 10s Hash Ring Buffer</text>
+      <text x="14" y="53" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#38bdf8">Eliminates repeated webhook noise</text>
 
-    <rect x="18" y="150" width="174" height="42" rx="6" fill="#0f172a" stroke="#4338ca"/>
-    <text x="105" y="168" font-family="-apple-system, sans-serif" font-size="12" font-weight="600" fill="#cbd5e1" text-anchor="middle">Policy Hierarchy</text>
-    <text x="105" y="184" font-family="-apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">Workspace &gt; App &gt; Global</text>
+      <!-- UI Event Coalescer -->
+      <rect y="78" width="187" height="66" rx="9" fill="#0b1120" stroke="#1e293b" stroke-width="1"/>
+      <text x="14" y="100" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="700" fill="#c084fc">UI Event Coalescer</text>
+      <text x="14" y="117" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#94a3b8">Throttles burst streams (&gt;1,000)</text>
+      <text x="14" y="131" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#34d399">Bounded 60fps single-pass flush</text>
+
+      <!-- Agent State Machine -->
+      <rect y="156" width="187" height="66" rx="9" fill="#0b1120" stroke="#1e293b" stroke-width="1"/>
+      <text x="14" y="178" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="700" fill="#c084fc">Agent State Machine</text>
+      <text x="14" y="195" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#94a3b8">Thread-Safe Swift Actor</text>
+      <text x="14" y="209" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#fbbf24">.idle ➔ .running ➔ .waiting</text>
+
+      <!-- SQLite Storage Engine -->
+      <rect y="234" width="187" height="110" rx="9" fill="#0b1120" stroke="#1e293b" stroke-width="1"/>
+      <text x="14" y="256" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="700" fill="#c084fc">SQLite Schema v2</text>
+      <text x="14" y="273" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#94a3b8">WAL Mode • Crash-Safe</text>
+      <text x="14" y="289" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#e2e8f0">• Session &amp; Event Repositories</text>
+      <text x="14" y="305" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#e2e8f0">• Conversation thread mapping</text>
+      <text x="14" y="321" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#38bdf8">• Automated rollback safety</text>
+    </g>
   </g>
 
-  <!-- Forks from Decision Engine -->
-  <!-- Top Path: Idle -> Restore Window -->
-  <path d="M 760 150 L 810 150" stroke="#10b981" stroke-width="2.5" fill="none" marker-end="url(#arrow-emerald)"/>
-  <text x="785" y="140" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="#10b981" text-anchor="middle">Idle</text>
+  <!-- Connector 2 -> 3 -->
+  <path d="M 505 240 L 540 240" stroke="#c084fc" stroke-width="2.5" fill="none" marker-end="url(#arrow-purple)"/>
+  <rect x="504" y="218" width="36" height="18" rx="4" fill="#0b1120" stroke="#1e293b" stroke-width="0.8"/>
+  <text x="522" y="230" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9" font-weight="700" fill="#c084fc" text-anchor="middle">State</text>
 
-  <g transform="translate(810, 110)">
-    <rect width="150" height="80" rx="10" fill="url(#boxGrad)" stroke="#10b981" stroke-width="1.5" filter="url(#boxShadow)"/>
-    <text x="75" y="32" font-family="-apple-system, sans-serif" font-size="12" font-weight="700" fill="#10b981" text-anchor="middle">Focus Controller</text>
-    <text x="75" y="52" font-family="-apple-system, sans-serif" font-size="11" fill="#f8fafc" text-anchor="middle">Exact Window ID</text>
-    <text x="75" y="68" font-family="-apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">kAXRaiseAction</text>
+  <!-- ======================================================== -->
+  <!-- COLUMN 3: Intent Engine & Attention Arbiter              -->
+  <!-- ======================================================== -->
+  <g transform="translate(540, 95)" filter="url(#cardShadow)">
+    <rect width="230" height="425" rx="14" fill="url(#accentCoreGrad)" stroke="#6366f1" stroke-width="1.8"/>
+
+    <!-- Column Header -->
+    <rect x="0" y="0" width="230" height="42" rx="14" fill="#1e1b4b" fill-opacity="0.8"/>
+    <circle cx="22" cy="21" r="5" fill="#818cf8"/>
+    <text x="35" y="26" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="13" font-weight="700" fill="#f8fafc">3. Intent &amp; Arbitration</text>
+
+    <!-- Component Modules -->
+    <g transform="translate(14, 52)">
+      <!-- User Intent Engine -->
+      <rect width="202" height="74" rx="9" fill="#0f172a" stroke="#4338ca" stroke-width="1"/>
+      <text x="14" y="22" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="700" fill="#38bdf8">User Intent Engine</text>
+      <text x="14" y="39" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#94a3b8">CGEventSource Seconds Since Input</text>
+      <text x="14" y="55" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10.5" font-weight="600" fill="#34d399">Threshold: &lt; 5.0s = User Active</text>
+      <text x="14" y="68" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#cbd5e1">Never steals focus while typing</text>
+
+      <!-- Attention Arbiter -->
+      <rect y="86" width="202" height="74" rx="9" fill="#0f172a" stroke="#4338ca" stroke-width="1"/>
+      <text x="14" y="108" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="700" fill="#818cf8">Attention Arbiter</text>
+      <text x="14" y="125" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#94a3b8">Priority Queue &amp; Cooldown Timer</text>
+      <text x="14" y="141" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#fbbf24">• Prevents rapid focus oscillation</text>
+      <text x="14" y="153" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#cbd5e1">• Graceful suppression &amp; deferral</text>
+
+      <!-- Policy Hierarchy -->
+      <rect y="172" width="202" height="74" rx="9" fill="#0f172a" stroke="#4338ca" stroke-width="1"/>
+      <text x="14" y="194" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="700" fill="#a78bfa">Policy Hierarchy</text>
+      <text x="14" y="211" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#94a3b8">Deterministic Precedence Rules:</text>
+      <text x="14" y="227" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10.5" font-weight="600" fill="#f8fafc">Workspace &gt; Application &gt; Global</text>
+      <text x="14" y="239" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#94a3b8">Focus Lock: 15m • 30m • 1h • Off</text>
+
+      <!-- Frozen Menu Bar Snapshot -->
+      <rect y="258" width="202" height="84" rx="9" fill="#0f172a" stroke="#4338ca" stroke-width="1"/>
+      <text x="14" y="278" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11.5" font-weight="700" fill="#f43f5e">Frozen Menu Snapshot</text>
+      <text x="14" y="295" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#cbd5e1">• Locks slots while menu is open</text>
+      <text x="14" y="311" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10" fill="#cbd5e1">• Stable shortcuts: ⌘1 through ⌘9</text>
+      <text x="14" y="327" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#38bdf8">Eliminates UI jumping under bursts</text>
+    </g>
   </g>
 
-  <!-- Bottom Path: Typing / Locked -> Actionable Notification -->
-  <path d="M 760 230 L 810 230" stroke="#f59e0b" stroke-width="2.5" fill="none" marker-end="url(#arrow-amber)"/>
-  <text x="785" y="222" font-family="-apple-system, sans-serif" font-size="10" font-weight="600" fill="#f59e0b" text-anchor="middle">Active</text>
+  <!-- Forks to Output Column -->
+  <!-- Top Fork: User Idle -> Focus Restoration -->
+  <path d="M 770 190 L 815 190" stroke="#10b981" stroke-width="2.5" fill="none" marker-end="url(#arrow-emerald)"/>
+  <rect x="768" y="168" width="46" height="18" rx="4" fill="#0b1120" stroke="#059669" stroke-width="0.8"/>
+  <text x="791" y="180" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9" font-weight="700" fill="#34d399" text-anchor="middle">IDLE</text>
 
-  <g transform="translate(810, 200)">
-    <rect width="150" height="80" rx="10" fill="url(#boxGrad)" stroke="#f59e0b" stroke-width="1.5" filter="url(#boxShadow)"/>
-    <text x="75" y="32" font-family="-apple-system, sans-serif" font-size="12" font-weight="700" fill="#f59e0b" text-anchor="middle">Notification Only</text>
-    <text x="75" y="52" font-family="-apple-system, sans-serif" font-size="11" fill="#f8fafc" text-anchor="middle">macOS Banner</text>
-    <text x="75" y="68" font-family="-apple-system, sans-serif" font-size="10" fill="#94a3b8" text-anchor="middle">[Focus] / [Review]</text>
+  <!-- Bottom Fork: User Active -> Notification Only -->
+  <path d="M 770 420 L 815 420" stroke="#f59e0b" stroke-width="2.5" fill="none" marker-end="url(#arrow-amber)"/>
+  <rect x="768" y="398" width="46" height="18" rx="4" fill="#0b1120" stroke="#d97706" stroke-width="0.8"/>
+  <text x="791" y="410" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9" font-weight="700" fill="#fbbf24" text-anchor="middle">ACTIVE</text>
+
+  <!-- ======================================================== -->
+  <!-- COLUMN 4: Hardened Focus Engine & Concurrency (Top)      -->
+  <!-- ======================================================== -->
+  <g transform="translate(815, 95)" filter="url(#cardShadow)">
+    <rect width="245" height="240" rx="14" fill="url(#boxGrad)" stroke="#10b981" stroke-width="1.5"/>
+
+    <!-- Header -->
+    <rect x="0" y="0" width="245" height="38" rx="14" fill="#064e3b" fill-opacity="0.6"/>
+    <circle cx="20" cy="19" r="5" fill="#34d399"/>
+    <text x="32" y="24" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12.5" font-weight="700" fill="#f8fafc">4. Hardened Focus Engine</text>
+
+    <g transform="translate(12, 46)">
+      <!-- Monotonic Token Guard (F-01) -->
+      <rect width="221" height="52" rx="8" fill="#0b1120" stroke="#065f46" stroke-width="1"/>
+      <text x="12" y="18" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11" font-weight="700" fill="#34d399">Monotonic Request Tokens (F-01)</text>
+      <text x="12" y="32" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#94a3b8">Ownership-verified cancellation handler</text>
+      <text x="12" y="44" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#38bdf8">Eliminates reentrancy race conditions</text>
+
+      <!-- TimeoutCoordinator -->
+      <rect y="58" width="221" height="52" rx="8" fill="#0b1120" stroke="#065f46" stroke-width="1"/>
+      <text x="12" y="76" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11" font-weight="700" fill="#34d399">TimeoutCoordinator State Machine</text>
+      <text x="12" y="90" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#94a3b8">NSLock-guarded terminal transitions</text>
+      <text x="12" y="102" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#a78bfa">Exactly-once resumption &amp; task cleanup</text>
+
+      <!-- Deterministic Fallback (F-02) -->
+      <rect y="116" width="221" height="66" rx="8" fill="#0b1120" stroke="#065f46" stroke-width="1"/>
+      <text x="12" y="134" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11" font-weight="700" fill="#34d399">Deterministic Fallback (F-02)</text>
+      <text x="12" y="148" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#cbd5e1">1. Native AppKit direct activation</text>
+      <text x="12" y="160" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#cbd5e1">2. Async LaunchServices (non-blocking)</text>
+      <text x="12" y="172" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#fbbf24">3. AXUIElement kAXRaiseAction</text>
+    </g>
   </g>
 
-  <!-- Local Storage Footprint -->
-  <g transform="translate(290, 320)">
-    <rect width="470" height="65" rx="10" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
-    <text x="235" y="28" font-family="-apple-system, sans-serif" font-size="13" font-weight="600" fill="#38bdf8" text-anchor="middle">Local SQLite Engine (WAL Mode) at ~/.flowback/flowback.sqlite</text>
-    <text x="235" y="48" font-family="-apple-system, sans-serif" font-size="11" fill="#94a3b8" text-anchor="middle">Zero Telemetry • POSIX Unix Socket Mode 0600 • Auto Corruption Recovery</text>
+  <!-- ======================================================== -->
+  <!-- COLUMN 4: Notification Pipeline (Bottom)                 -->
+  <!-- ======================================================== -->
+  <g transform="translate(815, 350)" filter="url(#cardShadow)">
+    <rect width="245" height="170" rx="14" fill="url(#boxGrad)" stroke="#f59e0b" stroke-width="1.5"/>
+
+    <!-- Header -->
+    <rect x="0" y="0" width="245" height="38" rx="14" fill="#78350f" fill-opacity="0.6"/>
+    <circle cx="20" cy="19" r="5" fill="#fbbf24"/>
+    <text x="32" y="24" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12.5" font-weight="700" fill="#f8fafc">UserNotifications Flow</text>
+
+    <g transform="translate(12, 46)">
+      <rect width="221" height="50" rx="8" fill="#0b1120" stroke="#92400e" stroke-width="1"/>
+      <text x="12" y="19" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11" font-weight="700" fill="#fbbf24">Actionable macOS Banners</text>
+      <text x="12" y="33" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#cbd5e1">• Action buttons: [Switch Back] [Review]</text>
+      <text x="12" y="44" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#94a3b8">• Deep-links to exact conversation thread</text>
+
+      <rect y="58" width="221" height="54" rx="8" fill="#0b1120" stroke="#92400e" stroke-width="1"/>
+      <text x="12" y="76" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11" font-weight="700" fill="#fbbf24">Non-Intrusive Preservation</text>
+      <text x="12" y="90" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#cbd5e1">• User keystroke buffer completely unblocked</text>
+      <text x="12" y="103" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="9.5" fill="#34d399">• Preserves terminal &amp; editor state seamlessly</text>
+    </g>
+  </g>
+
+  <!-- ======================================================== -->
+  <!-- FOOTER STRIP: Local Storage & Zero Telemetry             -->
+  <!-- ======================================================== -->
+  <g transform="translate(40, 538)">
+    <rect width="1020" height="54" rx="10" fill="#0b1120" stroke="#1e293b" stroke-width="1.2"/>
+
+    <circle cx="24" cy="27" r="4" fill="#38bdf8"/>
+    <text x="36" y="31" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="12" font-weight="700" fill="#f8fafc">Local-First Architecture:</text>
+
+    <text x="180" y="31" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11.5" fill="#cbd5e1">POSIX Unix Domain Socket (Mode 0700) • SQLite WAL Database at ~/.flowback/ • Hardened Runtime Ad-Hoc Sealed</text>
+
+    <g transform="translate(890, 15)">
+      <rect width="112" height="24" rx="12" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-width="1"/>
+      <text x="56" y="16" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="10.5" font-weight="700" fill="#34d399" text-anchor="middle">ZERO TELEMETRY</text>
+    </g>
   </g>
 </svg>
