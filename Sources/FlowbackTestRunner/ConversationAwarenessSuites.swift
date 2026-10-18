@@ -700,6 +700,18 @@ public func runConversationAwarenessSuites() async {
         let text9 = "Random agent log message: tool called run_command."
         let title9 = BrainTranscriptParser.extractConversationTitle(from: text9)
         assertTest(title9 == nil, "Transcript with no title tokens returns nil")
+
+        // JSONL-escaped multi-line prompt with leading newline, /goal, and project prefix
+        let text10 = #"{"step_index":2,"type":"USER_INPUT","content":""# +
+            #"<USER_REQUEST>\n/goal # Flowback × Vorssaint — Implement General Sidebar Destinations\n\n## Role\n\nAct as a principal macOS product architect</USER_REQUEST>"}"#
+        let title10 = BrainTranscriptParser.extractConversationTitle(from: text10)
+        assertTest(title10 == "Implement General Sidebar Destinations",
+                   "Extracts clean title from JSONL-escaped /goal prompt with project prefix")
+
+        // Standard hyphen project prefix
+        let text11 = "<USER_REQUEST>\n# Flowback - Configure Privacy Protections\nDetails here...\n</USER_REQUEST>"
+        let title11 = BrainTranscriptParser.extractConversationTitle(from: text11)
+        assertTest(title11 == "Configure Privacy Protections", "Strips hyphenated project prefix correctly")
     }
 
     // -------------------------------------------------------------------------

@@ -8,13 +8,36 @@ public struct BrainTranscriptParser: Sendable {
         // 1. Look for <USER_REQUEST> ... </USER_REQUEST> block
         if let startRange = text.range(of: "<USER_REQUEST>"),
            let endRange = text.range(of: "</USER_REQUEST>") {
-            let userReq = String(text[startRange.upperBound..<endRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+            var userReq = String(text[startRange.upperBound..<endRange.lowerBound])
+            // Normalize JSON-escaped newlines and carriage returns found in raw transcript JSONL
+            userReq = userReq.replacingOccurrences(of: "\\r\\n", with: "\n")
+                             .replacingOccurrences(of: "\\n", with: "\n")
+                             .replacingOccurrences(of: "\\r", with: "\n")
+                             .trimmingCharacters(in: .whitespacesAndNewlines)
+
             let lines = userReq.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             for line in lines {
                 var clean = line
+                while clean.hasPrefix("\\n") || clean.hasPrefix("\\r") {
+                    clean = String(clean.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+                }
                 if clean.hasPrefix("/goal") { clean = clean.replacingOccurrences(of: "/goal", with: "").trimmingCharacters(in: .whitespaces) }
                 if clean.hasPrefix("/plan") { clean = clean.replacingOccurrences(of: "/plan", with: "").trimmingCharacters(in: .whitespaces) }
                 while clean.hasPrefix("#") { clean = clean.dropFirst().trimmingCharacters(in: .whitespaces) }
+
+                // Strip leading project prefixes like "Project × Reference — Title" or "Project — Title"
+                if let dashRange = clean.range(of: " — ") {
+                    let afterDash = String(clean[dashRange.upperBound...]).trimmingCharacters(in: .whitespaces)
+                    if !afterDash.isEmpty {
+                        clean = afterDash
+                    }
+                } else if let hyphenRange = clean.range(of: " - ") {
+                    let afterHyphen = String(clean[hyphenRange.upperBound...]).trimmingCharacters(in: .whitespaces)
+                    if !afterHyphen.isEmpty {
+                        clean = afterHyphen
+                    }
+                }
+
                 if !clean.isEmpty {
                     return String(clean.prefix(120))
                 }
