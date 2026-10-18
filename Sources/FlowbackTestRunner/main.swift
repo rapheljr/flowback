@@ -866,6 +866,23 @@ await runVorssaintDiscoverySuites()
 await runGeneralSidebarDestinationsSuites()
 await runVisualParitySuites()
 
+// 28. Canonical Version Metadata Consistency Suite
+await testGroup("Canonical Version Metadata Consistency") {
+    assertTest(FlowbackVersion.marketingVersion == "0.4.0", "FlowbackVersion marketingVersion is 0.4.0")
+    assertTest(FlowbackVersion.buildNumber == "1", "FlowbackVersion buildNumber is 1")
+    assertTest(FlowbackVersion.current == "0.4.0", "FlowbackVersion.current defaults to 0.4.0 outside bundle")
+    assertTest(FlowbackVersion.currentBuild == "1", "FlowbackVersion.currentBuild defaults to 1 outside bundle")
+    assertTest(FlowbackVersion.displayString.contains("Flowback v0.4.0 (build 1)"), "FlowbackVersion displayString formatted correctly")
+
+    let diag = DiagnosticReportContext()
+    assertTest(diag.appVersion == FlowbackVersion.current, "DiagnosticReportContext adopts FlowbackVersion.current")
+    assertTest(diag.appBuild == FlowbackVersion.currentBuild, "DiagnosticReportContext adopts FlowbackVersion.currentBuild")
+
+    let about = AboutView()
+    assertTest(about.appVersion == FlowbackVersion.current, "AboutView adopts FlowbackVersion.current")
+    assertTest(about.buildNumber == FlowbackVersion.currentBuild, "AboutView adopts FlowbackVersion.currentBuild")
+}
+
 print("\n================================================================")
 print("TEST RESULTS SUMMARY")
 print("Total tests executed: \(totalTestsRun)")

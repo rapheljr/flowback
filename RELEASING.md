@@ -33,7 +33,7 @@ Assemble the bundle and apply Hardened Runtime signature inside-out:
 
 ```bash
 # Package the application bundle
-bash Scripts/package_app.sh 1.0.0 1 universal
+bash Scripts/package_app.sh 0.4.0 1 universal
 
 # Official Developer ID Signing (Inside-Out)
 # 1. Sign nested CLI binary
@@ -66,17 +66,17 @@ codesign -dv --verbose=4 "dist/Flowback.app"
 Build the distribution archives and compressed disk image:
 ```bash
 # Package universal release artifacts, DMG, ZIP, and checksums
-bash Scripts/package_release_artifacts.sh 1.0.0 universal
+bash Scripts/package_release_artifacts.sh 0.4.0 universal
 ```
 
 Sign the DMG (if distributing disk image):
 ```bash
-codesign --sign "Developer ID Application: Flowback (TEAMID)" "dist/Flowback-1.0.0.dmg"
+codesign --sign "Developer ID Application: Flowback (TEAMID)" "dist/Flowback-0.4.0.dmg"
 ```
 
 Submit for Apple Notarization:
 ```bash
-xcrun notarytool submit "dist/Flowback-1.0.0-macos.zip" \
+xcrun notarytool submit "dist/Flowback-0.4.0-macos.zip" \
     --keychain-profile "flowback-notary" \
     --wait
 ```
@@ -89,7 +89,7 @@ xcrun notarytool log <SUBMISSION_ID> --keychain-profile "flowback-notary"
 Staple the notarization ticket to the application and disk image:
 ```bash
 xcrun stapler staple "dist/Flowback.app"
-xcrun stapler staple "dist/Flowback-1.0.0.dmg"
+xcrun stapler staple "dist/Flowback-0.4.0.dmg"
 ```
 
 Validate stapled ticket and Gatekeeper acceptance:
@@ -106,7 +106,7 @@ The staged Homebrew Cask formula is maintained at `Casks/flowback.rb` for tap di
 
 ```ruby
 cask "flowback" do
-  version "1.0.0"
+  version "0.4.0"
   sha256 "VERIFIED_ARCHIVE_SHA256"
 
   url "https://github.com/rapheljr/flowback/releases/download/v#{version}/Flowback-#{version}-macos.zip"
@@ -131,7 +131,7 @@ end
 
 To validate the cask against Homebrew's official style and audit rules:
 ```bash
-bash Scripts/generate_cask.sh 1.0.0
+bash Scripts/generate_cask.sh 0.4.0
 ```
 
 To test local installation from the cask:

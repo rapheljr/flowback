@@ -365,8 +365,8 @@ public struct DashboardView: View {
                         case .support:
                             SupportView(
                                 diagnosticContext: DiagnosticReportContext(
-                                    appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
-                                    appBuild: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1",
+                                    appVersion: FlowbackVersion.current,
+                                    appBuild: FlowbackVersion.currentBuild,
                                     permissionStatus: permissionStatus,
                                     isDatabaseReady: isDatabaseReady,
                                     isStorageDurable: isStorageDurable,
@@ -382,8 +382,8 @@ public struct DashboardView: View {
                             )
                         case .about:
                             AboutView(
-                                appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
-                                buildNumber: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1",
+                                appVersion: FlowbackVersion.current,
+                                buildNumber: FlowbackVersion.currentBuild,
                                 onNavigateToWhatsNew: {
                                     viewModel.selectedTab = .whatsNew
                                 }

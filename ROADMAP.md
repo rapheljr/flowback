@@ -10,36 +10,19 @@ Status Legend:
 
 ---
 
-## Milestone 1.0.0 — Universal Core & Multi-Agent Focus Management 🟢
+## Completed Pre-1.0 Milestones (v0.0.1 – v0.4.0) 🟢
 
-**Goal:** Deliver a rock-solid, production-ready macOS native foundation for agent session tracking and focus restoration.
+**Goal:** Establish a rock-solid, production-ready macOS native foundation for agent session tracking and focus restoration across rapid pre-1.0 iterations.
 
-* 🟢 **Native Engine:** 100% Swift 6 Concurrency, AppKit, SwiftUI, zero Electron, zero web servers.
-* 🟢 **Official Agent Providers:**
-  * Antigravity provider with proactive active transcript scanning, lifecycle hook execution (`fullyIdle=true`), and refresh triggers.
-  * Claude Code provider with session detection.
-  * OpenAI Codex provider.
-  * Antigravity CLI (formerly Gemini CLI) & Aider integrations.
-  * Generic JSON Hook Protocol v1 over Unix socket (`~/.flowback/flowback.sock`).
-* 🟢 **Editor & Terminal Adapters:**
-  * VS Code, VS Code Insiders, Code OSS, Windsurf, VSCodium, Positron, Trae, and Cursor.
-  * Apple Terminal, iTerm2, Kitty, Alacritty, Ghostty, Warp.
-* 🟢 **Focus Engine & Attention Arbiter:**
-  * User Intent Engine sensing system idle via `CGEventSource` (suppressing focus stealing if user typed within 5 seconds).
-  * Priority ordering (`permissionRequired` > `failure` > `completed` > `waiting` > `informational`).
-  * 1000ms focus cooldown to eliminate window thrashing.
-  * Multi-agent completion aggregation into single digestible notifications.
-* 🟢 **Persistence & Recovery:**
-  * SQLite WAL mode at `~/.flowback/flowback.sqlite`.
-  * Startup reconciliation & crash recovery.
-* 🟢 **Interface & Ergonomics:**
-  * Status bar menu item with quick ⌘1–⌘9 session restoration and Focus Lock controls.
-  * Native SwiftUI Dashboard with live Session Timeline, Provider Diagnostics, and Settings.
-  * Full CLI `flowback` (`doctor`, `status`, `refresh`, `focus-lock`, `emit`, `test-focus`).
+* 🟢 **v0.0.1 (Prototype):** Multi-chunk Unix domain socket IPC, SQLite transient memory safety, and proactive Antigravity process discovery.
+* 🟢 **v0.1.0 (Core Engine):** Deterministic 12-step focus engine, process liveness protection, headless daemon/CLI flags, and socket security.
+* 🟢 **v0.2.0 (Provider Expansion):** Native background agent integrations for Windsurf, OpenCode, Cursor, and official Antigravity CLI (`agy`).
+* 🟢 **v0.3.0 (Intelligence & Scale):** Conversation-aware event resolution, SQLite Schema v2 with migration runner, and 1,000-event burst UI coalescing.
+* 🟢 **v0.4.0 (Design System & Destinations — Current):** macOS Card Design System with HIG/WCAG AA compliance, Copilot provider, General Sidebar Destinations, and canonical metadata.
 
 ---
 
-## Milestone 1.1.0 — Enhanced Multi-Display & Ecosystem Integration 🔵
+## Milestone 0.5.0 — Enhanced Multi-Display & Ecosystem Integration 🔵
 
 **Target:** Q4 2026
 
@@ -50,7 +33,7 @@ Status Legend:
 
 ---
 
-## Milestone 1.2.0 — Multi-Agent Session Grouping & Advanced Policies 🔵
+## Milestone 0.6.0 — Multi-Agent Session Grouping & Advanced Policies 🔵
 
 **Target:** Q1 2027
 
@@ -60,8 +43,9 @@ Status Legend:
 
 ---
 
-## Milestone 2.0.0 — Exploratory / Future Directions 🟣
+## Milestone 1.0.0 — Production API Freeze & Future Directions 🟣
 
+* 🟣 **API & Schema Stability:** Formal freeze of public CLI commands, JSON hook schemas, and database formats.
 * 🟣 **Custom Out-of-Process Provider Sidecars:** Allow developers to author providers in Python, TypeScript, or Go communicating via a lightweight POSIX FIFO without recompiling Flowback.
 * 🟣 **Cross-Platform Linux Support:** Headless background daemon (`flowbackd`), Freedesktop D-Bus notifications, X11 EWMH / Wayland (`xdg-activation-v1`, Hyprland, Sway) focus restoration drivers, and systemd user services ([#7](https://github.com/rapheljr/flowback/issues/7)).
 * 🟣 **Swift Testing Migration:** Adopt native `swift-testing` once upstream tooling and Command Line Tools fully standardize framework availability across all macOS environments.

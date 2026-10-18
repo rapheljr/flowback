@@ -43,8 +43,8 @@ case "help", "-h", "--help":
     exit(0)
 
 case "version", "-v", "--version":
-    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
-    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    let version = FlowbackVersion.current
+    let build = FlowbackVersion.currentBuild
     print("flowback v\(version) (build \(build)) — CLI tool for Flowback Context & Focus Orchestrator")
     exit(0)
 

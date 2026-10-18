@@ -53,7 +53,7 @@ fi
 
 # 5. Documentation & Markdown Link Validation
 echo ""
-echo "▶ [5/5] Validating Markdown Documentation Links..."
+echo "▶ [5/6] Validating Markdown Documentation Links..."
 python3 -c "
 import os, re
 files = [f for f in os.listdir('.') if f.endswith('.md')]
@@ -66,6 +66,11 @@ for f in files:
             raise SystemExit(f'Broken link in {f}: {target}')
 print(f'✓ Verified {len(files)} root markdown documents.')
 "
+
+# 6. Canonical Version & Metadata Synchronization Validation
+echo ""
+echo "▶ [6/6] Validating Canonical Version & Metadata Synchronization..."
+bash "$PROJECT_ROOT/Scripts/validate_version_sync.sh"
 
 echo ""
 echo "=================================================="

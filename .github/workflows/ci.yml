@@ -59,6 +59,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: Validate Canonical Version Synchronization
+        run: bash Scripts/validate_version_sync.sh
+
       - name: Run SwiftLint
         run: |
           if command -v swiftlint >/dev/null 2>&1; then

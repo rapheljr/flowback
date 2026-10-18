@@ -61,7 +61,7 @@ Flowback replicates Vorssaint's exact window and toolbar architecture (`Sources/
 - **Subsystem Architecture Inspection**: Real-time read-only status of Accessibility permissions, Focus Policy Engine, Storage Backend (SQLite / In-Memory), and Provider CLI Discovery.
 
 ### 3.2 What's New Destination (`WhatsNewView.swift` & `ReleaseNotesModel.swift`)
-- **Authoritative Data Source**: `ReleaseNotesModel.current` provides structured release notes derived directly from the authoritative project `CHANGELOG.md` for version 1.0.0.
+- **Authoritative Data Source**: `ReleaseNotesModel.current` provides structured release notes derived directly from the authoritative project `CHANGELOG.md` for version 0.4.0.
 - **Section Categorization**:
   - `Added` (`plus.circle.fill`, Accent color): Flowback daemon, CLI launcher, multi-provider monitoring, Swift 6 concurrency, visual parity suite.
   - `Changed & Improved` (`slider.horizontal.3`, Purple): Menu bar popover latency, Apple HIG card layout, WCAG AA contrast ratio compliance.
@@ -85,7 +85,7 @@ Flowback replicates Vorssaint's exact window and toolbar architecture (`Sources/
 
 ### 3.4 About Flowback Destination (`AboutView.swift`)
 - **Application Identity Hero**: Displays app icon, localized application title, tagline, and bundle identifier (`com.flowback.Flowback`).
-- **Dynamic Version Metadata**: Sourced dynamically from `Bundle.main.infoDictionary` (`CFBundleShortVersionString` and `CFBundleVersion`), defaulting to release `1.0.0 (Build 1)` when running outside an application bundle.
+- **Dynamic Version Metadata**: Sourced dynamically from `Bundle.main.infoDictionary` (`CFBundleShortVersionString` and `CFBundleVersion`), defaulting to release `0.4.0 (Build 1)` when running outside an application bundle.
 - **Interactive License Viewer**: Embedded button launches a native SwiftUI sheet modal rendering the full MIT License text without external web requests.
 - **Project Links**: Native macOS button links to GitHub Repository, Documentation, and Issue Tracker.
 

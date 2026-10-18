@@ -6,6 +6,7 @@ cd "${REPO_ROOT}"
 
 chmod +x .githooks/pre-commit
 chmod +x Scripts/verify_all.sh
+chmod +x Scripts/validate_version_sync.sh
 
 git config core.hooksPath .githooks
-echo "✓ Git hooks successfully configured! Pre-commit verification is now active."
+echo "✓ Git hooks successfully configured (.githooks)! Pre-commit verification is now active."

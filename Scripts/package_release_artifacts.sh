@@ -5,7 +5,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$PROJECT_ROOT/dist"
 
-VERSION="${1:-1.0.0}"
+VERSION="${1:-$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "0.4.0")}"
 BUILD_ARCH="${2:-universal}"
 BUILD_NUMBER="${3:-1}"
 

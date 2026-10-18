@@ -12,7 +12,7 @@ body:
     attributes:
       label: Release Artifact
       description: Exact file downloaded or installation method used.
-      placeholder: "e.g., Flowback-1.0.0-arm64.dmg, Homebrew cask, built from source"
+      placeholder: "e.g., Flowback-0.4.0-arm64.dmg, Homebrew cask, built from source"
     validations:
       required: true
   - type: dropdown

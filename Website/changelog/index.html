@@ -59,15 +59,15 @@
       <p>All notable changes to Flowback follow <a href="https://semver.org/" target="_blank" rel="noopener noreferrer">Semantic Versioning</a> and the <a href="https://keepachangelog.com/" target="_blank" rel="noopener noreferrer">Keep a Changelog</a> standard.</p>
     </div>
 
-    <!-- Release Entry: v1.0.0 -->
+    <!-- Release Entry: v0.4.0 -->
     <article class="card card-featured">
       <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem;">
         <div>
-          <h2 style="margin: 0; font-size: 1.85rem;">Version 1.0.0</h2>
-          <div style="color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem;">Initial Production Release • 2026-10-16</div>
+          <h2 style="margin: 0; font-size: 1.85rem;">Version 0.4.0</h2>
+          <div style="color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem;">Milestone v0.4.0 • 2026-10-18</div>
         </div>
         <div>
-          <a href="../download/" class="btn btn-primary">Download v1.0.0</a>
+          <a href="../download/" class="btn btn-primary">Download v0.4.0</a>
         </div>
       </div>
 
@@ -76,15 +76,12 @@
         <div>
           <h3 style="color: var(--accent-emerald); font-size: 1.15rem; margin-bottom: 0.5rem;">Added</h3>
           <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
-            <li><strong>Official Agent Providers:</strong> First-class support for Google Antigravity (hook lifecycle + transcript discovery), Antigravity CLI, Claude Code, OpenAI Codex, Aider, and Generic JSON Hook Protocol (v1 schema).</li>
-            <li><strong>Application &amp; Editor Adapters:</strong> Exact window restoration adapters for VS Code, VS Code Insiders, Cursor, Windsurf, VSCodium, Positron, Trae, Apple Terminal, iTerm2, Kitty, Alacritty, Ghostty, Warp, Brave, and Chrome.</li>
-            <li><strong>User Intent Engine:</strong> Senses system idle time via <code>CGEventSource</code>. Protects active typing by suppressing focus stealing if keystrokes or mouse clicks occurred within 5 seconds.</li>
-            <li><strong>Attention Arbiter:</strong> Priority ordering (<code>permissionRequired</code> &gt; <code>failure</code> &gt; <code>completed</code> &gt; <code>waiting</code> &gt; <code>informational</code>), multi-agent aggregation window (1.5s), and 1000ms focus cooldown.</li>
-            <li><strong>Focus Lock Mode:</strong> Temporarily suspend auto-restoration (15m, 30m, 45m, 1h, indefinite) while keeping notification banners active.</li>
-            <li><strong>Local SQLite Storage:</strong> Write-Ahead Logging (WAL mode) at <code>~/.flowback/flowback.sqlite</code> with automated schema migrations and corruption recovery.</li>
-            <li><strong>Menu Bar &amp; Dashboard:</strong> Native macOS AppKit status bar item with ⌘1–⌘9 quick restoration and a native SwiftUI Dashboard.</li>
-            <li><strong>Native CLI:</strong> <code>flowback</code> command-line executable with <code>doctor</code>, <code>status</code>, <code>refresh</code>, <code>focus-lock</code>, and <code>emit</code> commands.</li>
-            <li><strong>Deterministic Verification Suite:</strong> <code>FlowbackTestRunner</code> with 61 unit and integration test assertions.</li>
+            <li><strong>macOS Card Design System:</strong> Comprehensive Apple Human Interface Guidelines and WCAG AA contrast compliance across light and dark modes.</li>
+            <li><strong>General Sidebar Destinations:</strong> Advanced Settings, What's New release feed, Support with Buy Me a Coffee links, and authoritative About Flowback view.</li>
+            <li><strong>Copilot &amp; Multi-Agent Expansion:</strong> Background agent integrations for GitHub Copilot, Windsurf, OpenCode, Cursor, and official Google Antigravity CLI (<code>agy</code>).</li>
+            <li><strong>Conversation-Aware Identity:</strong> Session identification mapped directly to conversation threads with exact workspace restoration.</li>
+            <li><strong>UI Event Coalescing:</strong> Burst event coalescer throttling up to 1,000 multi-agent events into single bounded UI passes.</li>
+            <li><strong>Storage Engine v2:</strong> SQLite Schema v2 with automated schema migrations and rollback safety.</li>
           </ul>
         </div>
 
@@ -92,8 +89,9 @@
         <div>
           <h3 style="color: var(--accent-cyan); font-size: 1.15rem; margin-bottom: 0.5rem;">Changed</h3>
           <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
-            <li>Streamlined socket IPC handling to stream multi-chunk payloads cleanly across POSIX buffer boundaries.</li>
-            <li>Hardened SQLite parameter binding with <code>SQLITE_TRANSIENT</code> to ensure memory safety under high-concurrency event ingestion.</li>
+            <li>Authoritative single-source metadata established via <code>FlowbackVersion.swift</code> and root <code>VERSION</code>.</li>
+            <li>Restricted Unix domain socket directory permissions to <code>0700</code> with session shutdown token authentication.</li>
+            <li>Non-blocking process execution runner preventing pipe deadlocks on large outputs (&gt;100KB).</li>
           </ul>
         </div>
 
@@ -101,8 +99,9 @@
         <div>
           <h3 style="color: var(--accent-amber); font-size: 1.15rem; margin-bottom: 0.5rem;">Fixed</h3>
           <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
-            <li>Eliminated window thrashing when multiple parallel agents finish within milliseconds of each other.</li>
-            <li>Prevented focus switching into full-screen presentation apps (e.g. Keynote or full-screen video players).</li>
+            <li>AppKit application termination race during fast service shutdown.</li>
+            <li>Transcript parser JSON newline unescaping and redundant project path prefix stripping.</li>
+            <li>AppKit menu bar shortcut collision between active conversation shortcuts and system navigation.</li>
           </ul>
         </div>
 
@@ -110,8 +109,8 @@
         <div>
           <h3 style="color: var(--accent-indigo); font-size: 1.15rem; margin-bottom: 0.5rem;">Security</h3>
           <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
-            <li>Hardened POSIX Unix domain socket permissions to <code>0600</code> (accessible exclusively by current user).</li>
-            <li>Zero outbound network requests, zero telemetry, zero prompt or code extraction.</li>
+            <li>Privacy-Guaranteed Diagnostic Exporter: Deterministic scrubbing of Bearer tokens, private keys, and user home paths.</li>
+            <li>100% Local Isolation: Zero outbound network connections and zero telemetry.</li>
           </ul>
         </div>
 

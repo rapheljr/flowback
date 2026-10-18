@@ -7,7 +7,7 @@
 
   <p align="center">
     <a href="https://github.com/rapheljr/flowback/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-Passing-10b981?style=flat-square&logo=githubactions&logoColor=white" alt="CI Status"/></a>
-    <a href="https://github.com/rapheljr/flowback/releases"><img src="https://img.shields.io/badge/Release-v1.0.0-38bdf8?style=flat-square" alt="Latest Release"/></a>
+    <a href="https://github.com/rapheljr/flowback/releases"><img src="https://img.shields.io/badge/Release-v0.4.0-38bdf8?style=flat-square" alt="Latest Release"/></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-6366f1?style=flat-square" alt="MIT License"/></a>
     <a href="https://buymeacoffee.com/flowback"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-flowback-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"/></a>
     <img src="https://img.shields.io/badge/macOS-14.0%2B-slate?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+"/>
@@ -126,7 +126,7 @@ Provider Hook / Scan → AgentEvent → EventBus → Deduplicator → SessionMan
 * macOS 14.0 (Sonoma) or newer (Apple Silicon & Intel)
 
 ### Option 1: DMG Installer (Recommended)
-1. Download `Flowback-1.0.0-arm64.dmg` from the [Releases](https://github.com/rapheljr/flowback/releases) page or [Website Download](https://rapheljr.github.io/flowback/download/).
+1. Download `Flowback-0.4.0-arm64.dmg` from the [Releases](https://github.com/rapheljr/flowback/releases) page or [Website Download](https://rapheljr.github.io/flowback/download/).
 2. Mount the DMG and drag `Flowback.app` to `/Applications`.
 3. Link the bundled CLI tool:
    ```bash
@@ -320,11 +320,11 @@ Review our response targets and disclosure policies in [SECURITY.md](SECURITY.md
 ---
 
 ## 19. Roadmap
-
-* 🟢 **v1.0.0:** Universal core, official providers (Antigravity, Claude Code, Codex), Attention Arbiter, User Intent Engine, SQLite WAL, SwiftUI Dashboard & CLI.
-* 🔵 **v1.1.0:** Multi-monitor display pinning, official Homebrew Cask, terminal tab deep links.
-* 🔵 **v1.2.0:** Multi-agent workspace grouping presets, scheduled Focus Lock.
-* 🟣 **v2.0.0:** Out-of-process provider sidecar architecture & cross-platform Linux support ([#7](https://github.com/rapheljr/flowback/issues/7)).
+ 
+* 🟢 **v0.4.0 (Current):** Universal core, macOS Card Design System, Copilot provider, General Sidebar Destinations, Attention Arbiter, SQLite WAL, SwiftUI Dashboard & CLI.
+* 🔵 **v0.5.0:** Multi-monitor display pinning, official Homebrew Cask, terminal tab deep links.
+* 🔵 **v0.6.0:** Multi-agent workspace grouping presets, scheduled Focus Lock.
+* 🟣 **v1.0.0:** Production API freeze, out-of-process provider sidecar architecture & cross-platform Linux support ([#7](https://github.com/rapheljr/flowback/issues/7)).
 
 Read the full [ROADMAP.md](ROADMAP.md).
 

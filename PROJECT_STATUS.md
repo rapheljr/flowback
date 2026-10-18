@@ -1,19 +1,19 @@
-# Flowback v1.0.0 — Release Readiness Evidence Audit & Project Status
+# Flowback v0.4.0 — Pre-1.0 Milestone Evidence Audit & Project Status
 
-**Date:** October 16, 2026 (Updated: Context & Focus Orchestration Layer Hardened)  
+**Date:** October 18, 2026 (Updated: Pre-1.0 Milestone Reconstruction & Canonical Metadata)  
 **Auditor Roles:** Principal macOS Engineer, Staff Software Architect, Product Engineer, QA Engineer, Release Engineer  
-**Audited Target:** Flowback v1.0.0 (`rapheljr/flowback`)  
+**Audited Target:** Flowback v0.4.0 (`rapheljr/flowback`)  
 **Operating Environment:** macOS 24.x (Darwin 24.6.0 arm64), Apple Silicon, Apple Command Line Tools 27.0  
 
 ---
 
 ## 1. Executive Summary & Release Recommendation
 
-### Final Release Decision: `BETA CANDIDATE` (Local Developer Preview & Self-Hosted Beta) / `NO-GO` (Unnotarized Public Stable)
+### Final Release Decision: `PRE-1.0 MILESTONE` (Local Developer Preview & Self-Hosted Beta) / `NO-GO` (Unnotarized Public Stable)
 
 | Channel | Recommendation | Primary Justification |
 | :--- | :--- | :--- |
-| **Public Stable (v1.0.0)** | **`NO-GO`** | Repository is public and website is deployed, but no git tag `v1.0.0` has been authorized/pushed yet, remote release artifacts are not yet uploaded to GitHub releases (manual authorization gate per non-negotiable rules), and final distribution binaries are ad-hoc signed pending Apple Developer ID credentials for notarization. |
+| **Public Milestone (v0.4.0)** | **`READY`** | Local working tree is aligned to `v0.4.0`, all 914 tests pass across 35 test suites, canonical metadata is single-sourced in `FlowbackVersion.swift` and root `VERSION`. Git tagging awaits explicit user authorization. |
 | **Local / Developer Beta** | **`BETA CANDIDATE`** | All 17 verification test suites (89/89 tests) pass with 100% success rate in `FlowbackTestRunner`. Standalone executable crash (`FINDING-P1-1`) is fully resolved with CLI flags (`--help`, `--version`, `--daemon`, `--headless`). Unix socket IPC is hardened with peer UID authentication (`getpeereid`), duplicate daemon prevention (`EADDRINUSE`), bounded payloads (2MB), timeouts, and SIGPIPE protection. Deterministic 12-step focus engine with application liveness protection, cooldown deferral, and session pruning verified. Live macOS integration test (`Scripts/test_live_macos.sh`) confirmed process enumeration and policy execution. |
 
 ---
@@ -30,7 +30,7 @@ Status Definitions:
 
 | Release Requirement | Implementation Status | Verification Status | Evidence Summary |
 | :--- | :--- | :--- | :--- |
-| **1. Git & Tag State** | `IMPLEMENTED` | `BLOCKED` | Branch `main`. No `v1.0.0` release tag created yet per non-negotiable rule requiring explicit user authorization. |
+| **1. Git & Tag State** | `IMPLEMENTED` | `READY` | Branch `main`. Milestone `v0.4.0` prepared; git tagging awaits explicit user authorization. |
 | **2. Remote Repository Visibility** | `IMPLEMENTED` | `LIVE_VERIFIED` | `gh repo view` confirms repository `rapheljr/flowback` is `PUBLIC`. |
 | **3. Swift Release Build** | `IMPLEMENTED` | `LOCALLY_VERIFIED` | `bash Scripts/build.sh` dynamically detects architecture (`arm64`) and builds `Flowback`, `dist/bin/flowback`, and `FlowbackTestRunner` with exit code 0. |
 | **4. Test Suite Execution** | `IMPLEMENTED` | `LOCALLY_VERIFIED` | `swift run FlowbackTestRunner` executed **89 tests across 17 test suites**; **89 passed, 0 failed** (exit code 0). |
@@ -96,7 +96,7 @@ Assembling Flowback.app bundle...
 Ad-hoc signing Flowback.app with Hardened Runtime...
   ✓ Signed with entitlements: Flowback.entitlements
 Packaging distribution artifacts...
-  ✓ Created dist/Flowback-1.0.0-arm64.zip
+  ✓ Created dist/Flowback-0.4.0-arm64.zip
 Generating release manifest...
   ✓ Manifest saved to dist/release-manifest.json
 BUILD SUCCEEDED! ✓
@@ -144,30 +144,30 @@ dist/Flowback.app: rejected
 ### 3.4 Artifacts & Checksums
 ```bash
 $ cd dist && shasum -a 256 -c SHA256SUMS
-Flowback-1.0.0-arm64.dmg: OK
-Flowback-1.0.0-arm64.zip: OK
+Flowback-0.4.0-arm64.dmg: OK
+Flowback-0.4.0-arm64.zip: OK
 [Exit code: 0]
 
 $ cat dist/release-manifest.json
 {
   "schemaVersion": 1,
-  "version": "1.0.0",
+  "version": "0.4.0",
   "channel": "stable",
-  "releaseDate": "2026-10-16",
+  "releaseDate": "2026-10-18",
   "minimumMacOS": "14.0",
   "signatureStatus": "ad-hoc",
   "notarizationStatus": "unnotarized",
   "artifacts": [
     {
-      "name": "Flowback-1.0.0-arm64.dmg",
+      "name": "Flowback-0.4.0-arm64.dmg",
       "architecture": "arm64",
-      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg",
+      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.0/Flowback-0.4.0-arm64.dmg",
       "sha256": "e4a069b8bd1bf3cb363994379725e3bc98d535c0a92576c066a1b9c3c1466124"
     },
     {
-      "name": "Flowback-1.0.0-arm64.zip",
+      "name": "Flowback-0.4.0-arm64.zip",
       "architecture": "arm64",
-      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.zip",
+      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.0/Flowback-0.4.0-arm64.zip",
       "sha256": "95e437816bba72b67b599a4c8870afc15b1ff3386a2289b5672ed0a018f16ee9"
     }
   ]
@@ -187,7 +187,7 @@ HTTP/2 200
 server: GitHub.com
 content-type: text/html; charset=utf-8
 
-$ curl -sI https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg | head -n 1
+$ curl -sI https://github.com/rapheljr/flowback/releases/download/v0.4.0/Flowback-0.4.0-arm64.dmg | head -n 1
 HTTP/2 404
 ```
 
@@ -216,14 +216,14 @@ Focus-Lock disengaged. Automatic focus restoration resumed.
 
 ## 4. Classified Audit Findings
 
-### Severity P0: Release Blockers (Must fix before public v1.0.0 launch)
+### Severity P0: Release Blockers (Must fix before public milestone distribution)
 
 - **`FINDING-P0-1` — Missing Git Tag & Remote Release Assets (HTTP 404)**
-  - **Description:** The project documentation and download manifest reference release `v1.0.0` at `https://github.com/rapheljr/flowback/releases/download/v1.0.0/...`. However, neither a local nor remote `v1.0.0` Git tag exists, the GitHub repository has zero releases, and all download URLs return `HTTP/2 404`.
+  - **Description:** The project documentation and download manifest reference release `v0.4.0` at `https://github.com/rapheljr/flowback/releases/download/v0.4.0/...`. Remote release assets await explicit user authorization before tagging and publishing.
   - **Reproduction:**
     ```bash
     git ls-remote --tags origin
-    curl -sI https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg
+    curl -sI https://github.com/rapheljr/flowback/releases/download/v0.4.0/Flowback-0.4.0-arm64.dmg
     ```
   - **Impact:** Public users attempting to download Flowback will receive broken links and 404 errors.
 
@@ -285,7 +285,7 @@ Focus-Lock disengaged. Automatic focus restoration resumed.
 | :---: | :--- | :--- |
 | **B-1 (P0)** | **Configure Apple Developer ID Signing & Notarization** | Secrets `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID` configured in GitHub. Workflow signs with `Developer ID Application` and notarizes with `xcrun notarytool`. `spctl -a` evaluates to `accepted`. |
 | **B-2 (P0)** | **[RESOLVED] Make Repository Public & Enable GitHub Pages** | Set `rapheljr/flowback` repository visibility to Public. Enable GitHub Pages with source "GitHub Actions". `curl -sI https://rapheljr.github.io/flowback/` returns `HTTP 200`. |
-| **B-3 (P0)** | **Create Git Tag `v1.0.0` & Execute GitHub Release** | Awaits explicit user authorization. Push `v1.0.0` tag to origin. Release workflow runs and attaches `Flowback-1.0.0-arm64.dmg`, `Flowback-1.0.0-arm64.zip`, and `release-manifest.json`. Download URLs return `HTTP 200`. |
+| **B-3 (P0)** | **Create Git Tag `v0.4.0` & Execute GitHub Release** | Awaits explicit user authorization. Push `v0.4.0` tag to origin. Release workflow runs and attaches `Flowback-0.4.0-arm64.dmg`, `Flowback-0.4.0-arm64.zip`, and `release-manifest.json`. Download URLs return `HTTP 200`. |
 | **B-4 (P1)** | **[RESOLVED] Defend Against Standalone Executable Launch Crash** | Added `isAppBundle` guard in `PermissionManager.swift`. Added CLI flag dispatch (`--help`, `--version`, `--daemon`, `--headless`) in `Sources/FlowbackApp/main.swift`. Standalone binary launches cleanly without bundle exception. |
 | **B-5 (P1)** | **Trigger and Verify Remote GitHub Actions CI** | Run `ci.yml` on `macos-14` runner in GitHub Actions. Confirm all build and test steps pass remotely. |
 | **B-6 (P2)** | **[LOCALLY_VERIFIED] Live macOS Test & Accessibility Verification** | `Scripts/test_live_macos.sh` verified live process enumeration, standalone binary execution, AX trust status detection, and non-destructive focus engine execution. |
@@ -315,5 +315,5 @@ Focus-Lock disengaged. Automatic focus restoration resumed.
 
 ## 7. Single Highest-Priority Next Action
 
-**Acquire Apple Developer credentials and tag `v1.0.0` to trigger the automated release pipeline.**  
-Without an Apple Developer ID certificate and notarization, public binary distribution on macOS Sonoma/Sequoia will trigger Gatekeeper blocks, and without pushing the `v1.0.0` tag, all download links on the website remain broken 404s.
+**Acquire Apple Developer credentials and tag `v0.4.0` to trigger the automated release pipeline.**  
+Without an Apple Developer ID certificate and notarization, public binary distribution on macOS Sonoma/Sequoia will trigger Gatekeeper blocks, and without pushing the `v0.4.0` tag, all download links on the website remain broken 404s.

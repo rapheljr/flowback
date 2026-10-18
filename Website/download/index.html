@@ -62,12 +62,12 @@
       <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
         <div>
           <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <h2 id="manifestVersion" style="margin: 0; font-size: 2rem;">v1.0.0</h2>
-            <span class="badge badge-supported">Latest Stable</span>
+            <h2 id="manifestVersion" style="margin: 0; font-size: 2rem;">v0.4.0</h2>
+            <span class="badge badge-supported">Latest Milestone</span>
             <span id="signatureStatusBadge" class="badge badge-partial">Development Build (Ad-hoc Signed)</span>
           </div>
           <div style="color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem;">
-            Released on <span id="manifestDate" style="color: var(--text-primary); font-weight: 600;">2026-10-16</span> • macOS 14.0 (Sonoma) or newer
+            Released on <span id="manifestDate" style="color: var(--text-primary); font-weight: 600;">2026-10-18</span> • macOS 14.0 (Sonoma) or newer
           </div>
         </div>
         <div style="font-size: 0.85rem; color: var(--text-muted); text-align: right;">
@@ -77,10 +77,10 @@
 
       <!-- Action Buttons -->
       <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
-        <a id="dmgDownloadBtn" href="https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.dmg" class="btn btn-primary btn-lg download-action-btn">
+        <a id="dmgDownloadBtn" href="https://github.com/rapheljr/flowback/releases/download/v0.4.0/Flowback-0.4.0-arm64.dmg" class="btn btn-primary btn-lg download-action-btn">
           ⬇️ Download DMG <span style="font-size: 0.8em; opacity: 0.8;">(arm64, 1.2 MB)</span>
         </a>
-        <a id="zipDownloadBtn" href="https://github.com/rapheljr/flowback/releases/download/v1.0.0/Flowback-1.0.0-arm64.zip" class="btn btn-secondary btn-lg download-action-btn">
+        <a id="zipDownloadBtn" href="https://github.com/rapheljr/flowback/releases/download/v0.4.0/Flowback-0.4.0-arm64.zip" class="btn btn-secondary btn-lg download-action-btn">
           ⬇️ Download ZIP <span style="font-size: 0.8em; opacity: 0.8;">(arm64, Portable)</span>
         </a>
       </div>
@@ -92,17 +92,17 @@
         </h3>
         <div id="checksumsList">
           <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-            <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Flowback-1.0.0-arm64.dmg (Apple Silicon)</div>
+            <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Flowback-0.4.0-arm64.dmg (Apple Silicon)</div>
             <code style="word-break: break-all; font-size: 0.8rem;">e4a069b8bd1bf3cb363994379725e3bc98d535c0a92576c066a1b9c3c1466124</code>
           </div>
           <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
-            <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Flowback-1.0.0-arm64.zip (Apple Silicon)</div>
+            <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem;">Flowback-0.4.0-arm64.zip (Apple Silicon)</div>
             <code style="word-break: break-all; font-size: 0.8rem;">95e437816bba72b67b599a4c8870afc15b1ff3386a2289b5672ed0a018f16ee9</code>
           </div>
         </div>
 
         <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.75rem;">
-          To verify in your terminal: <code>shasum -a 256 Flowback-1.0.0-arm64.dmg</code>
+          To verify in your terminal: <code>shasum -a 256 Flowback-0.4.0-arm64.dmg</code>
         </div>
       </div>
     </div>
@@ -111,7 +111,7 @@
     <section style="max-width: 850px; margin: 0 auto 3.5rem auto;">
       <h2>Installation Instructions</h2>
       <ol style="margin: 1rem 0 2rem 1.5rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.75rem;">
-        <li>Download <code>Flowback-1.0.0-arm64.dmg</code> above and verify the SHA-256 hash.</li>
+        <li>Download <code>Flowback-0.4.0-arm64.dmg</code> above and verify the SHA-256 hash.</li>
         <li>Double click the <code>.dmg</code> file to mount it, and drag <strong>Flowback.app</strong> into your <strong>Applications</strong> folder.</li>
         <li>Launch <strong>Flowback</strong> from Spotlight or Applications. The compass icon will appear in your top menu bar.</li>
         <li>Grant <strong>Accessibility</strong> and <strong>Notification</strong> permissions when prompted so Flowback can restore windows accurately without stealing focus during typing.</li>

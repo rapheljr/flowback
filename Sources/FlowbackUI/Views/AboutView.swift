@@ -46,8 +46,8 @@ public struct AboutView: View {
     """
 
     public init(
-        appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
-        buildNumber: String = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1",
+        appVersion: String = FlowbackVersion.current,
+        buildNumber: String = FlowbackVersion.currentBuild,
         onNavigateToWhatsNew: (() -> Void)? = nil
     ) {
         self.appVersion = appVersion

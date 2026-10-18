@@ -272,8 +272,8 @@ func runGeneralSidebarDestinationsSuites() async {
             return
         }
 
-        assertTest(firstNote.version == "1.0.0", "V-021: Current release version is 1.0.0")
-        assertTest(firstNote.date == "October 16, 2026", "V-021: Release date is verified: October 16, 2026")
+        assertTest(firstNote.version == "0.4.0", "V-021: Current release version is 0.4.0")
+        assertTest(firstNote.date == "October 18, 2026", "V-021: Release date is verified: October 18, 2026")
         assertTest(!firstNote.summary.isEmpty, "V-021: Release summary is defined")
         assertTest(firstNote.sections.count == 5, "V-021: Defines exactly 5 categorized subsections")
 
@@ -290,7 +290,7 @@ func runGeneralSidebarDestinationsSuites() async {
         }
 
         // Current helper returns latest
-        assertTest(ReleaseNotesModel.current?.version == "1.0.0", "V-021: ReleaseNotesModel.current returns latest version")
+        assertTest(ReleaseNotesModel.current?.version == "0.4.0", "V-021: ReleaseNotesModel.current returns latest version")
 
         // Offline Empty State Handling
         let emptyView = WhatsNewView(releaseNotes: [])
@@ -324,7 +324,7 @@ func runGeneralSidebarDestinationsSuites() async {
         ]
 
         let testContext = DiagnosticReportContext(
-            appVersion: "1.0.0",
+            appVersion: FlowbackVersion.current,
             appBuild: "1",
             macOSVersion: "15.0",
             architecture: "arm64",
@@ -370,7 +370,7 @@ func runGeneralSidebarDestinationsSuites() async {
 
         // 3. Negative Redaction Assertions: Confirm legitimate diagnostics and system paths are fully preserved
         assertTest(report.contains("# Flowback Diagnostic Report"), "V-022: Negative test — report header preserved")
-        assertTest(report.contains("Flowback v1.0.0 (build 1)"), "V-022: Negative test — version information preserved")
+        assertTest(report.contains("Flowback v\(FlowbackVersion.current) (build 1)"), "V-022: Negative test — version information preserved")
         assertTest(report.contains("macOS 15.0"), "V-022: Negative test — OS version preserved")
         assertTest(report.contains("arm64"), "V-022: Negative test — architecture preserved")
         assertTest(report.contains("SQLite 3 (WAL Mode)"), "V-022: Negative test — storage engine details preserved")
@@ -384,8 +384,8 @@ func runGeneralSidebarDestinationsSuites() async {
 
     // MARK: - V-023: About Flowback Destination & Metadata Integrity
     await testGroup("V-023: About Flowback Destination & Metadata Integrity") {
-        let aboutView = AboutView(appVersion: "1.0.0", buildNumber: "42")
-        assertTest(aboutView.appVersion == "1.0.0", "V-023: AboutView displays injected appVersion")
+        let aboutView = AboutView(appVersion: "0.4.0", buildNumber: "42")
+        assertTest(aboutView.appVersion == "0.4.0", "V-023: AboutView displays injected appVersion")
         assertTest(aboutView.buildNumber == "42", "V-023: AboutView displays injected buildNumber")
 
         // Default metadata fallback when bundle dictionary is empty

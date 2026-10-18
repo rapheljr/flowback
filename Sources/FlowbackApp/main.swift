@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import FlowbackCore
 
 let args = CommandLine.arguments
 
@@ -34,8 +35,8 @@ if args.contains("--help") || args.contains("-h") {
 }
 
 if args.contains("--version") || args.contains("-v") {
-    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
-    let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    let version = FlowbackVersion.current
+    let build = FlowbackVersion.currentBuild
     print("Flowback v\(version) (build \(build)) — Focus & Context Orchestrator for macOS")
     exit(0)
 }

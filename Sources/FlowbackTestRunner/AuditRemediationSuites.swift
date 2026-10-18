@@ -666,7 +666,9 @@ func runAuditRemediationSuites() async {
         assertTest(burstCoalescer.coalescedEventCount == 999, "C-01: 999 intermediate events coalesced into pending window")
         
         burstScheduler.advance()
-        await Task.yield()
+        while burstCoalescer.executionCount == 0 {
+            await Task.yield()
+        }
         
         assertTest(burstRefreshCount == 1, "C-01: 1,000 events coalesced into exactly 1 UI synchronization pass")
         assertTest(burstCoalescer.executionCount == 1, "C-01: Coalescer tracks exactly 1 execution pass")
@@ -682,7 +684,9 @@ func runAuditRemediationSuites() async {
         assertTest(singleRefreshCount == 0, "C-01: Single event does not execute synchronously on scheduling")
         await singleScheduler.waitUntilSleeping()
         singleScheduler.advance()
-        await Task.yield()
+        while singleCoalescer.executionCount == 0 {
+            await Task.yield()
+        }
         assertTest(singleRefreshCount == 1, "C-01: Single event triggers exactly 1 UI refresh after interval")
 
         final class ValueBox<T> {

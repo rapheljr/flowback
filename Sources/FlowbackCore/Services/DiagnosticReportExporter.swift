@@ -20,8 +20,8 @@ public struct DiagnosticReportContext: Sendable {
     public var recentTimeline: [TimelineEntry]
 
     public init(
-        appVersion: String = "1.0.0",
-        appBuild: String = "1",
+        appVersion: String = FlowbackVersion.current,
+        appBuild: String = FlowbackVersion.currentBuild,
         timestamp: Date = Date(),
         macOSVersion: String = ProcessInfo.processInfo.operatingSystemVersionString,
         architecture: String = {

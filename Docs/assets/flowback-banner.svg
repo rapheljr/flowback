@@ -115,7 +115,7 @@
           font-size="12" 
           font-weight="700" 
           fill="#38BDF8" 
-          text-anchor="middle">v1.0.0</text>
+          text-anchor="middle">v0.4.0</text>
 
     <!-- Tagline -->
     <text x="0" y="102" 
