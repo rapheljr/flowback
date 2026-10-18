@@ -12,7 +12,7 @@ public enum DashboardTab: String, CaseIterable, Identifiable, Sendable {
     case advanced = "Advanced"
     case whatsNew = "What's New"
     case support = "Support"
-    case about = "About Flowback"
+    case about = "About"
     
     public var id: String { rawValue }
     
@@ -24,9 +24,9 @@ public enum DashboardTab: String, CaseIterable, Identifiable, Sendable {
         case .applications: return "macwindow"
         case .diagnostics: return "stethoscope"
         case .settings: return "gearshape"
-        case .advanced: return "slider.horizontal.3"
+        case .advanced: return "wrench.and.screwdriver"
         case .whatsNew: return "sparkles"
-        case .support: return "questionmark.circle"
+        case .support: return "heart.fill"
         case .about: return "info.circle"
         }
     }
@@ -41,7 +41,7 @@ public enum DashboardTab: String, CaseIterable, Identifiable, Sendable {
         case .settings: return "Focus policy configuration"
         case .advanced: return "Specialized orchestration controls & configuration"
         case .whatsNew: return "Recent release highlights and improvements"
-        case .support: return "Troubleshooting, documentation & diagnostics export"
+        case .support: return "Support development, documentation & diagnostics export"
         case .about: return "App details, licensing & project resources"
         }
     }
@@ -68,7 +68,64 @@ public enum DashboardTab: String, CaseIterable, Identifiable, Sendable {
 }
 
 public final class DashboardViewModel: ObservableObject {
-    @Published public var selectedTab: DashboardTab
+    @Published public var selectedTab: DashboardTab {
+        didSet {
+            guard selectedTab != oldValue else { return }
+            if !isTraversingHistory {
+                if historyIndex + 1 < navigationHistory.count {
+                    navigationHistory.removeSubrange((historyIndex + 1)..<navigationHistory.count)
+                }
+                navigationHistory.append(selectedTab)
+                historyIndex = navigationHistory.count - 1
+            }
+        }
+    }
+    @Published public private(set) var navigationHistory: [DashboardTab]
+    @Published public private(set) var historyIndex: Int
+    private var isTraversingHistory: Bool = false
+
+    public var canGoBack: Bool {
+        historyIndex > 0
+    }
+
+    public var canGoForward: Bool {
+        historyIndex < navigationHistory.count - 1
+    }
+
+    public func goBack() {
+        guard canGoBack else { return }
+        isTraversingHistory = true
+        historyIndex -= 1
+        selectedTab = navigationHistory[historyIndex]
+        isTraversingHistory = false
+    }
+
+    public func goForward() {
+        guard canGoForward else { return }
+        isTraversingHistory = true
+        historyIndex += 1
+        selectedTab = navigationHistory[historyIndex]
+        isTraversingHistory = false
+    }
+
+    public func navigateTo(_ tab: DashboardTab) {
+        guard tab != selectedTab else { return }
+        selectedTab = tab
+    }
+
+    @Published public var columnVisibility: NavigationSplitViewVisibility = .all
+
+    public var sidebarShown: Bool { columnVisibility != .detailOnly }
+
+    public func toggleSidebar() {
+        let next: NavigationSplitViewVisibility = sidebarShown ? .detailOnly : .all
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            columnVisibility = next
+        } else {
+            withAnimation { columnVisibility = next }
+        }
+    }
+
     @Published public var activeSessions: [AgentSession] = []
     @Published public var allSessions: [AgentSession] = []
     @Published public var attentionQueue: [AttentionRequest] = []
@@ -99,6 +156,8 @@ public final class DashboardViewModel: ObservableObject {
         isIPCReady: Bool = true
     ) {
         self.selectedTab = selectedTab
+        self.navigationHistory = [selectedTab]
+        self.historyIndex = 0
         self.activeSessions = activeSessions
         self.allSessions = allSessions
         self.attentionQueue = attentionQueue
@@ -212,7 +271,7 @@ public struct DashboardView: View {
     }
     
     public var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $viewModel.columnVisibility) {
             List(selection: $viewModel.selectedTab) {
                 Section("Workspace") {
                     ForEach(DashboardTab.workspaceTabs) { tab in
@@ -235,125 +294,150 @@ public struct DashboardView: View {
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
             .listStyle(.sidebar)
         } detail: {
-            VStack(spacing: 0) {
-                if !isStorageDurable {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text(storageRecoveryNotice ?? "Operating in transient in-memory database fallback (changes will not persist to disk).")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                        Spacer()
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
+                    if !isStorageDurable {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text(storageRecoveryNotice ?? "Operating in transient in-memory database fallback (changes will not persist to disk).")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                            Spacer()
+                        }
+                        .padding(8)
+                        .background(Color.orange.opacity(0.15))
                     }
-                    .padding(8)
-                    .background(Color.orange.opacity(0.15))
-                }
-                
-                Group {
-                    switch viewModel.selectedTab {
-                    case .overview:
-                        OverviewView(
-                            activeSessions: activeSessionsBinding,
-                            attentionQueue: attentionQueueBinding,
-                            focusLock: focusLockBinding,
-                            onFocusSession: onFocusSession,
-                            onRefresh: onRefresh
-                        )
-                    case .agents:
-                        AgentsView(
-                            sessions: allSessions,
-                            onFocusSession: onFocusSession
-                        )
-                    case .timeline:
-                        SessionTimelineView(
-                            sessions: allSessions,
-                            timelineEntries: timelineEntries
-                        )
-                    case .applications:
-                        ApplicationsView(
-                            protectedApps: Binding(
-                                get: { configBinding.wrappedValue.protectedApplications },
-                                set: { configBinding.wrappedValue.protectedApplications = $0 }
+
+                    Group {
+                        switch viewModel.selectedTab {
+                        case .overview:
+                            OverviewView(
+                                activeSessions: activeSessionsBinding,
+                                attentionQueue: attentionQueueBinding,
+                                focusLock: focusLockBinding,
+                                onFocusSession: onFocusSession,
+                                onRefresh: onRefresh
                             )
-                        )
-                    case .diagnostics:
-                        DiagnosticsView(
-                            providerHealths: providerHealths,
-                            permissionStatus: permissionStatus,
-                            isDatabaseReady: isDatabaseReady,
-                            isStorageDurable: isStorageDurable,
-                            storageRecoveryNotice: storageRecoveryNotice,
-                            isIPCReady: isIPCReady,
-                            onRepairAntigravity: onRepairAntigravity,
-                            onTestFocus: onTestFocus,
-                            onTestNotification: onTestNotification
-                        )
-                    case .settings:
-                        SettingsView(
-                            config: configBinding,
-                            onSave: onSaveConfig
-                        )
-                    case .advanced:
-                        AdvancedView(
-                            config: configBinding,
-                            isStorageDurable: isStorageDurable,
-                            isIPCReady: isIPCReady,
-                            onSave: onSaveConfig
-                        )
-                    case .whatsNew:
-                        WhatsNewView()
-                    case .support:
-                        SupportView(
-                            diagnosticContext: DiagnosticReportContext(
-                                appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
-                                appBuild: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1",
+                        case .agents:
+                            AgentsView(
+                                sessions: allSessions,
+                                onFocusSession: onFocusSession
+                            )
+                        case .timeline:
+                            SessionTimelineView(
+                                sessions: allSessions,
+                                timelineEntries: timelineEntries
+                            )
+                        case .applications:
+                            ApplicationsView(
+                                protectedApps: Binding(
+                                    get: { configBinding.wrappedValue.protectedApplications },
+                                    set: { configBinding.wrappedValue.protectedApplications = $0 }
+                                )
+                            )
+                        case .diagnostics:
+                            DiagnosticsView(
+                                providerHealths: providerHealths,
                                 permissionStatus: permissionStatus,
                                 isDatabaseReady: isDatabaseReady,
                                 isStorageDurable: isStorageDurable,
-                                storageNotice: storageRecoveryNotice,
+                                storageRecoveryNotice: storageRecoveryNotice,
                                 isIPCReady: isIPCReady,
-                                providerHealths: providerHealths,
-                                configuration: configBinding.wrappedValue,
-                                recentTimeline: timelineEntries
-                            ),
-                            onNavigateToDiagnostics: {
-                                viewModel.selectedTab = .diagnostics
-                            }
-                        )
-                    case .about:
-                        AboutView(
-                            appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
-                            buildNumber: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-                        )
+                                onRepairAntigravity: onRepairAntigravity,
+                                onTestFocus: onTestFocus,
+                                onTestNotification: onTestNotification
+                            )
+                        case .settings:
+                            SettingsView(
+                                config: configBinding,
+                                onSave: onSaveConfig
+                            )
+                        case .advanced:
+                            AdvancedView(
+                                config: configBinding,
+                                isStorageDurable: isStorageDurable,
+                                isIPCReady: isIPCReady,
+                                onSave: onSaveConfig
+                            )
+                        case .whatsNew:
+                            WhatsNewView()
+                        case .support:
+                            SupportView(
+                                diagnosticContext: DiagnosticReportContext(
+                                    appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
+                                    appBuild: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1",
+                                    permissionStatus: permissionStatus,
+                                    isDatabaseReady: isDatabaseReady,
+                                    isStorageDurable: isStorageDurable,
+                                    storageNotice: storageRecoveryNotice,
+                                    isIPCReady: isIPCReady,
+                                    providerHealths: providerHealths,
+                                    configuration: configBinding.wrappedValue,
+                                    recentTimeline: timelineEntries
+                                ),
+                                onNavigateToDiagnostics: {
+                                    viewModel.selectedTab = .diagnostics
+                                }
+                            )
+                        case .about:
+                            AboutView(
+                                appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
+                                buildNumber: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1",
+                                onNavigateToWhatsNew: {
+                                    viewModel.selectedTab = .whatsNew
+                                }
+                            )
+                        }
                     }
                 }
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
             }
             .background(Color(nsColor: .windowBackgroundColor))
-            .navigationTitle(viewModel.selectedTab.rawValue)
-            .navigationSubtitle(viewModel.selectedTab.subtitle)
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    Button(action: onRefresh) {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                    }
-                    .help("Scan and refresh active agent sessions (⌘R)")
-                    .keyboardShortcut("r", modifiers: .command)
-                    .accessibilityIdentifier("toolbar-refresh-button")
+        }
+        .navigationSplitViewStyle(.balanced)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                let title = viewModel.sidebarShown ? "Hide Sidebar" : "Show Sidebar"
+                Button(action: { viewModel.toggleSidebar() }) {
+                    Label(title, systemImage: "sidebar.left")
                 }
+                .keyboardShortcut("s", modifiers: [.control, .command])
+                .help(title)
+                .accessibilityIdentifier("toolbar-sidebar-toggle-button")
             }
-            .background {
-                Group {
-                    Button("") { viewModel.selectedTab = .overview }.keyboardShortcut("1", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .agents }.keyboardShortcut("2", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .applications }.keyboardShortcut("3", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .timeline }.keyboardShortcut("4", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .diagnostics }.keyboardShortcut("5", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .settings }.keyboardShortcut("6", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .advanced }.keyboardShortcut("7", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .whatsNew }.keyboardShortcut("8", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .support }.keyboardShortcut("9", modifiers: .command).hidden()
-                    Button("") { viewModel.selectedTab = .about }.keyboardShortcut("0", modifiers: .command).hidden()
+
+            ToolbarItemGroup(placement: .navigation) {
+                Button(action: { viewModel.goBack() }) {
+                    Label("Back", systemImage: "chevron.backward")
                 }
+                .disabled(!viewModel.canGoBack)
+                .help("Back (⌘[)")
+                .keyboardShortcut("[", modifiers: .command)
+                .accessibilityIdentifier("toolbar-back-button")
+
+                Button(action: { viewModel.goForward() }) {
+                    Label("Forward", systemImage: "chevron.forward")
+                }
+                .disabled(!viewModel.canGoForward)
+                .help("Forward (⌘])")
+                .keyboardShortcut("]", modifiers: .command)
+                .accessibilityIdentifier("toolbar-forward-button")
+            }
+        }
+        .background {
+            Group {
+                Button("") { onRefresh() }.keyboardShortcut("r", modifiers: .command).hidden()
+                Button("") { viewModel.selectedTab = .overview }.keyboardShortcut("1", modifiers: .command).hidden()
+                Button("") { viewModel.selectedTab = .agents }.keyboardShortcut("2", modifiers: .command).hidden()
+                Button("") { viewModel.selectedTab = .applications }.keyboardShortcut("3", modifiers: .command).hidden()
+                Button("") { viewModel.selectedTab = .timeline }.keyboardShortcut("4", modifiers: .command).hidden()
+                Button("") { viewModel.selectedTab = .diagnostics }.keyboardShortcut("5", modifiers: .command).hidden()
+                Button("") { viewModel.selectedTab = .settings }.keyboardShortcut("6", modifiers: .command).hidden()
+                Button("") { viewModel.selectedTab = .advanced }.keyboardShortcut("7", modifiers: .command).hidden()
+                Button("") { viewModel.selectedTab = .whatsNew }.keyboardShortcut("8", modifiers: .command).hidden()
+                Button("") { viewModel.selectedTab = .support }.keyboardShortcut("9", modifiers: .command).hidden()
+                Button("") { viewModel.selectedTab = .about }.keyboardShortcut("0", modifiers: .command).hidden()
             }
         }
         .frame(minWidth: 800, minHeight: 550)

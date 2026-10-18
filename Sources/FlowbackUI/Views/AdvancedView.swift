@@ -39,8 +39,34 @@ public final class AdvancedViewModel: ObservableObject {
     @Published public var showResetConfirm: Bool = false
     @Published public var showImportConfirm: Bool = false
     @Published public var pendingImportConfig: PolicyConfiguration?
+    @Published public var showPermissionsResetConfirm: Bool = false
+    @Published public var permissionsResetSucceeded: Bool?
+    @Published public var permissionsResetMessage: String?
 
     public init() {}
+
+    @MainActor
+    public func resetSystemPermissions(bundleIdentifier: String? = nil) {
+        let id = bundleIdentifier ?? (Bundle.main.bundleIdentifier ?? "com.flowback.app")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        process.arguments = ["reset", "All", id]
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+            if process.terminationStatus == 0 {
+                permissionsResetSucceeded = true
+                permissionsResetMessage = "Permissions successfully reset for \(id). macOS will re-prompt when needed."
+            } else {
+                permissionsResetSucceeded = false
+                permissionsResetMessage = "tccutil exited with status \(process.terminationStatus)."
+            }
+        } catch {
+            permissionsResetSucceeded = false
+            permissionsResetMessage = "Failed to run tccutil: \(error.localizedDescription)"
+        }
+    }
 
     /// Exports configuration into pretty-printed JSON string
     public static func serializeConfig(_ config: PolicyConfiguration) throws -> String {
@@ -358,15 +384,56 @@ public struct AdvancedView: View {
                     }
                 }
 
-                // Section 4: Factory Reset & Defaults
+                // Section 4: System Permissions Reset
+                FlowbackSettingsCard(
+                    title: "System Permissions Reset",
+                    subtitle: "Clear macOS Accessibility and Notification permissions granted to Flowback."
+                ) {
+                    VStack(alignment: .leading, spacing: FlowbackSpacing.sm) {
+                        Text(
+                            "If window focus interception or notification dispatch is behaving erratically, " +
+                            "resetting permissions clears cached TCC authorizations and prompts freshly in System Settings."
+                        )
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                        Button(role: .destructive) {
+                            viewModel.showPermissionsResetConfirm = true
+                        } label: {
+                            Label("Reset System Permissions…", systemImage: "lock.slash")
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("advanced-reset-permissions-button")
+
+                        if let msg = viewModel.permissionsResetMessage {
+                            HStack(spacing: 6) {
+                                Image(
+                                    systemName: viewModel.permissionsResetSucceeded == true
+                                        ? "checkmark.circle.fill"
+                                        : "exclamationmark.triangle.fill"
+                                )
+                                .foregroundColor(viewModel.permissionsResetSucceeded == true ? .green : .orange)
+                                Text(msg)
+                                    .font(.caption)
+                                    .foregroundColor(viewModel.permissionsResetSucceeded == true ? .green : .orange)
+                            }
+                            .accessibilityIdentifier("advanced-reset-permissions-status")
+                        }
+                    }
+                }
+
+                // Section 5: Factory Reset & Defaults
                 FlowbackSettingsCard(
                     title: "Reset Configuration",
                     subtitle: "Restore all Flowback rules, cooldowns, and protected apps to factory defaults."
                 ) {
                     VStack(alignment: .leading, spacing: FlowbackSpacing.sm) {
-                        Text("Resetting clears any custom focus cooldowns, space behaviors, provider overrides, and restores the standard protected applications list.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        Text(
+                            "Resetting clears any custom focus cooldowns, space behaviors, provider overrides, " +
+                            "and restores the standard protected applications list."
+                        )
+                        .font(.caption)
+                        .foregroundColor(.secondary)
 
                         Button(role: .destructive) {
                             viewModel.showResetConfirm = true
@@ -378,7 +445,7 @@ public struct AdvancedView: View {
                     }
                 }
 
-                // Section 5: Architecture & Storage (Read-Only)
+                // Section 6: Architecture & Storage (Read-Only)
                 FlowbackSettingsCard(
                     title: "Subsystem Architecture & Storage",
                     subtitle: "Read-only summary of local storage parameters and daemon socket bindings."
@@ -461,6 +528,17 @@ public struct AdvancedView: View {
             }
         } message: {
             Text("Applying this configuration will replace your current focus policies and application rules with the values from the imported file.")
+        }
+        .alert("Reset System Permissions?", isPresented: $viewModel.showPermissionsResetConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset Permissions", role: .destructive) {
+                viewModel.resetSystemPermissions()
+            }
+        } message: {
+            Text(
+                "This will clear all macOS TCC permissions (Accessibility, Notifications) granted to Flowback using tccutil. " +
+                "You will need to re-grant permissions in System Settings > Privacy & Security."
+            )
         }
     }
 }

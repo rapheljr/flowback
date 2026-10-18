@@ -652,7 +652,7 @@ extension FlowbackService: NSWindowDelegate {
 
         if let existing = dashboardWindow {
             existing.makeKeyAndOrderFront(nil)
-            NSApplication.shared.activate(ignoringOtherApps: true)
+            NSApplication.shared.activate()
             return
         }
 
@@ -717,22 +717,21 @@ extension FlowbackService: NSWindowDelegate {
             }
         )
 
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 880, height: 620),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
+        let host = NSHostingController(rootView: dashboardView)
+        host.sizingOptions = []
+        let window = NSWindow(contentViewController: host)
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        window.setContentSize(NSSize(width: 880, height: 620))
+        window.minSize = NSSize(width: 800, height: 550)
         window.center()
         window.setFrameAutosaveName("FlowbackDashboardWindow")
         window.title = "Flowback — AI Focus & Context Manager"
-        window.contentView = NSHostingView(rootView: dashboardView)
         window.isReleasedWhenClosed = false
         window.delegate = self
 
         self.dashboardWindow = window
         window.makeKeyAndOrderFront(nil)
-        NSApplication.shared.activate(ignoringOtherApps: true)
+        NSApplication.shared.activate()
     }
 
     // MARK: - Native macOS Standard Main Menu

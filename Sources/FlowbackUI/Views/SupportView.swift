@@ -33,12 +33,17 @@ public struct SupportView: View {
     public var diagnosticContext: DiagnosticReportContext
     public var onNavigateToDiagnostics: (() -> Void)?
 
+    public static let buyMeACoffeeURL = URL(string: "https://buymeacoffee.com/flowback")!
+    public static let supportWebURL = URL(string: "https://rapheljr.github.io/flowback/support/")!
+
     private let repoURL = URL(string: "https://github.com/rapheljr/flowback")!
     private let discussionsURL = URL(string: "https://github.com/rapheljr/flowback/discussions")!
     private let issuesURL = URL(string: "https://github.com/rapheljr/flowback/issues")!
     private let securityURL = URL(string: "https://github.com/rapheljr/flowback/security/advisories/new")!
     private let troubleshootingDocURL = URL(string: "https://github.com/rapheljr/flowback/blob/main/TROUBLESHOOTING.md")!
     private let architectureDocURL = URL(string: "https://github.com/rapheljr/flowback/blob/main/ARCHITECTURE.md")!
+    private let coffeeURL = SupportView.buyMeACoffeeURL
+    private let supportPageURL = SupportView.supportWebURL
 
     public init(
         diagnosticContext: DiagnosticReportContext = DiagnosticReportContext(),
@@ -55,12 +60,75 @@ public struct SupportView: View {
                 VStack(alignment: .leading, spacing: FlowbackSpacing.xxs) {
                     Text("Support & Troubleshooting")
                         .font(.title2.bold())
-                    Text("Get help, review troubleshooting guides, report issues, and export sanitized diagnostic logs.")
+                    Text("Support development, get help, review troubleshooting guides, and export sanitized diagnostic logs.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
 
-                // Section 1: Self-Diagnostics & Doctor
+                // Section 1: Support Development on Buy Me a Coffee
+                FlowbackSettingsCard(
+                    title: "Support Flowback Development",
+                    subtitle: "Independent, open-source AI focus orchestration built for macOS."
+                ) {
+                    VStack(alignment: .leading, spacing: FlowbackSpacing.md) {
+                        HStack(alignment: .top, spacing: FlowbackSpacing.md) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [Color.pink, Color.red.opacity(0.85)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 44, height: 44)
+                                    .shadow(color: Color.pink.opacity(0.30), radius: 4, x: 0, y: 2)
+
+                                Image(systemName: "heart.fill")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                            .accessibilityHidden(true)
+
+                            VStack(alignment: .leading, spacing: FlowbackSpacing.xxs) {
+                                Text("Flowback is free, open source, and built to keep you in flow while autonomous AI coding agents work.")
+                                    .font(.subheadline.weight(.medium))
+                                    .fixedSize(horizontal: false, vertical: true)
+
+                                Text(
+                                    "If Flowback saves you context-switching overhead and distraction, " +
+                                    "supporting on Buy Me a Coffee directly funds continuous releases, automated testing, and agent adapters."
+                                )
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+
+                        HStack(spacing: FlowbackSpacing.md) {
+                            Link(destination: coffeeURL) {
+                                Label("Buy Me a Coffee", systemImage: "cup.and.saucer.fill")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(Color.orange)
+                            .accessibilityIdentifier("support-buy-me-a-coffee-button")
+
+                            Link(destination: supportPageURL) {
+                                Label("Support & Memberships", systemImage: "heart.circle")
+                            }
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("support-memberships-link")
+
+                            Link(destination: repoURL) {
+                                Label("Star on GitHub", systemImage: "star.fill")
+                            }
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("support-github-star-link")
+                        }
+                    }
+                }
+
+                // Section 2: Self-Diagnostics & Doctor
                 FlowbackSettingsCard(
                     title: "Diagnostic Self-Check",
                     subtitle: "Verify macOS permissions, database health, and agent socket responsiveness."
@@ -104,7 +172,7 @@ public struct SupportView: View {
                     }
                 }
 
-                // Section 2: Sanitized Diagnostic Report Exporter
+                // Section 3: Sanitized Diagnostic Report Exporter
                 FlowbackSettingsCard(
                     title: "Sanitized Diagnostic Report Export",
                     subtitle: "Generate a shareable troubleshooting log with all private tokens and file paths redacted."
@@ -157,7 +225,7 @@ public struct SupportView: View {
                     }
                 }
 
-                // Section 3: Community & Issue Tracker
+                // Section 4: Community & Issue Tracker
                 FlowbackSettingsCard(
                     title: "Community & Issue Reporting",
                     subtitle: "Search known issues, ask questions, or contribute feature proposals."
@@ -208,7 +276,7 @@ public struct SupportView: View {
                     }
                 }
 
-                // Section 4: Project Documentation
+                // Section 5: Project Documentation
                 FlowbackSettingsCard(
                     title: "Documentation & Resources",
                     subtitle: "Step-by-step guides for troubleshooting, architecture, and provider hooks."

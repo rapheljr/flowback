@@ -12,9 +12,9 @@
 
 Four general-purpose destinations have been integrated into Flowback's primary navigation shell, modeled after native macOS desktop design patterns discovered in the Vorssaint reference application while adhering strictly to Flowback's design system, MIT licensing, and agent-orchestration security model:
 
-1. **Advanced (`slider.horizontal.3`)**: Deep configuration controls including lifecycle event behaviors, provider-specific overrides, JSON configuration export/import with validation, destructive factory reset confirmation, and real-time subsystem diagnostics.
+1. **Advanced (`wrench.and.screwdriver`)**: Deep configuration controls including lifecycle event behaviors, provider-specific overrides, JSON configuration export/import with validation, macOS system permissions reset (`lock.slash`), destructive factory reset confirmation, and real-time subsystem diagnostics.
 2. **What's New (`sparkles`)**: Structured release notes organized by categorized change tags (Added, Changed & Improved, Fixed, Security & Privacy, Known Limitations) with dedicated SF Symbols, scannable bullet points, and clean empty-state fallback.
-3. **Support (`questionmark.circle`)**: Troubleshooting center featuring a subsystem diagnostic self-check doctor, native navigation to detailed diagnostics, privacy-sanitized diagnostic report export with `NSSavePanel`, and official links to documentation and issue tracker.
+3. **Support (`heart.fill`)**: Troubleshooting and community support center featuring Buy Me a Coffee contributions, a subsystem diagnostic self-check doctor, native navigation to detailed diagnostics, privacy-sanitized diagnostic report export with `NSSavePanel`, and official links to documentation and issue tracker.
 4. **About Flowback (`info.circle`)**: Compact, native macOS application identity view presenting dynamic bundle version and build information, product description, interactive MIT license modal sheet, and repository resource links.
 
 All 10 dashboard destinations (5 Workspace tabs + 5 Preferences & Help tabs) are accessible via the unified sidebar and global keyboard shortcuts `⌘1` through `⌘0`.
@@ -35,6 +35,17 @@ The navigation model in `Sources/FlowbackUI/Dashboard/DashboardView.swift` was e
 
 ### 2.2 Routing & State Preservation
 Selecting any destination in the sidebar dynamically switches the main detail canvas via a `switch selectedTab` block. Switching tabs preserves all underlying application state, including pending edits, session filters, and running agent monitors.
+
+### 2.3 Header Navigation, Toolbar & Window Architecture (Vorssaint Parity)
+Flowback replicates Vorssaint's exact window and toolbar architecture (`Sources/Vorssaint/UI/Settings/SettingsView.swift` & `AppDelegate.swift`):
+- **Window Hosting**: Hosted via `NSHostingController(rootView: dashboardView)` with `host.sizingOptions = []` and `NSWindow(contentViewController: host)`. Empty sizing options prevent SwiftUI's internal dynamic size queries from jittering window dimensions or toolbar layouts.
+- **Fixed Leading Placement**: The toolbar exclusively contains navigation items configured with `placement: .navigation`:
+  - **Sidebar Toggle (`sidebar.left`)**: Shortcut `⌃⌘S` toggles `columnVisibility` dynamically between `.all` and `.detailOnly` with `accessibilityDisplayShouldReduceMotion` support.
+  - **Back Button (`chevron.backward`)**: Shortcut `⌘[` navigates to the previous visited tab in the session history stack. Automatically disabled when at root (`canGoBack == false`).
+  - **Forward Button (`chevron.forward`)**: Shortcut `⌘]` navigates forward in the session history stack. Automatically disabled when at top of stack (`canGoForward == false`).
+- **Zero Trailing Drifting**: No `placement: .automatic` toolbar items are attached to `NavigationSplitView`. Refresh is invoked via global keyboard shortcut (`⌘R`) and visual button in `OverviewView`.
+- **Detail Layout Isolation**: The detail pane is enclosed in `GeometryReader { geometry in detail.frame(width: geometry.size.width, height: geometry.size.height, alignment: .top) }`, preventing unconstrained layout queries when toggling the sidebar.
+- **Window Title Authority**: Window title is managed at the AppKit level (`window.title = ...`), eliminating split-view title shifting across sidebar visibility transitions.
 
 ---
 
@@ -138,15 +149,18 @@ All local verification checks pass cleanly:
 3. **Flowback Test Runner**:
    ```
    swift run FlowbackTestRunner
-   Total tests executed: 873
-   Passed: 873
+   Total tests executed: 903
+   Passed: 903
    Failed: 0
    ALL VERIFICATION SUITES PASSED! ✓
    ```
-4. **Pre-flight Script**:
+4. **Pre-flight & Release Build Scripts**:
    ```
    bash Scripts/verify_all.sh
-   🎉 ALL LOCAL CHECKS PASSED — READY TO COMMIT/PUSH!
+   bash Scripts/build.sh
+   bash Scripts/package_app.sh
+   bash Scripts/create_dmg.sh
+   🎉 ALL LOCAL CHECKS PASSED — 0 WARNINGS, READY TO COMMIT/PUSH!
    ```
 5. **Git Hygiene**:
    - `vorssaint-utils`: Completely clean and untouched (0 modified files, 0 untracked files).

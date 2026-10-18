@@ -13,11 +13,13 @@ public struct AboutView: View {
 
     public let appVersion: String
     public let buildNumber: String
+    public var onNavigateToWhatsNew: (() -> Void)?
 
     private let repoURL = URL(string: "https://github.com/rapheljr/flowback")!
     private let architectureURL = URL(string: "https://github.com/rapheljr/flowback/blob/main/ARCHITECTURE.md")!
     private let securityURL = URL(string: "https://github.com/rapheljr/flowback/blob/main/SECURITY.md")!
     private let noticesURL = URL(string: "https://github.com/rapheljr/flowback/blob/main/THIRD_PARTY_NOTICES.md")!
+    private let coffeeURL = URL(string: "https://buymeacoffee.com/flowback")!
 
     private let mitLicenseText = """
     MIT License
@@ -45,10 +47,12 @@ public struct AboutView: View {
 
     public init(
         appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
-        buildNumber: String = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        buildNumber: String = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1",
+        onNavigateToWhatsNew: (() -> Void)? = nil
     ) {
         self.appVersion = appVersion
         self.buildNumber = buildNumber
+        self.onNavigateToWhatsNew = onNavigateToWhatsNew
     }
 
     public var body: some View {
@@ -97,12 +101,35 @@ public struct AboutView: View {
                         .padding(.top, 2)
                     }
 
-                    Text("Intelligently coordinates window focus and desktop attention across autonomous AI coding agents without disruptive window thrashing.")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: 520)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text(
+                        "Intelligently coordinates window focus and desktop attention across autonomous AI coding agents without disruptive window thrashing."
+                    )
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 520)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: FlowbackSpacing.md) {
+                        if let onNavigateToWhatsNew {
+                            Button {
+                                onNavigateToWhatsNew()
+                            } label: {
+                                Label("What's New in v\(appVersion)", systemImage: "sparkles")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier("about-whats-new-button")
+                        }
+
+                        Button {
+                            viewModel.showLicenseSheet = true
+                        } label: {
+                            Label("MIT License", systemImage: "doc.text")
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("about-license-button")
+                    }
+                    .padding(.top, FlowbackSpacing.xs)
                 }
                 .padding(.top, FlowbackSpacing.lg)
 
@@ -223,6 +250,21 @@ public struct AboutView: View {
                             }
                             .buttonStyle(.bordered)
                             .accessibilityIdentifier("about-notices-link")
+                        }
+
+                        Divider()
+
+                        FlowbackSettingsRow(
+                            icon: "cup.and.saucer.fill",
+                            iconColor: .orange,
+                            title: "Support Development",
+                            caption: "Support Flowback memberships and contributions on Buy Me a Coffee."
+                        ) {
+                            Link(destination: coffeeURL) {
+                                Label("Buy Me a Coffee", systemImage: "arrow.up.right")
+                            }
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("about-coffee-link")
                         }
                     }
                 }

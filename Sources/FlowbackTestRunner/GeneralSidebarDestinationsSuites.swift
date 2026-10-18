@@ -49,6 +49,8 @@ func runGeneralSidebarDestinationsSuites() async {
             assertTest(!tab.subtitle.isEmpty, "V-019: Tab '\(tab.rawValue)' has descriptive subtitle")
             assertTest(!tab.accessibilityKey.isEmpty, "V-019: Tab '\(tab.rawValue)' has accessibilityKey '\(tab.accessibilityKey)'")
         }
+        assertTest(DashboardTab.support.icon == "heart.fill", "V-019: Tab 'Support' uses 'heart.fill' icon")
+        assertTest(DashboardTab.advanced.icon == "wrench.and.screwdriver", "V-019: Tab 'Advanced' uses 'wrench.and.screwdriver' icon")
 
         // Navigation state preservation and state isolation
         let testConfig = PolicyConfiguration(focusCooldownMs: 3333, launchAtLogin: true)
@@ -62,6 +64,50 @@ func runGeneralSidebarDestinationsSuites() async {
             assertTest(vm.config.focusCooldownMs == 3333, "V-019: Focus cooldown preserved during transition to '\(tab.rawValue)'")
             assertTest(vm.config.launchAtLogin == true, "V-019: Launch at login preserved during transition to '\(tab.rawValue)'")
         }
+
+        // Back and Forward Navigation History (Vorssaint Header Parity)
+        let navVM = DashboardViewModel(selectedTab: .overview)
+        assertTest(!navVM.canGoBack, "V-019: Initially canGoBack is false")
+        assertTest(!navVM.canGoForward, "V-019: Initially canGoForward is false")
+        assertTest(navVM.navigationHistory == [.overview], "V-019: Initial navigation history contains Overview")
+
+        navVM.navigateTo(.advanced)
+        assertTest(navVM.selectedTab == .advanced, "V-019: Navigated to Advanced")
+        assertTest(navVM.canGoBack, "V-019: canGoBack is true after navigating to Advanced")
+        assertTest(!navVM.canGoForward, "V-019: canGoForward is false after new navigation")
+
+        navVM.navigateTo(.support)
+        assertTest(navVM.selectedTab == .support, "V-019: Navigated to Support")
+        assertTest(navVM.navigationHistory == [.overview, .advanced, .support], "V-019: History stack contains 3 tabs")
+
+        navVM.goBack()
+        assertTest(navVM.selectedTab == .advanced, "V-019: goBack() returns to Advanced")
+        assertTest(navVM.canGoBack, "V-019: canGoBack is true at middle of stack")
+        assertTest(navVM.canGoForward, "V-019: canGoForward is true after goBack()")
+
+        navVM.goBack()
+        assertTest(navVM.selectedTab == .overview, "V-019: goBack() returns to Overview root")
+        assertTest(!navVM.canGoBack, "V-019: canGoBack is false at history root")
+        assertTest(navVM.canGoForward, "V-019: canGoForward remains true")
+
+        navVM.goForward()
+        assertTest(navVM.selectedTab == .advanced, "V-019: goForward() returns to Advanced")
+
+        // Branching history truncation
+        navVM.navigateTo(.about)
+        assertTest(navVM.selectedTab == .about, "V-019: Navigated to About from middle of history")
+        assertTest(navVM.navigationHistory == [.overview, .advanced, .about], "V-019: Forward history truncated upon branch")
+        assertTest(!navVM.canGoForward, "V-019: canGoForward is false after branching")
+
+        // Sidebar Toggle and Visibility State (Vorssaint Toolbar Parity)
+        assertTest(navVM.sidebarShown, "V-019: sidebarShown is true when visibility is .all")
+        assertTest(navVM.columnVisibility == .all, "V-019: columnVisibility is initially .all")
+        navVM.toggleSidebar()
+        assertTest(!navVM.sidebarShown, "V-019: sidebarShown is false after toggleSidebar()")
+        assertTest(navVM.columnVisibility == .detailOnly, "V-019: columnVisibility is .detailOnly after toggle")
+        navVM.toggleSidebar()
+        assertTest(navVM.sidebarShown, "V-019: sidebarShown is restored after second toggle")
+        assertTest(navVM.columnVisibility == .all, "V-019: columnVisibility is restored to .all")
     }
 
     // MARK: - V-020: Advanced Destination & Configuration Lifecycle
@@ -210,6 +256,10 @@ func runGeneralSidebarDestinationsSuites() async {
         assertTest(activeConfig.launchAtLogin == false, "V-020: Reset restores launchAtLogin = false")
         assertTest(activeConfig.providerOverrides.isEmpty, "V-020: Reset clears provider overrides")
         assertTest(activeConfig.protectedApplications.contains("us.zoom.xos"), "V-020: Reset restores standard protected applications")
+
+        // 5. System Permissions Reset State
+        let advVM = AdvancedViewModel()
+        assertTest(!advVM.showPermissionsResetConfirm, "V-020: Permissions reset confirmation is initially dismissed")
     }
 
     // MARK: - V-021: What's New Destination & Release Notes Model
@@ -326,6 +376,10 @@ func runGeneralSidebarDestinationsSuites() async {
         assertTest(report.contains("SQLite 3 (WAL Mode)"), "V-022: Negative test — storage engine details preserved")
         assertTest(report.contains("Google Antigravity"), "V-022: Negative test — provider name preserved")
         assertTest(report.contains("/System/Library/Frameworks"), "V-022: Negative test — non-user system frameworks path preserved")
+
+        // 4. Buy Me a Coffee & Support URLs
+        assertTest(SupportView.buyMeACoffeeURL.absoluteString == "https://buymeacoffee.com/flowback", "V-022: Buy Me a Coffee URL is canonical")
+        assertTest(SupportView.supportWebURL.absoluteString == "https://rapheljr.github.io/flowback/support/", "V-022: Web support page URL is canonical")
     }
 
     // MARK: - V-023: About Flowback Destination & Metadata Integrity
@@ -358,5 +412,11 @@ func runGeneralSidebarDestinationsSuites() async {
             }
         }
         assertTest(foundLicense, "V-023: MIT License text verified in AboutView")
+
+        // Navigation callback to What's New
+        var navigatedToWhatsNew = false
+        let aboutWithNav = AboutView(onNavigateToWhatsNew: { navigatedToWhatsNew = true })
+        aboutWithNav.onNavigateToWhatsNew?()
+        assertTest(navigatedToWhatsNew, "V-023: AboutView onNavigateToWhatsNew callback triggers cleanly")
     }
 }
