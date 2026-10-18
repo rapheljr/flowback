@@ -869,11 +869,11 @@ await runFocusHardeningAndConcurrencySuites()
 
 // 28. Canonical Version Metadata Consistency Suite
 await testGroup("Canonical Version Metadata Consistency") {
-    assertTest(FlowbackVersion.marketingVersion == "0.4.0", "FlowbackVersion marketingVersion is 0.4.0")
-    assertTest(FlowbackVersion.buildNumber == "1", "FlowbackVersion buildNumber is 1")
-    assertTest(FlowbackVersion.current == "0.4.0", "FlowbackVersion.current defaults to 0.4.0 outside bundle")
-    assertTest(FlowbackVersion.currentBuild == "1", "FlowbackVersion.currentBuild defaults to 1 outside bundle")
-    assertTest(FlowbackVersion.displayString.contains("Flowback v0.4.0 (build 1)"), "FlowbackVersion displayString formatted correctly")
+    assertTest(FlowbackVersion.marketingVersion == "0.4.1", "FlowbackVersion marketingVersion is 0.4.1")
+    assertTest(FlowbackVersion.buildNumber == "2", "FlowbackVersion buildNumber is 2")
+    assertTest(FlowbackVersion.current == "0.4.1", "FlowbackVersion.current defaults to 0.4.1 outside bundle")
+    assertTest(FlowbackVersion.currentBuild == "2", "FlowbackVersion.currentBuild defaults to 2 outside bundle")
+    assertTest(FlowbackVersion.displayString.contains("Flowback v0.4.1 (build 2)"), "FlowbackVersion displayString formatted correctly")
 
     let diag = DiagnosticReportContext()
     assertTest(diag.appVersion == FlowbackVersion.current, "DiagnosticReportContext adopts FlowbackVersion.current")

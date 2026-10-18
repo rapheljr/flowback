@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.1] - 2026-10-18
+
+### Fixed
+* **Focus Cancellation Ownership & Actor Reentrancy (F-01):**
+  * Associated active cancellation handlers with monotonic generation IDs, preventing superseded navigation requests from clearing newer cancellation handlers upon actor reentrancy.
+  * Ensured prompt cooperative cancellation propagation to child worker tasks upon arrival of newer navigation requests.
+* **Deterministic LaunchServices Fallback & Main-Thread Safety (F-02):**
+  * Added non-blocking asynchronous fallback via `NSWorkspace.openApplication` when direct AppKit activation fails.
+  * Synchronous fallback path explicitly avoids blocking the main thread on semaphores to eliminate UI deadlocks.
+* **TimeoutCoordinator Concurrency State Machine:**
+  * Strict thread-safe state transitions guarded by `NSLock`.
+  * Guarantees continuations resume at most once, captures continuations and tasks under lock, and executes resumptions and task cancellations outside the lock.
+  * Automatically purges child task handles upon reaching terminal completion to prevent retain cycles.
+* **Menu Bar Session Stability:**
+  * Freezes recent session ordering into an immutable snapshot upon menu opening, preserving stable keyboard shortcuts (⌘1–⌘9).
+* **Adapter Precedence:**
+  * Enforced stable FIFO ordering for specialized application adapters with `GenericApplicationAdapter` pinned at baseline priority.
+
+---
+
 ## [0.4.0] - 2026-10-18
 
 ### Added

@@ -44,6 +44,56 @@ public enum ReleaseNotesModel: Sendable {
     /// Canonical bundled release notes, sorted in reverse chronological order (latest first)
     public static let bundledNotes: [ReleaseNote] = [
         ReleaseNote(
+            id: "release-0.4.1",
+            version: "0.4.1",
+            date: "October 18, 2026",
+            summary: "Milestone v0.4.1 — Focus Hardening, Deterministic Activation Fallback & Timeout Coordination.",
+            sections: [
+                ReleaseNoteSection(
+                    title: "Added",
+                    icon: "plus.circle.fill",
+                    items: [
+                        "Focus Cancellation Ownership: Monotonic request tokens ensure older requests cannot clear active cancellation handlers.",
+                        "TimeoutCoordinator Primitive: Thread-safe locking state machine with exactly-once resumption and automatic task cleanup."
+                    ]
+                ),
+                ReleaseNoteSection(
+                    title: "Changed & Improved",
+                    icon: "slider.horizontal.3",
+                    items: [
+                        "Deterministic LaunchServices Fallback: Native AppKit activation with non-blocking asynchronous workspace fallback.",
+                        "Specialized Adapter Priority: FIFO ordering preserving deterministic precedence over generic fallback adapters.",
+                        "Frozen Menu-Bar Slots: Recent session ordering and keyboard shortcuts (⌘1–⌘9) snapshot-frozen while menu is open."
+                    ]
+                ),
+                ReleaseNoteSection(
+                    title: "Fixed",
+                    icon: "checkmark.circle.fill",
+                    items: [
+                        "Actor reentrancy race in FocusController allowing obsolete cancellation handlers to persist.",
+                        "Main-thread UI deadlocks by eliminating synchronous semaphore waits during application activation.",
+                        "Window restoration degradation safely falling back to application activation without false errors."
+                    ]
+                ),
+                ReleaseNoteSection(
+                    title: "Security & Privacy",
+                    icon: "lock.shield.fill",
+                    items: [
+                        "Strict Concurrency & Hardened Runtime: Elimination of continuation double-resumption and task handle retention.",
+                        "100% Local Isolation: Zero telemetry and complete local offline execution."
+                    ]
+                ),
+                ReleaseNoteSection(
+                    title: "Known Limitations",
+                    icon: "exclamationmark.triangle",
+                    items: [
+                        "macOS WindowServer security policies govern window raising across distinct macOS Spaces.",
+                        "Running without Accessibility permissions gracefully degrades to application-level switching rather than specific window raising."
+                    ]
+                )
+            ]
+        ),
+        ReleaseNote(
             id: "release-0.4.0",
             version: "0.4.0",
             date: "October 18, 2026",

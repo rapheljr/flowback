@@ -1,46 +1,46 @@
 {
   "schemaVersion": 1,
-  "version": "0.4.0",
+  "version": "0.4.1",
   "channel": "stable",
   "releaseDate": "2026-10-18",
-  "gitCommit": "584a67810bbee2218fafe714915c68e736c80767",
+  "gitCommit": "094e1a93ec0b3ae3e9f2cbe9ec598ef7f7a68a4a",
   "buildConfiguration": "release",
   "minimumMacOS": "14.0",
   "signatureStatus": "ad-hoc",
   "notarizationStatus": "unnotarized",
   "artifacts": [
     {
-      "name": "Flowback-0.4.0-arm64.dmg",
+      "name": "Flowback-0.4.1-arm64.dmg",
       "architecture": "arm64",
-      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.0/Flowback-0.4.0-arm64.dmg",
+      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.1/Flowback-0.4.1-arm64.dmg",
       "sha256": "650af3b71e3e86712349ab64285016f073272a5beb41e5158268952cbe7c5a0a",
       "signatureStatus": "ad-hoc",
       "notarizationStatus": "unnotarized"
     },
     {
-      "name": "Flowback-0.4.0.dmg",
+      "name": "Flowback-0.4.1.dmg",
       "architecture": "universal",
-      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.0/Flowback-0.4.0.dmg",
+      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.1/Flowback-0.4.1.dmg",
       "sha256": "919fa5d6417c6f41a28db0ffd4adb8c97c72efa712d6a7ee2dba7e240af01c8c",
       "signatureStatus": "ad-hoc",
       "notarizationStatus": "unnotarized"
     },
     {
-      "name": "Flowback-0.4.0-arm64.zip",
+      "name": "Flowback-0.4.1-arm64.zip",
       "architecture": "arm64",
-      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.0/Flowback-0.4.0-arm64.zip",
+      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.1/Flowback-0.4.1-arm64.zip",
       "sha256": "02dbbd67c20f4464383ba9e25fb3cfd1c4915e0efab977e0f8bdd48c4e0ce0f9",
       "signatureStatus": "ad-hoc",
       "notarizationStatus": "unnotarized"
     },
     {
-      "name": "Flowback-0.4.0-macos.zip",
+      "name": "Flowback-0.4.1-macos.zip",
       "architecture": "universal",
-      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.0/Flowback-0.4.0-macos.zip",
+      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.1/Flowback-0.4.1-macos.zip",
       "sha256": "7fdcc8a5597aba48c82128a747530b3820e970f67f9ba334093ab93647d0ed8e",
       "signatureStatus": "ad-hoc",
       "notarizationStatus": "unnotarized"
     }
   ],
-  "releaseNotesURL": "https://github.com/rapheljr/flowback/releases/tag/v0.4.0"
+  "releaseNotesURL": "https://github.com/rapheljr/flowback/releases/tag/v0.4.1"
 }

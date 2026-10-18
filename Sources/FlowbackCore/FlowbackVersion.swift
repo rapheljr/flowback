@@ -3,10 +3,10 @@ import Foundation
 /// Canonical authoritative source of Flowback product versioning metadata.
 public struct FlowbackVersion: Sendable {
     /// Semantic product version (MAJOR.MINOR.PATCH)
-    public static let marketingVersion: String = "0.4.0"
+    public static let marketingVersion: String = "0.4.1"
 
     /// Monotonically increasing build number for bundle packaging
-    public static let buildNumber: String = "1"
+    public static let buildNumber: String = "2"
 
     /// Current version string, prioritizing CFBundleShortVersionString when running in an app bundle,
     /// falling back cleanly to canonical marketingVersion in standalone/CLI execution.

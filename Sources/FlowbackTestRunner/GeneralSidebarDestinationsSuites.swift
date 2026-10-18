@@ -272,7 +272,7 @@ func runGeneralSidebarDestinationsSuites() async {
             return
         }
 
-        assertTest(firstNote.version == "0.4.0", "V-021: Current release version is 0.4.0")
+        assertTest(firstNote.version == "0.4.1", "V-021: Current release version is 0.4.1")
         assertTest(firstNote.date == "October 18, 2026", "V-021: Release date is verified: October 18, 2026")
         assertTest(!firstNote.summary.isEmpty, "V-021: Release summary is defined")
         assertTest(firstNote.sections.count == 5, "V-021: Defines exactly 5 categorized subsections")
@@ -290,7 +290,7 @@ func runGeneralSidebarDestinationsSuites() async {
         }
 
         // Current helper returns latest
-        assertTest(ReleaseNotesModel.current?.version == "0.4.0", "V-021: ReleaseNotesModel.current returns latest version")
+        assertTest(ReleaseNotesModel.current?.version == "0.4.1", "V-021: ReleaseNotesModel.current returns latest version")
 
         // Offline Empty State Handling
         let emptyView = WhatsNewView(releaseNotes: [])
