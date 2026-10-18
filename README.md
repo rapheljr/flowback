@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="Docs/assets/flowback-banner.svg" alt="Flowback — Universal macOS AI Agent Context and Focus Manager" width="100%"/>
+  <img src="Website/assets/flowback-banner.svg" alt="Flowback — Universal macOS AI Agent Context and Focus Manager" width="100%"/>
 
   <p align="center">
     <strong>Your agents work. Your context comes back.</strong>
@@ -7,7 +7,7 @@
 
   <p align="center">
     <a href="https://github.com/rapheljr/flowback/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-Passing-10b981?style=flat-square&logo=githubactions&logoColor=white" alt="CI Status"/></a>
-    <a href="https://github.com/rapheljr/flowback/releases"><img src="https://img.shields.io/badge/Release-v0.4.0-38bdf8?style=flat-square" alt="Latest Release"/></a>
+    <a href="https://github.com/rapheljr/flowback/releases"><img src="https://img.shields.io/badge/Release-v0.4.1-38bdf8?style=flat-square" alt="Latest Release"/></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-6366f1?style=flat-square" alt="MIT License"/></a>
     <a href="https://buymeacoffee.com/flowback"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-flowback-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black" alt="Buy Me a Coffee"/></a>
     <img src="https://img.shields.io/badge/macOS-14.0%2B-slate?style=flat-square&logo=apple&logoColor=white" alt="macOS 14+"/>
@@ -47,7 +47,7 @@ While the agent works, you switch context—reviewing a PR on GitHub, reading do
 Flowback runs as a lightweight native menu bar application accompanied by a native SwiftUI Dashboard and command-line companion (`flowback`):
 
 <div align="center">
-  <img src="Docs/assets/dashboard-preview.svg" alt="Flowback SwiftUI Dashboard and Menu Bar Demonstration" width="100%"/>
+  <img src="Website/assets/dashboard-preview.svg" alt="Flowback SwiftUI Dashboard and Menu Bar Demonstration" width="100%"/>
 </div>
 
 ---
@@ -95,7 +95,7 @@ Provider Hook / Scan → AgentEvent → EventBus → Deduplicator → SessionMan
 ```
 
 <div align="center">
-  <img src="Docs/assets/architecture-diagram.svg" alt="Flowback Architectural Dataflow Diagram" width="100%"/>
+  <img src="Website/assets/architecture-diagram.svg" alt="Flowback Architectural Dataflow Diagram" width="100%"/>
 </div>
 
 1. **Origin Capture:** When an agent starts, Flowback captures an `OriginContext` containing the active window ID, workspace root, process ID, and bundle identifier.
@@ -321,7 +321,7 @@ Review our response targets and disclosure policies in [SECURITY.md](SECURITY.md
 
 ## 19. Roadmap
  
-* 🟢 **v0.4.0 (Current):** Universal core, macOS Card Design System, Copilot provider, General Sidebar Destinations, Attention Arbiter, SQLite WAL, SwiftUI Dashboard & CLI.
+* 🟢 **v0.4.1 (Current):** Universal core, macOS Card Design System, Copilot provider, General Sidebar Destinations, Attention Arbiter, SQLite WAL, SwiftUI Dashboard & CLI.
 * 🔵 **v0.5.0:** Multi-monitor display pinning, official Homebrew Cask, terminal tab deep links.
 * 🔵 **v0.6.0:** Multi-agent workspace grouping presets, scheduled Focus Lock.
 * 🟣 **v1.0.0:** Production API freeze, out-of-process provider sidecar architecture & cross-platform Linux support ([#7](https://github.com/rapheljr/flowback/issues/7)).

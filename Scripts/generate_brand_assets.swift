@@ -14,11 +14,9 @@ let fileManager = FileManager.default
 let projectRoot = URL(fileURLWithPath: fileManager.currentDirectoryPath)
 let brandDir = projectRoot.appendingPathComponent("Design/Brand")
 let pngDir = brandDir.appendingPathComponent("png")
-let docsAssetsDir = projectRoot.appendingPathComponent("Docs/assets")
 let websiteAssetsDir = projectRoot.appendingPathComponent("Website/assets")
 
 try? fileManager.createDirectory(at: pngDir, withIntermediateDirectories: true)
-try? fileManager.createDirectory(at: docsAssetsDir, withIntermediateDirectories: true)
 try? fileManager.createDirectory(at: websiteAssetsDir, withIntermediateDirectories: true)
 
 print("==================================================")
@@ -674,19 +672,14 @@ do {
 try? fileManager.removeItem(at: iconsetDir)
 
 // ------------------------------------------------------------------------------
-// 7. Update Docs and Website Assets
+// 7. Update Website Assets
 // ------------------------------------------------------------------------------
-print("\n--- Updating Docs and Website Assets ---")
-try? fileManager.copyItem(at: brandDir.appendingPathComponent("app-icon.svg"), to: docsAssetsDir.appendingPathComponent("flowback-icon.svg"))
-if fileManager.fileExists(atPath: docsAssetsDir.appendingPathComponent("flowback-icon.svg").path) {
-    try? fileManager.removeItem(at: docsAssetsDir.appendingPathComponent("flowback-icon.svg"))
-    try? fileManager.copyItem(at: brandDir.appendingPathComponent("app-icon.svg"), to: docsAssetsDir.appendingPathComponent("flowback-icon.svg"))
-}
+print("\n--- Updating Website Assets ---")
 if fileManager.fileExists(atPath: websiteAssetsDir.appendingPathComponent("flowback-icon.svg").path) {
     try? fileManager.removeItem(at: websiteAssetsDir.appendingPathComponent("flowback-icon.svg"))
-    try? fileManager.copyItem(at: brandDir.appendingPathComponent("app-icon.svg"), to: websiteAssetsDir.appendingPathComponent("flowback-icon.svg"))
 }
-print("✓ Synced app-icon.svg to Docs/assets and Website/assets.")
+try? fileManager.copyItem(at: brandDir.appendingPathComponent("app-icon.svg"), to: websiteAssetsDir.appendingPathComponent("flowback-icon.svg"))
+print("✓ Synced app-icon.svg to Website/assets.")
 
 print("\n==================================================")
 print("Asset generation complete with ZERO errors.")

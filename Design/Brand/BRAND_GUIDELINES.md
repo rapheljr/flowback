@@ -362,6 +362,6 @@ iconutil -c icns Flowback.iconset -o dist/Flowback.app/Contents/Resources/AppIco
 ### Markdown Documentation & GitHub README
 ```markdown
 <p align="center">
-  <img src="Docs/assets/flowback-banner.svg" alt="Flowback Banner" width="100%">
+  <img src="Website/assets/flowback-banner.svg" alt="Flowback Banner" width="100%">
 </p>
 ```
