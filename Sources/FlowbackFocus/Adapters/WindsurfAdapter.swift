@@ -33,26 +33,36 @@ public struct WindsurfAdapter: ApplicationAdapter {
             return false
         }
         
+        guard !Task.isCancelled else { return false }
+
         // Priority 1: Exact original window ID
         if let winID = context.windowIdentifier {
             let raised = windowController.raiseWindow(windowID: winID, pid: app.processIdentifier)
             if raised {
-                _ = appController.activate(application: app)
+                guard !Task.isCancelled else { return false }
+                _ = await appController.activateApplication(app)
                 return true
             }
         }
         
+        guard !Task.isCancelled else { return false }
+
         // Priority 2: Same workspace directory title match
         if let ws = context.workspacePath, !ws.isEmpty {
             let folderName = (ws as NSString).lastPathComponent
             if let matched = windowController.findWindow(matching: folderName, pid: app.processIdentifier) {
-                _ = windowController.raiseWindow(windowID: matched.windowID, pid: app.processIdentifier)
-                _ = appController.activate(application: app)
-                return true
+                let raised = windowController.raiseWindow(windowID: matched.windowID, pid: app.processIdentifier)
+                if raised {
+                    guard !Task.isCancelled else { return false }
+                    _ = await appController.activateApplication(app)
+                    return true
+                }
             }
         }
         
+        guard !Task.isCancelled else { return false }
+
         // Priority 3: Fallback general app activation
-        return appController.activate(application: app)
+        return await appController.activateApplication(app)
     }
 }

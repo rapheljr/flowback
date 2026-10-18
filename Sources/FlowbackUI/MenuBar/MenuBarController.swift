@@ -24,6 +24,12 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
     private var attentionQueue: [AttentionRequest] = []
     private var focusLock: FocusLockState = FocusLockState()
 
+    // Frozen snapshot state to guarantee slot stability and shortcut predictability while menu is open
+    private(set) public var isMenuOpen: Bool = false
+    private(set) public var frozenActiveSessions: [AgentSession]?
+    private(set) public var frozenRecentSessions: [AgentSession]?
+    private(set) public var frozenAttentionQueue: [AttentionRequest]?
+
     public init(delegate: MenuBarActionDelegate? = nil) {
         self.delegate = delegate
         super.init()
@@ -130,14 +136,33 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
 
     // MARK: - NSMenuDelegate
 
+    public func menuWillOpen(_ menu: NSMenu) {
+        isMenuOpen = true
+        frozenActiveSessions = activeSessions
+        frozenRecentSessions = recentSessions
+        frozenAttentionQueue = attentionQueue
+    }
+
+    public func menuDidClose(_ menu: NSMenu) {
+        isMenuOpen = false
+        frozenActiveSessions = nil
+        frozenRecentSessions = nil
+        frozenAttentionQueue = nil
+    }
+
     public func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
+
+        // Use frozen snapshot if menu is open to prevent shifting slots under user inspection
+        let displayedActive = (isMenuOpen ? frozenActiveSessions : nil) ?? activeSessions
+        let displayedRecent = (isMenuOpen ? frozenRecentSessions : nil) ?? recentSessions
+        let displayedAttention = (isMenuOpen ? frozenAttentionQueue : nil) ?? attentionQueue
 
         // Native macOS 14 Section Header
         menu.addItem(NSMenuItem.sectionHeader(title: "Flowback — Focus Orchestrator"))
 
         // Active summary
-        let activeCount = activeSessions.count
+        let activeCount = displayedActive.count
         let activeText = activeCount == 1 ? "1 active agent" : "\(activeCount) active agents"
         let activeItem = NSMenuItem(title: activeText, action: nil, keyEquivalent: "")
         let dotImg = NSImage(systemSymbolName: activeCount > 0 ? "circle.fill" : "circle", accessibilityDescription: nil)
@@ -149,14 +174,14 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
         menu.addItem(NSMenuItem.separator())
 
         // Active Conversations Section if any are running
-        if !activeSessions.isEmpty {
+        if !displayedActive.isEmpty {
             menu.addItem(NSMenuItem.sectionHeader(title: "Active Conversations"))
             var activeProjectCounts: [String: Int] = [:]
-            for s in activeSessions {
+            for s in displayedActive {
                 activeProjectCounts[s.projectName, default: 0] += 1
             }
 
-            for session in activeSessions {
+            for session in displayedActive {
                 let isShared = (activeProjectCounts[session.projectName] ?? 0) > 1
                 let item = makeSessionMenuItem(session: session, isSharedProject: isShared, keyEquivalent: "")
                 menu.addItem(item)
@@ -166,17 +191,17 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
 
         // Recent Sessions with ⌘1..⌘9 shortcuts
         let recentMenu = NSMenu(title: "Recent Sessions")
-        if recentSessions.isEmpty {
+        if displayedRecent.isEmpty {
             let empty = NSMenuItem(title: "No recent agent sessions", action: nil, keyEquivalent: "")
             empty.isEnabled = false
             recentMenu.addItem(empty)
         } else {
             var recentProjectCounts: [String: Int] = [:]
-            for s in recentSessions {
+            for s in displayedRecent {
                 recentProjectCounts[s.projectName, default: 0] += 1
             }
 
-            for (idx, session) in recentSessions.prefix(9).enumerated() {
+            for (idx, session) in displayedRecent.prefix(9).enumerated() {
                 let shortcut = "\(idx + 1)"
                 let isShared = (recentProjectCounts[session.projectName] ?? 0) > 1
                 let item = makeSessionMenuItem(session: session, isSharedProject: isShared, keyEquivalent: shortcut)
@@ -189,15 +214,15 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
         menu.addItem(recentParent)
 
         // Attention Queue
-        if !attentionQueue.isEmpty {
+        if !displayedAttention.isEmpty {
             let attentionMenu = NSMenu(title: "Attention Queue")
-            for req in attentionQueue {
+            for req in displayedAttention {
                 let item = NSMenuItem(title: "\(req.title): \(req.message)", action: #selector(didClickAttentionItem(_:)), keyEquivalent: "")
                 item.target = self
                 item.representedObject = req.sessionID.rawValue
                 attentionMenu.addItem(item)
             }
-            let attentionParent = NSMenuItem(title: "Attention Queue (\(attentionQueue.count))", action: nil, keyEquivalent: "")
+            let attentionParent = NSMenuItem(title: "Attention Queue (\(displayedAttention.count))", action: nil, keyEquivalent: "")
             attentionParent.submenu = attentionMenu
             menu.addItem(attentionParent)
         }

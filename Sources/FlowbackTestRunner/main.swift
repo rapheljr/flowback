@@ -865,6 +865,7 @@ await runAuditRemediationSuites()
 await runVorssaintDiscoverySuites()
 await runGeneralSidebarDestinationsSuites()
 await runVisualParitySuites()
+await runFocusHardeningAndConcurrencySuites()
 
 // 28. Canonical Version Metadata Consistency Suite
 await testGroup("Canonical Version Metadata Consistency") {

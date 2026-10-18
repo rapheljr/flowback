@@ -216,6 +216,10 @@ public final class WindowController: WindowControlling, @unchecked Sendable {
         }
 
         let targetAXWindow = axWindows[matchIdx]
+        guard !Task.isCancelled else {
+            logger.debug("raiseWindow cancelled before AX raise action execution")
+            return false
+        }
         let actionResult = AXUIElementPerformAction(targetAXWindow, kAXRaiseAction as CFString)
         if actionResult == .success {
             logger.info("Raised window ID \(windowID) for PID \(pid) via AXUIElement")

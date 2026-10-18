@@ -34,9 +34,13 @@ public struct GenericApplicationAdapter: ApplicationAdapter {
             return false
         }
         
+        guard !Task.isCancelled else { return false }
+
         // Step 3: Activate application
-        let activated = appController.activate(application: app)
+        let activated = await appController.activateApplication(app)
         
+        guard !Task.isCancelled else { return false }
+
         // Step 4: If exact window exists, raise it
         if let winID = context.windowIdentifier {
             _ = windowController.raiseWindow(windowID: winID, pid: app.processIdentifier)

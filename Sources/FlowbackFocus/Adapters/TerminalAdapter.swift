@@ -37,22 +37,32 @@ public struct TerminalAdapter: ApplicationAdapter {
         
         guard let app = targetApp else { return false }
         
+        guard !Task.isCancelled else { return false }
+
         // Try raising specific window ID
         if let winID = context.windowIdentifier {
             if windowController.raiseWindow(windowID: winID, pid: app.processIdentifier) {
-                return appController.activate(application: app)
+                guard !Task.isCancelled else { return false }
+                return await appController.activateApplication(app)
             }
         }
         
+        guard !Task.isCancelled else { return false }
+
         // Try matching window by directory name
         if let ws = context.workspacePath, !ws.isEmpty {
             let dirName = (ws as NSString).lastPathComponent
             if let matched = windowController.findWindow(matching: dirName, pid: app.processIdentifier) {
-                _ = windowController.raiseWindow(windowID: matched.windowID, pid: app.processIdentifier)
-                return appController.activate(application: app)
+                let raised = windowController.raiseWindow(windowID: matched.windowID, pid: app.processIdentifier)
+                if raised {
+                    guard !Task.isCancelled else { return false }
+                    return await appController.activateApplication(app)
+                }
             }
         }
         
-        return appController.activate(application: app)
+        guard !Task.isCancelled else { return false }
+
+        return await appController.activateApplication(app)
     }
 }

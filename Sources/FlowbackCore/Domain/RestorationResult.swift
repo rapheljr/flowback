@@ -32,6 +32,15 @@ public enum RestorationOutcome: String, Codable, Sendable, CaseIterable {
     /// Restoration was attempted but encountered an error
     case restorationFailed = "restoration_failed"
 
+    /// Restoration operation was cancelled or superseded by a newer navigation request
+    case operationCancelled = "operation_cancelled"
+
+    /// Restoration operation timed out waiting for window or application response
+    case operationTimedOut = "operation_timed_out"
+
+    /// System accessibility or automation permissions were denied
+    case permissionDenied = "permission_denied"
+
     public var isSuccessful: Bool {
         switch self {
         case .exactConversationRestored,
@@ -44,7 +53,10 @@ public enum RestorationOutcome: String, Codable, Sendable, CaseIterable {
         case .targetAmbiguous,
              .conversationUnavailable,
              .restorationUnsupported,
-             .restorationFailed:
+             .restorationFailed,
+             .operationCancelled,
+             .operationTimedOut,
+             .permissionDenied:
             return false
         }
     }
@@ -80,6 +92,12 @@ public enum RestorationOutcome: String, Codable, Sendable, CaseIterable {
             return "Restoration unsupported for this provider"
         case .restorationFailed:
             return "Restoration failed"
+        case .operationCancelled:
+            return "Navigation cancelled or superseded"
+        case .operationTimedOut:
+            return "Restoration timed out"
+        case .permissionDenied:
+            return "System permissions denied"
         }
     }
 }

@@ -45,41 +45,52 @@ public struct CursorAdapter: ApplicationAdapter {
             return false
         }
         
+        guard !Task.isCancelled else { return false }
+
         // Priority 1: Exact window ID
         if let winID = context.windowIdentifier {
             let raised = windowController.raiseWindow(windowID: winID, pid: app.processIdentifier)
             if raised {
-                _ = appController.activate(application: app)
+                guard !Task.isCancelled else { return false }
+                _ = await appController.activateApplication(app)
                 return true
             }
             logger.info("Exact window #\(winID) not found or cannot be raised; evaluating title/workspace heuristics")
         }
         
+        guard !Task.isCancelled else { return false }
+
         // Priority 2: Workspace folder name title matching
         if let ws = context.workspacePath, !ws.isEmpty {
             let folderName = (ws as NSString).lastPathComponent
             if let matched = windowController.findWindow(matching: folderName, pid: app.processIdentifier) {
                 let raised = windowController.raiseWindow(windowID: matched.windowID, pid: app.processIdentifier)
                 if raised {
-                    _ = appController.activate(application: app)
+                    guard !Task.isCancelled else { return false }
+                    _ = await appController.activateApplication(app)
                     return true
                 }
             }
         }
         
+        guard !Task.isCancelled else { return false }
+
         // Priority 3: Captured window title matching
         if let title = context.windowTitle, !title.isEmpty {
             if let matched = windowController.findWindow(matching: title, pid: app.processIdentifier) {
                 let raised = windowController.raiseWindow(windowID: matched.windowID, pid: app.processIdentifier)
                 if raised {
-                    _ = appController.activate(application: app)
+                    guard !Task.isCancelled else { return false }
+                    _ = await appController.activateApplication(app)
                     return true
                 }
             }
         }
         
+        guard !Task.isCancelled else { return false }
+
         // Priority 4: Frontmost application activation fallback
         logger.info("Falling back to activating Cursor frontmost application window")
-        return appController.activate(application: app)
+        return await appController.activateApplication(app)
     }
 }

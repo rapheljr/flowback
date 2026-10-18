@@ -42,10 +42,14 @@ public struct BraveAdapter: ApplicationAdapter {
 
         guard let app = targetApp else { return false }
 
+        guard !Task.isCancelled else { return false }
+
         if let winID = context.windowIdentifier {
             _ = windowController.raiseWindow(windowID: winID, pid: app.processIdentifier)
         }
 
-        return appController.activate(application: app)
+        guard !Task.isCancelled else { return false }
+
+        return await appController.activateApplication(app)
     }
 }
