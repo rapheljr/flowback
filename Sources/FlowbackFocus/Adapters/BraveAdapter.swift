@@ -10,10 +10,16 @@ public struct BraveAdapter: ApplicationAdapter {
 
     private let supportedBundles: Set<String> = [
         "com.brave.Browser",
+        "com.brave.Browser.beta",
+        "com.brave.Browser.nightly",
         "com.google.Chrome",
+        "com.google.Chrome.canary",
         "company.thebrowser.Browser",
         "com.apple.Safari",
-        "org.mozilla.firefox"
+        "org.mozilla.firefox",
+        "com.microsoft.edgemac",
+        "com.operasoftware.Opera",
+        "com.vivaldi.Vivaldi"
     ]
 
     public init() {}
@@ -45,7 +51,19 @@ public struct BraveAdapter: ApplicationAdapter {
         guard !Task.isCancelled else { return false }
 
         if let winID = context.windowIdentifier {
-            _ = windowController.raiseWindow(windowID: winID, pid: app.processIdentifier)
+            if windowController.raiseWindow(windowID: winID, pid: app.processIdentifier) {
+                guard !Task.isCancelled else { return false }
+                return await appController.activateApplication(app)
+            }
+        }
+
+        guard !Task.isCancelled else { return false }
+
+        if let title = context.windowTitle, !title.isEmpty,
+           let matched = windowController.findWindow(matching: title, pid: app.processIdentifier),
+           windowController.raiseWindow(windowID: matched.windowID, pid: app.processIdentifier) {
+            guard !Task.isCancelled else { return false }
+            return await appController.activateApplication(app)
         }
 
         guard !Task.isCancelled else { return false }

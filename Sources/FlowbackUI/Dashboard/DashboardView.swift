@@ -178,6 +178,7 @@ public struct DashboardView: View {
     
     public var onFocusSession: (AgentSession) -> Void
     public var onSaveConfig: (PolicyConfiguration) -> Void
+    public var onUpdateFocusLock: ((FocusLockState) -> Void)?
     public var onRepairAntigravity: () -> Void
     public var onTestFocus: () -> Void
     public var onTestNotification: () -> Void
@@ -244,6 +245,7 @@ public struct DashboardView: View {
         isIPCReady: Bool = true,
         onFocusSession: @escaping (AgentSession) -> Void,
         onSaveConfig: @escaping (PolicyConfiguration) -> Void,
+        onUpdateFocusLock: ((FocusLockState) -> Void)? = nil,
         onRepairAntigravity: @escaping () -> Void,
         onTestFocus: @escaping () -> Void,
         onTestNotification: @escaping () -> Void,
@@ -260,6 +262,7 @@ public struct DashboardView: View {
         self.externalFocusLock = focusLock
         self.onFocusSession = onFocusSession
         self.onSaveConfig = onSaveConfig
+        self.onUpdateFocusLock = onUpdateFocusLock
         self.onRepairAntigravity = onRepairAntigravity
         self.onTestFocus = onTestFocus
         self.onTestNotification = onTestNotification
@@ -314,8 +317,15 @@ public struct DashboardView: View {
                         case .overview:
                             OverviewView(
                                 activeSessions: activeSessionsBinding,
+                                allSessions: allSessions,
                                 attentionQueue: attentionQueueBinding,
-                                focusLock: focusLockBinding,
+                                focusLock: Binding(
+                                    get: { focusLockBinding.wrappedValue },
+                                    set: { newValue in
+                                        focusLockBinding.wrappedValue = newValue
+                                        onUpdateFocusLock?(newValue)
+                                    }
+                                ),
                                 onFocusSession: onFocusSession,
                                 onRefresh: onRefresh
                             )
@@ -333,7 +343,10 @@ public struct DashboardView: View {
                             ApplicationsView(
                                 protectedApps: Binding(
                                     get: { configBinding.wrappedValue.protectedApplications },
-                                    set: { configBinding.wrappedValue.protectedApplications = $0 }
+                                    set: { newValue in
+                                        configBinding.wrappedValue.protectedApplications = newValue
+                                        onSaveConfig(configBinding.wrappedValue)
+                                    }
                                 )
                             )
                         case .diagnostics:

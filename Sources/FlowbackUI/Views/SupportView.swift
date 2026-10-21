@@ -150,10 +150,17 @@ public struct SupportView: View {
                             }
 
                             Button {
-                                let terminalScript = "tell application \"Terminal\" to do script \"flowback doctor\" activate"
-                                if let script = NSAppleScript(source: terminalScript) {
-                                    var error: NSDictionary?
-                                    script.executeAndReturnError(&error)
+                                let terminalScript = """
+                                tell application "Terminal"
+                                    do script "flowback doctor"
+                                    activate
+                                end tell
+                                """
+                                DispatchQueue.global(qos: .userInitiated).async {
+                                    if let script = NSAppleScript(source: terminalScript) {
+                                        var error: NSDictionary?
+                                        script.executeAndReturnError(&error)
+                                    }
                                 }
                             } label: {
                                 Label("Run 'flowback doctor' in Terminal", systemImage: "terminal")

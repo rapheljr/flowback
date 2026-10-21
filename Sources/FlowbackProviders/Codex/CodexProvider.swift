@@ -10,14 +10,27 @@ public final class CodexProvider: AgentProvider, Sendable {
     public init() {}
 
     public func checkHealth() async -> ProviderHealth {
-        ProviderHealth(
+        let candidatePaths = [
+            "/opt/homebrew/bin/codex",
+            "/usr/local/bin/codex",
+            ("~/.local/bin/codex" as NSString).expandingTildeInPath,
+            "/usr/bin/codex"
+        ]
+        let detectedPath = candidatePaths.first { FileManager.default.isExecutableFile(atPath: $0) }
+        let isInstalled = detectedPath != nil
+        let msg = isInstalled
+            ? "Codex CLI detected at \(detectedPath ?? "codex"); ready via hook dispatcher"
+            : "Codex CLI integration ready via hook dispatcher"
+
+        return ProviderHealth(
             providerID: providerID,
             displayName: displayName,
-            isInstalled: false,
+            isInstalled: isInstalled,
             version: nil,
-            hookInstalled: false,
-            hookExecutable: false,
-            statusMessage: "Codex CLI integration ready via hook dispatcher",
+            hookInstalled: isInstalled,
+            hookExecutable: isInstalled,
+            configurationPath: detectedPath,
+            statusMessage: msg,
             isSupported: true,
             supportLevel: .adapter
         )

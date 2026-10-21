@@ -1,8 +1,23 @@
 import Foundation
 import FlowbackCore
+import FlowbackProviders
 
 let client = IPCClient()
 let args = CommandLine.arguments
+
+func resolveLocalProvider(_ name: String) -> (any AgentProvider)? {
+    switch name.lowercased() {
+    case "antigravity": return AntigravityProvider()
+    case "antigravity-cli", "agy": return AntigravityCLIProvider()
+    case "windsurf": return WindsurfProvider()
+    case "opencode": return OpenCodeProvider()
+    case "claude-code", "claude": return ClaudeCodeProvider()
+    case "copilot": return CopilotProvider()
+    case "codex": return CodexProvider()
+    case "aider": return AiderProvider()
+    default: return nil
+    }
+}
 
 func printHelp() {
     print("""
@@ -23,7 +38,7 @@ func printHelp() {
       test-focus                Simulate focus restoration evaluation
       test-notification         Send a test macOS actionable notification
       config [export|import]    Export or import policy configuration JSON
-      hook <provider>           Process hook input from stdin (for Antigravity, Claude, etc.)
+      hook <provider> [flags]   Process hook stdin or manage hooks (--install, --uninstall)
       emit <json>               Emit a generic agent event into Flowback
       quit, shutdown            Request graceful daemon shutdown
       help, -h                  Display this help message
@@ -72,6 +87,43 @@ case "refresh":
 
 case "hook":
     let providerName = args.count > 2 ? args[2] : "antigravity"
+    let actionFlag = args.count > 3 ? args[3] : nil
+    if actionFlag == "--install" || actionFlag == "--uninstall" {
+        let isInstall = (actionFlag == "--install")
+        let ipcCmd = isInstall ? "hook-install" : "hook-uninstall"
+        do {
+            let response = try client.send(command: ipcCmd, argument: providerName)
+            print(response.message)
+            exit(response.success ? 0 : 1)
+        } catch {
+            guard let provider = resolveLocalProvider(providerName) else {
+                print("Error: Unknown provider '\(providerName)'")
+                exit(1)
+            }
+            let sem = DispatchSemaphore(value: 0)
+            final class HookBox: @unchecked Sendable { var err: Error? }
+            let box = HookBox()
+            Task {
+                do {
+                    if isInstall {
+                        try await provider.installIntegration()
+                    } else {
+                        try await provider.uninstallIntegration()
+                    }
+                } catch {
+                    box.err = error
+                }
+                sem.signal()
+            }
+            sem.wait()
+            if let err = box.err {
+                print("Error: Failed to \(isInstall ? "install" : "uninstall") hook for \(providerName): \(err.localizedDescription)")
+                exit(1)
+            }
+            print("Successfully \(isInstall ? "installed" : "uninstalled") Flowback hook integration for \(provider.displayName).")
+            exit(0)
+        }
+    }
     // Read stdin
     let inputData = FileHandle.standardInput.readDataToEndOfFile()
     do {

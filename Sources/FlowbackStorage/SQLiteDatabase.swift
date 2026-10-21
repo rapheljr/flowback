@@ -84,10 +84,10 @@ public actor SQLiteDatabase {
         
         // Configure WAL mode for high concurrency on file-backed databases
         if path != ":memory:" {
-            try execute(sql: "PRAGMA journal_mode=WAL;")
-            try execute(sql: "PRAGMA synchronous=NORMAL;")
+            try executeInternal(sql: "PRAGMA journal_mode=WAL;")
+            try executeInternal(sql: "PRAGMA synchronous=NORMAL;")
         }
-        try execute(sql: "PRAGMA foreign_keys=ON;")
+        try executeInternal(sql: "PRAGMA foreign_keys=ON;")
     }
     
     public func close() {
@@ -98,8 +98,29 @@ public actor SQLiteDatabase {
         }
     }
     
+    @TaskLocal private static var currentTransactionID: UUID?
+    private var activeTransactionID: UUID?
+    private var transactionWaiters: [CheckedContinuation<Void, Never>] = []
+
+    private func acquireTransactionGate() async {
+        while let activeID = activeTransactionID, Self.currentTransactionID != activeID {
+            await withCheckedContinuation { continuation in
+                transactionWaiters.append(continuation)
+            }
+        }
+    }
+
+    private func releaseTransactionGate() {
+        activeTransactionID = nil
+        let waiters = transactionWaiters
+        transactionWaiters.removeAll()
+        for waiter in waiters {
+            waiter.resume()
+        }
+    }
+
     @discardableResult
-    public func execute(sql: String) throws -> Int32 {
+    private func executeInternal(sql: String) throws -> Int32 {
         guard let db = db else { throw SQLiteError.connectionFailed("Database not open") }
         var errmsg: UnsafeMutablePointer<CChar>?
         let result = sqlite3_exec(db, sql, nil, nil, &errmsg)
@@ -111,7 +132,14 @@ public actor SQLiteDatabase {
         return result
     }
     
-    public func getUserVersion() throws -> Int32 {
+    @discardableResult
+    public func execute(sql: String) async throws -> Int32 {
+        await acquireTransactionGate()
+        return try executeInternal(sql: sql)
+    }
+    
+    public func getUserVersion() async throws -> Int32 {
+        await acquireTransactionGate()
         guard let db = db else { throw SQLiteError.connectionFailed("Database not open") }
         var stmt: OpaquePointer?
         defer { sqlite3_finalize(stmt) }
@@ -127,24 +155,41 @@ public actor SQLiteDatabase {
         return 0
     }
     
-    public func setUserVersion(_ version: Int32) throws {
-        try execute(sql: "PRAGMA user_version = \(version);")
+    public func setUserVersion(_ version: Int32) async throws {
+        await acquireTransactionGate()
+        try executeInternal(sql: "PRAGMA user_version = \(version);")
     }
     
     public func runInTransaction<T: Sendable>(_ block: @Sendable () async throws -> T) async throws -> T {
-        try execute(sql: "BEGIN IMMEDIATE TRANSACTION;")
+        await acquireTransactionGate()
+        if let activeID = activeTransactionID, Self.currentTransactionID == activeID {
+            return try await block()
+        }
+        let txID = UUID()
+        activeTransactionID = txID
         do {
-            let result = try await block()
-            try execute(sql: "COMMIT;")
+            try executeInternal(sql: "BEGIN IMMEDIATE TRANSACTION;")
+        } catch {
+            releaseTransactionGate()
+            throw error
+        }
+        do {
+            let result = try await Self.$currentTransactionID.withValue(txID) {
+                try await block()
+            }
+            try executeInternal(sql: "COMMIT;")
+            releaseTransactionGate()
             return result
         } catch {
-            _ = try? execute(sql: "ROLLBACK;")
+            _ = try? executeInternal(sql: "ROLLBACK;")
+            releaseTransactionGate()
             throw error
         }
     }
     
     /// Prepares and executes a statement with parameter binding
-    public func execute(sql: String, bindings: [(any Sendable)?] = []) throws {
+    public func execute(sql: String, bindings: [(any Sendable)?] = []) async throws {
+        await acquireTransactionGate()
         guard let db = db else { throw SQLiteError.connectionFailed("Database not open") }
         var stmt: OpaquePointer?
         defer { sqlite3_finalize(stmt) }
@@ -168,7 +213,8 @@ public actor SQLiteDatabase {
         sql: String,
         bindings: [(any Sendable)?] = [],
         mapRow: @Sendable (OpaquePointer) throws -> T
-    ) throws -> [T] {
+    ) async throws -> [T] {
+        await acquireTransactionGate()
         guard let db = db else { throw SQLiteError.connectionFailed("Database not open") }
         var stmt: OpaquePointer?
         defer { sqlite3_finalize(stmt) }

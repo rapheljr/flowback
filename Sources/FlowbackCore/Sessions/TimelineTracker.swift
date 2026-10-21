@@ -55,12 +55,13 @@ public actor TimelineTracker {
         details: String? = nil,
         explanation: String? = nil
     ) {
+        let cleanSummary = SecretSanitizer.sanitizeText(summary)
         let cleanDetails = details.map { SecretSanitizer.sanitizeText($0) }
         let cleanExplanation = explanation.map { SecretSanitizer.sanitizeText($0) }
         let entry = TimelineEntry(
             sessionID: sessionID,
             category: category,
-            summary: summary,
+            summary: cleanSummary,
             details: cleanDetails,
             decisionExplanation: cleanExplanation
         )

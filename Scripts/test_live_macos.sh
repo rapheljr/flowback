@@ -10,7 +10,9 @@ echo "Flowback Live macOS Integration & Accessibility Test"
 echo "=========================================================="
 
 echo "[1/6] Compiling release binaries if needed..."
-swift build -c release
+CLANG_MODULE_CACHE_PATH="${CLANG_MODULE_CACHE_PATH:-/tmp/clang-module-cache}" \
+SWIFTPM_MODULECACHE_OVERRIDE="${SWIFTPM_MODULECACHE_OVERRIDE:-/tmp/swiftpm-module-cache}" \
+swift build --disable-sandbox -c release
 
 FLOWBACK_APP="$PROJECT_ROOT/.build/release/Flowback"
 FLOWBACK_CLI="$PROJECT_ROOT/.build/release/flowback-cli"
@@ -26,7 +28,7 @@ fi
 
 echo "[3/6] Inspecting live macOS Accessibility Trust..."
 # Use osascript or swift inline script to call AXIsProcessTrusted
-AX_TRUSTED=$(osascript -l JavaScript -e '$.AXIsProcessTrusted()' 2>/dev/null || echo "false")
+AX_TRUSTED=$(osascript -l JavaScript -e 'ObjC.import("ApplicationServices"); $.AXIsProcessTrusted()' 2>/dev/null || echo "false")
 echo "  Live AXIsProcessTrusted: $AX_TRUSTED"
 
 if [ "$AX_TRUSTED" != "true" ]; then

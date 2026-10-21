@@ -36,16 +36,40 @@ public struct GenericApplicationAdapter: ApplicationAdapter {
         
         guard !Task.isCancelled else { return false }
 
-        // Step 3: Activate application
-        let activated = await appController.activateApplication(app)
-        
+        // Priority 1: If exact window exists, raise it before activating the app
+        if let winID = context.windowIdentifier {
+            if windowController.raiseWindow(windowID: winID, pid: app.processIdentifier) {
+                guard !Task.isCancelled else { return false }
+                return await appController.activateApplication(app)
+            }
+        }
+
         guard !Task.isCancelled else { return false }
 
-        // Step 4: If exact window exists, raise it
-        if let winID = context.windowIdentifier {
-            _ = windowController.raiseWindow(windowID: winID, pid: app.processIdentifier)
+        // Priority 2: Match window by workspace folder name
+        if let ws = context.workspacePath, !ws.isEmpty {
+            let folderName = (ws as NSString).lastPathComponent
+            if let matched = windowController.findWindow(matching: folderName, pid: app.processIdentifier),
+               windowController.raiseWindow(windowID: matched.windowID, pid: app.processIdentifier) {
+                guard !Task.isCancelled else { return false }
+                return await appController.activateApplication(app)
+            }
         }
-        
-        return activated
+
+        guard !Task.isCancelled else { return false }
+
+        // Priority 3: Match window by captured window title
+        if let title = context.windowTitle, !title.isEmpty {
+            if let matched = windowController.findWindow(matching: title, pid: app.processIdentifier),
+               windowController.raiseWindow(windowID: matched.windowID, pid: app.processIdentifier) {
+                guard !Task.isCancelled else { return false }
+                return await appController.activateApplication(app)
+            }
+        }
+
+        guard !Task.isCancelled else { return false }
+
+        // Priority 4: General application activation fallback
+        return await appController.activateApplication(app)
     }
 }

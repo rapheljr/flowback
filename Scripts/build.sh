@@ -26,7 +26,9 @@ build_swift_release() {
     # On CLT-only macOS installations, Apple's Swift 6 build engine adds non-existent
     # /Library/Developer/CommandLineTools/Developer search paths during intermediate module linking.
     # We pass -Xlinker -w for product linking and filter harmless CLT search path warnings.
-    swift build -c release "$@" "${LINKER_FLAGS[@]}" 2>&1 | \
+    CLANG_MODULE_CACHE_PATH="${CLANG_MODULE_CACHE_PATH:-/tmp/clang-module-cache}" \
+    SWIFTPM_MODULECACHE_OVERRIDE="${SWIFTPM_MODULECACHE_OVERRIDE:-/tmp/swiftpm-module-cache}" \
+    swift build --disable-sandbox -c release "$@" "${LINKER_FLAGS[@]}" 2>&1 | \
         sed -E "/ld: warning: search path '\/Library\/Developer\/CommandLineTools\/Developer/d"
 }
 

@@ -10,11 +10,26 @@ public final class AiderProvider: AgentProvider, Sendable {
     public init() {}
 
     public func checkHealth() async -> ProviderHealth {
-        ProviderHealth(
+        let candidatePaths = [
+            "/opt/homebrew/bin/aider",
+            "/usr/local/bin/aider",
+            ("~/.local/bin/aider" as NSString).expandingTildeInPath,
+            "/usr/bin/aider"
+        ]
+        let detectedPath = candidatePaths.first { FileManager.default.isExecutableFile(atPath: $0) }
+        let isInstalled = detectedPath != nil
+        let msg = isInstalled
+            ? "Aider CLI detected at \(detectedPath ?? "aider"); notification command integration available"
+            : "Aider notification command integration available"
+
+        return ProviderHealth(
             providerID: providerID,
             displayName: displayName,
-            isInstalled: false,
-            statusMessage: "Aider notification command integration available",
+            isInstalled: isInstalled,
+            hookInstalled: isInstalled,
+            hookExecutable: isInstalled,
+            configurationPath: detectedPath,
+            statusMessage: msg,
             isSupported: true,
             supportLevel: .adapter
         )

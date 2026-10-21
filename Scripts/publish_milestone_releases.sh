@@ -65,7 +65,8 @@ MILESTONES=(
     "v0.1.2|cdcd2d0|v0.1.2: Packaging, Socket Hardening & Degraded WAL Recovery|false"
     "v0.2.0|d017217|v0.2.0: Multi-Agent Provider Expansion (Windsurf, OpenCode, Cursor, agy)|false"
     "v0.3.0|c25464f|v0.3.0: Conversation Intelligence & Burst UI Coalescing|false"
-    "v0.4.0|HEAD|v0.4.0: macOS Card Design System, Copilot Provider & General Sidebar Destinations|true"
+    "v0.4.0|435de41|v0.4.0: macOS Card Design System, Copilot Provider & General Sidebar Destinations|false"
+    "v0.4.1|HEAD|v0.4.1: Focus Hardening, Concurrency Safety & Codebase Audit Remediation|true"
 )
 
 # Temporary directory for release notes

@@ -39,8 +39,20 @@ func runVisualParitySuites() async {
     print("================================================================")
 
     let projectRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-    let screenshotsDir = projectRoot.appendingPathComponent("Docs/audits/screenshots")
+    let shouldUpdateTrackedScreenshots = ProcessInfo.processInfo.environment["FLOWBACK_UPDATE_SCREENSHOTS"] == "1"
+    let screenshotsDir: URL
+    if shouldUpdateTrackedScreenshots {
+        screenshotsDir = projectRoot.appendingPathComponent("Docs/audits/screenshots")
+    } else {
+        screenshotsDir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("flowback_visual_parity_\(UUID().uuidString)")
+    }
     try? FileManager.default.createDirectory(at: screenshotsDir, withIntermediateDirectories: true)
+    defer {
+        if !shouldUpdateTrackedScreenshots {
+            try? FileManager.default.removeItem(at: screenshotsDir)
+        }
+    }
 
     // Helper to render any SwiftUI View to PNG data at specified dimensions and appearance
     @MainActor

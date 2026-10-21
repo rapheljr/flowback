@@ -5,6 +5,7 @@ import FlowbackFocus
 public struct OverviewView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Binding var activeSessions: [AgentSession]
+    public var allSessions: [AgentSession]
     @Binding var attentionQueue: [AttentionRequest]
     @Binding var focusLock: FocusLockState
     public var onFocusSession: (AgentSession) -> Void
@@ -12,12 +13,14 @@ public struct OverviewView: View {
 
     public init(
         activeSessions: Binding<[AgentSession]>,
+        allSessions: [AgentSession] = [],
         attentionQueue: Binding<[AttentionRequest]>,
         focusLock: Binding<FocusLockState>,
         onFocusSession: @escaping (AgentSession) -> Void,
         onRefresh: @escaping () -> Void = {}
     ) {
         self._activeSessions = activeSessions
+        self.allSessions = allSessions
         self._attentionQueue = attentionQueue
         self._focusLock = focusLock
         self.onFocusSession = onFocusSession
@@ -117,7 +120,7 @@ public struct OverviewView: View {
                                     Text(req.message).font(.subheadline).foregroundColor(.secondary)
                                 }
                                 Spacer()
-                                if let session = activeSessions.first(where: { $0.id == req.sessionID }) {
+                                if let session = (allSessions.first(where: { $0.id == req.sessionID }) ?? activeSessions.first(where: { $0.id == req.sessionID })) {
                                     Button("Review & Focus") {
                                         onFocusSession(session)
                                     }

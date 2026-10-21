@@ -75,11 +75,57 @@ public final class ClaudeCodeProvider: AgentProvider, Sendable {
     }
 
     public func installIntegration() async throws {
-        // Claude Code uses notification-command or hook wrapper
-        logger.info("Claude Code integration configured for hook dispatch")
+        let fm = FileManager.default
+        try fm.createDirectory(atPath: homeClaudeDir, withIntermediateDirectories: true)
+        let settingsPath = (homeClaudeDir as NSString).appendingPathComponent("settings.json")
+
+        var settingsDict: [String: Any] = [:]
+        if fm.fileExists(atPath: settingsPath),
+           let data = try? Data(contentsOf: URL(fileURLWithPath: settingsPath)),
+           let existing = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            settingsDict = existing
+        }
+
+        let cmd = "export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; flowback hook claude-code"
+        var hooks = (settingsDict["hooks"] as? [String: Any]) ?? [:]
+        hooks["Stop"] = [
+            [
+                "type": "command",
+                "command": cmd
+            ]
+        ]
+        settingsDict["hooks"] = hooks
+
+        let outputData = try JSONSerialization.data(withJSONObject: settingsDict, options: [.prettyPrinted, .sortedKeys])
+        try outputData.write(to: URL(fileURLWithPath: settingsPath), options: .atomic)
+        logger.info("Claude Code integration configured in \(settingsPath)")
     }
 
     public func uninstallIntegration() async throws {
+        let fm = FileManager.default
+        let settingsPath = (homeClaudeDir as NSString).appendingPathComponent("settings.json")
+        guard fm.fileExists(atPath: settingsPath),
+              let data = try? Data(contentsOf: URL(fileURLWithPath: settingsPath)),
+              var settingsDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              var hooks = settingsDict["hooks"] as? [String: Any] else {
+            return
+        }
+
+        if let stopEntries = hooks["Stop"] as? [[String: Any]] {
+            let filtered = stopEntries.filter { ($0["command"] as? String)?.contains("flowback hook claude-code") != true }
+            if filtered.isEmpty {
+                hooks.removeValue(forKey: "Stop")
+            } else {
+                hooks["Stop"] = filtered
+            }
+            if hooks.isEmpty {
+                settingsDict.removeValue(forKey: "hooks")
+            } else {
+                settingsDict["hooks"] = hooks
+            }
+            let outputData = try JSONSerialization.data(withJSONObject: settingsDict, options: [.prettyPrinted, .sortedKeys])
+            try outputData.write(to: URL(fileURLWithPath: settingsPath), options: .atomic)
+        }
         logger.info("Claude Code integration reset")
     }
 

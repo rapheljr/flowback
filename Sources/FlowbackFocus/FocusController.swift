@@ -69,7 +69,10 @@ public actor FocusController {
         }
         self.defaultTimeout = defaultTimeout
         self.permissionChecker = permissionChecker ?? {
-            PermissionManager.shared.isAccessibilityGranted()
+            if windowController is WindowController {
+                return PermissionManager.shared.isAccessibilityGranted()
+            }
+            return true
         }
     }
 
@@ -144,6 +147,7 @@ public actor FocusController {
             let result = await restoreSession(session)
             if result.outcome.isSuccessful {
                 await arbiter.recordFocusRestoration()
+                await arbiter.remove(sessionID: session.id)
                 await timeline.record(
                     sessionID: session.id,
                     category: "Restoration",
@@ -317,7 +321,7 @@ extension FocusController {
         }
 
         // Priority 3 & 5: Local Window & Workspace via Adapter
-        guard let origin = session.originContext else {
+        guard let rawOrigin = session.originContext else {
             let outcome: RestorationOutcome = (session.focusCapability == .unavailable) ? .restorationUnsupported : .conversationUnavailable
             logger.warning("Session \(session.id) has no origin context or destination URL to restore")
             return RestorationResult(
@@ -331,18 +335,27 @@ extension FocusController {
             )
         }
 
-        // Permission check: if windowIdentifier is set, accessibility permission is mandatory to raise it
-        if origin.windowIdentifier != nil && !permissionChecker() {
-            logger.warning("Accessibility permission denied; cannot perform window-level restoration for session \(session.id)")
-            return RestorationResult(
-                outcome: .permissionDenied,
-                sessionID: session.id,
-                providerID: session.providerID,
-                conversationID: convID,
-                conversationTitle: convTitle,
-                targetDescription: origin.displayLabel,
-                message: "Accessibility permissions denied. Cannot perform window-level restoration."
-            )
+        // Permission check: if windowIdentifier is set and Accessibility is denied,
+        // degrade gracefully to workspace/application activation when workspace context exists;
+        // fail with .permissionDenied when only exact window-ID restoration was requested.
+        let origin: OriginContext
+        if rawOrigin.windowIdentifier != nil && !permissionChecker() {
+            if rawOrigin.workspacePath == nil {
+                logger.warning("Accessibility permission denied; cannot perform window-level restoration for session \(session.id)")
+                return RestorationResult(
+                    outcome: .permissionDenied,
+                    sessionID: session.id,
+                    providerID: session.providerID,
+                    conversationID: convID,
+                    conversationTitle: convTitle,
+                    targetDescription: rawOrigin.displayLabel,
+                    message: "Accessibility permissions denied. Cannot perform window-level restoration."
+                )
+            }
+            logger.info("Accessibility permission not granted; degrading session \(session.id) to workspace/application activation")
+            origin = rawOrigin.withoutWindowIdentifier()
+        } else {
+            origin = rawOrigin
         }
 
         // Ambiguous target safety check:
@@ -620,6 +633,7 @@ extension FocusController {
         let result = await restoreSession(session)
         if result.outcome.isSuccessful {
             await arbiter.recordFocusRestoration()
+            await arbiter.remove(sessionID: session.id)
         }
         return result.outcome.isSuccessful
     }

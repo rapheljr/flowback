@@ -69,6 +69,25 @@ public struct OriginContext: Codable, Hashable, Sendable {
         Date().timeIntervalSince(capturedAt) <= seconds
     }
     
+    /// Returns a copy of this context with `windowIdentifier` cleared for application-level fallback
+    public func withoutWindowIdentifier() -> OriginContext {
+        OriginContext(
+            bundleIdentifier: bundleIdentifier,
+            applicationPath: applicationPath,
+            processIdentifier: processIdentifier,
+            windowIdentifier: nil,
+            windowTitle: windowTitle,
+            workspacePath: workspacePath,
+            workspaceIdentifier: workspaceIdentifier,
+            terminalIdentifier: terminalIdentifier,
+            spaceIdentifier: spaceIdentifier,
+            provenance: provenance,
+            confidence: confidence,
+            restorationCapability: .applicationActivationOnly,
+            capturedAt: capturedAt
+        )
+    }
+    
     /// User-friendly label for display
     public var displayLabel: String {
         if let workspace = workspacePath, !workspace.isEmpty {

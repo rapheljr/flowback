@@ -97,7 +97,8 @@ var packageTargets: [Target] = [
     .executableTarget(
         name: "FlowbackCLI",
         dependencies: [
-            "FlowbackCore"
+            "FlowbackCore",
+            "FlowbackProviders"
         ],
         path: "Sources/FlowbackCLI"
     ),

@@ -21,7 +21,7 @@ if command -v swiftlint >/dev/null 2>&1; then
     if [ -d "/Library/Developer/CommandLineTools/usr/lib" ] && [ ! -d "/Applications/Xcode.app" ]; then
         export DYLD_FRAMEWORK_PATH="/Library/Developer/CommandLineTools/usr/lib"
     fi
-    swiftlint lint --strict
+    swiftlint lint --strict --cache-path /tmp/swiftlint-cache
     echo "✓ SwiftLint passed with 0 violations."
 else
     echo "⚠️ swiftlint not found in PATH. Install via 'brew install swiftlint'."
@@ -30,13 +30,17 @@ fi
 # 2. Swift Build
 echo ""
 echo "▶ [2/4] Compiling Swift Package (Debug & Release)..."
-swift build
+export CLANG_MODULE_CACHE_PATH="${CLANG_MODULE_CACHE_PATH:-/tmp/clang-module-cache}"
+export SWIFTPM_MODULECACHE_OVERRIDE="${SWIFTPM_MODULECACHE_OVERRIDE:-/tmp/swiftpm-module-cache}"
+if [ ! -x "./.build/debug/FlowbackTestRunner" ] || [ -n "$(find Package.swift Sources -newer ./.build/debug/FlowbackTestRunner 2>/dev/null)" ]; then
+    swift build --disable-sandbox
+fi
 echo "✓ Swift build succeeded."
 
 # 3. Standalone Verification Suites (FlowbackTestRunner)
 echo ""
 echo "▶ [3/4] Running Standalone Verification Test Suite (FlowbackTestRunner)..."
-swift run FlowbackTestRunner
+./.build/debug/FlowbackTestRunner
 echo "✓ All verification suites passed."
 
 # 4. Unit & Integration Tests (XCTest if available)

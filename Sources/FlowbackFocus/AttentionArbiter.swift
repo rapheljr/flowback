@@ -8,8 +8,8 @@ private let logger = Logger(subsystem: "com.flowback.app", category: "AttentionA
 public actor AttentionArbiter {
     private var pendingQueue: [AttentionRequest] = []
     private var lastFocusRestorationTime: Date = .distantPast
-    private let aggregationWindow: TimeInterval
-    private let cooldownDuration: TimeInterval
+    private(set) public var aggregationWindow: TimeInterval
+    private(set) public var cooldownDuration: TimeInterval
     
     public init(
         aggregationWindow: TimeInterval = 1.5,
@@ -17,6 +17,12 @@ public actor AttentionArbiter {
     ) {
         self.aggregationWindow = aggregationWindow
         self.cooldownDuration = cooldownDuration
+    }
+
+    /// Dynamically updates arbitration timing parameters when configuration changes
+    public func updateTiming(aggregationWindow: TimeInterval, cooldownDuration: TimeInterval) {
+        self.aggregationWindow = max(0, aggregationWindow)
+        self.cooldownDuration = max(0, cooldownDuration)
     }
     
     /// Enqueues an attention request, sorted by priority (highest first) and then timestamp

@@ -379,7 +379,7 @@ public final class AntigravityProvider: AgentProvider, Sendable {
             }
         }
 
-        let cmd = "export PATH=\"$HOME/.local/bin:/usr/local/bin:$PATH\"; flowback hook antigravity"
+        let cmd = "export PATH=\"$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH\"; flowback hook antigravity"
 
         // Define Flowback hook block supporting PreInvocation, PostInvocation, and Stop
         let flowbackHook: [String: Any] = [

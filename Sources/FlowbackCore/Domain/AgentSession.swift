@@ -57,17 +57,17 @@ public struct AgentSession: Identifiable, Codable, Hashable, Sendable {
         self.startedAt = startedAt
         self.updatedAt = updatedAt
         self.completedAt = completedAt
-        self.errorDescription = errorDescription
-        self.metadata = metadata
+        self.errorDescription = errorDescription.map { SecretSanitizer.sanitizeText($0) }
+        self.metadata = SecretSanitizer.sanitizeMetadata(metadata)
 
         self.conversationID = conversationID ?? providerSessionID
 
         // Sanitize incoming conversation title: empty or whitespace-only is treated as nil
         let cleanTitle = conversationTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.conversationTitle = (cleanTitle?.isEmpty == false) ? cleanTitle : nil
+        self.conversationTitle = (cleanTitle?.isEmpty == false) ? SecretSanitizer.sanitizeText(cleanTitle!) : nil
 
         let cleanSummary = taskSummary?.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.taskSummary = (cleanSummary?.isEmpty == false) ? cleanSummary : nil
+        self.taskSummary = (cleanSummary?.isEmpty == false) ? SecretSanitizer.sanitizeText(cleanSummary!) : nil
 
         self.executionID = executionID
         self.parentSessionID = parentSessionID
@@ -123,20 +123,22 @@ public struct AgentSession: Identifiable, Codable, Hashable, Sendable {
         self.startedAt = try container.decode(Date.self, forKey: .startedAt)
         self.updatedAt = try container.decode(Date.self, forKey: .updatedAt)
         self.completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
-        self.errorDescription = try container.decodeIfPresent(String.self, forKey: .errorDescription)
-        self.metadata = try container.decodeIfPresent([String: String].self, forKey: .metadata) ?? [:]
+        let rawError = try container.decodeIfPresent(String.self, forKey: .errorDescription)
+        self.errorDescription = rawError.map { SecretSanitizer.sanitizeText($0) }
+        let rawMetadata = try container.decodeIfPresent([String: String].self, forKey: .metadata) ?? [:]
+        self.metadata = SecretSanitizer.sanitizeMetadata(rawMetadata)
 
         // Decode new fields with robust fallbacks
         let rawConvId = try container.decodeIfPresent(String.self, forKey: .conversationID)
-        self.conversationID = rawConvId ?? self.providerSessionID ?? self.metadata["conversationId"] ?? self.metadata["sessionId"]
+        self.conversationID = rawConvId ?? self.providerSessionID ?? rawMetadata["conversationId"] ?? rawMetadata["sessionId"]
 
-        let rawTitle = try container.decodeIfPresent(String.self, forKey: .conversationTitle) ?? self.metadata["title"] ?? self.metadata["conversation_title"]
+        let rawTitle = try container.decodeIfPresent(String.self, forKey: .conversationTitle) ?? rawMetadata["title"] ?? rawMetadata["conversation_title"]
         let cleanTitle = rawTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.conversationTitle = (cleanTitle?.isEmpty == false) ? cleanTitle : nil
+        self.conversationTitle = (cleanTitle?.isEmpty == false) ? SecretSanitizer.sanitizeText(cleanTitle!) : nil
 
-        let rawSummary = try container.decodeIfPresent(String.self, forKey: .taskSummary) ?? self.metadata["summary"]
+        let rawSummary = try container.decodeIfPresent(String.self, forKey: .taskSummary) ?? rawMetadata["summary"]
         let cleanSummary = rawSummary?.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.taskSummary = (cleanSummary?.isEmpty == false) ? cleanSummary : nil
+        self.taskSummary = (cleanSummary?.isEmpty == false) ? SecretSanitizer.sanitizeText(cleanSummary!) : nil
 
         self.executionID = try container.decodeIfPresent(String.self, forKey: .executionID) ?? self.metadata["executionId"] ?? self.metadata["latestRunId"]
 

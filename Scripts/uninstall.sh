@@ -18,34 +18,43 @@ if pgrep -x "Flowback" >/dev/null 2>&1; then
     sleep 1
 fi
 
-# 2. Remove hooks
+# 2. Remove hooks across all supported providers
 echo "Cleaning up agent hooks..."
-HOOKS_CONFIG="$HOME/.gemini/config/hooks.json"
-if [ -f "$HOOKS_CONFIG" ]; then
-    python3 -c "
+for HOOKS_CONFIG in "$HOME/.gemini/config/hooks.json" "$HOME/.codeium/windsurf/hooks.json" "$HOME/.claude/settings.json"; do
+    if [ -f "$HOOKS_CONFIG" ]; then
+        python3 -c "
 import json, os
 path = os.path.expanduser('$HOOKS_CONFIG')
 try:
     with open(path, 'r') as f:
         data = json.load(f)
     changed = False
-    if 'flowback-agent-focus' in data:
-        del data['flowback-agent-focus']
-        changed = True
+    for key in ('flowback-antigravity', 'flowback-antigravity-cli', 'flowback-agent-focus'):
+        if key in data:
+            del data[key]
+            changed = True
     if 'hooks' in data and isinstance(data['hooks'], dict):
-        for event, cmd_list in data['hooks'].items():
+        for event, cmd_list in list(data['hooks'].items()):
             if isinstance(cmd_list, list):
                 original_len = len(cmd_list)
                 data['hooks'][event] = [c for c in cmd_list if 'flowback' not in str(c)]
                 if len(data['hooks'][event]) != original_len:
                     changed = True
+                if not data['hooks'][event]:
+                    del data['hooks'][event]
     if changed:
         with open(path, 'w') as f:
             json.dump(data, f, indent=2)
-        print('  ✓ Cleaned Flowback entries from hooks.json')
-except Exception as e:
+        print(f'  ✓ Cleaned Flowback entries from {path}')
+except Exception:
     pass
 " || true
+    fi
+done
+
+if [ -f "$HOME/.config/opencode/plugins/flowback.js" ]; then
+    rm -f "$HOME/.config/opencode/plugins/flowback.js"
+    echo "  ✓ Removed OpenCode plugin (~/.config/opencode/plugins/flowback.js)"
 fi
 
 # 3. Remove application bundle
@@ -56,6 +65,7 @@ fi
 
 # 4. Remove CLI binary
 CLI_PATHS=(
+    "/opt/homebrew/bin/flowback"
     "/usr/local/bin/flowback"
     "$HOME/.local/bin/flowback"
 )

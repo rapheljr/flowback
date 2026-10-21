@@ -194,6 +194,20 @@ public struct AsyncProcessRunner: Sendable {
                 cont?.resume(throwing: error)
             }
 
+            private func terminateProcessWithEscalation() {
+                guard process.isRunning else { return }
+                let pid = process.processIdentifier
+                process.terminate()
+                if pid > 0 {
+                    let targetProcess = process
+                    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.25) {
+                        if targetProcess.isRunning {
+                            _ = kill(pid, SIGKILL)
+                        }
+                    }
+                }
+            }
+
             func cancel() {
                 lock.lock()
                 guard !isTerminated else {
@@ -204,9 +218,7 @@ public struct AsyncProcessRunner: Sendable {
                 cleanupHandlersUnderLock()
                 let cont = continuation
                 continuation = nil
-                if process.isRunning {
-                    process.terminate()
-                }
+                terminateProcessWithEscalation()
                 lock.unlock()
 
                 cont?.resume(throwing: ProcessExecutionError.cancelled)
@@ -222,9 +234,7 @@ public struct AsyncProcessRunner: Sendable {
                 cleanupHandlersUnderLock()
                 let cont = continuation
                 continuation = nil
-                if process.isRunning {
-                    process.terminate()
-                }
+                terminateProcessWithEscalation()
                 lock.unlock()
 
                 cont?.resume(throwing: ProcessExecutionError.timedOut(seconds))

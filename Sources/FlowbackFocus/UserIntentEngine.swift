@@ -138,6 +138,17 @@ public struct UserIntentEngine: Sendable {
             return .notifyOnly(reason: "Policy is set to Notification Only.")
         }
 
+        // 2b. Per-event behavior overrides from PolicyConfiguration
+        if session.state == .completed && config.completionBehavior != .restoreOrigin {
+            return .notifyOnly(reason: "Completion behavior is set to \(config.completionBehavior.displayName).")
+        }
+        if session.state == .permissionRequired && config.permissionBehavior == .notificationOnly {
+            return .notifyOnly(reason: "Permission behavior is set to Notification Only.")
+        }
+        if session.state == .failed && config.failureBehavior == .notificationOnly {
+            return .notifyOnly(reason: "Failure behavior is set to Notification Only.")
+        }
+
         // 3. Secure Event Input safeguard (password / credential entry active)
         if idleTracker.isSecureInputActive() && effectivePolicy != .alwaysRestore {
             let reason = "Secure event input (password or credential prompt) is active across system. Suppressing focus switch."

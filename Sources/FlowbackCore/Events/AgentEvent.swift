@@ -137,24 +137,25 @@ public struct AgentEvent: Identifiable, Codable, Hashable, Sendable {
         self.type = try container.decode(AgentEventType.self, forKey: .type)
         self.workspace = try container.decodeIfPresent(String.self, forKey: .workspace)
         self.origin = try container.decodeIfPresent(OriginContext.self, forKey: .origin)
-        self.metadata = try container.decodeIfPresent([String: String].self, forKey: .metadata) ?? [:]
+        let rawMetadata = try container.decodeIfPresent([String: String].self, forKey: .metadata) ?? [:]
+        self.metadata = SecretSanitizer.sanitizeMetadata(rawMetadata)
 
         self.conversationID = try container.decodeIfPresent(String.self, forKey: .conversationID)
-            ?? self.metadata["conversationId"] ?? self.metadata["sessionId"]
+            ?? rawMetadata["conversationId"] ?? rawMetadata["sessionId"]
 
         let rawTitle = try container.decodeIfPresent(String.self, forKey: .conversationTitle)
-            ?? self.metadata["title"] ?? self.metadata["conversation_title"]
+            ?? rawMetadata["title"] ?? rawMetadata["conversation_title"]
         let cleanTitle = rawTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.conversationTitle = (cleanTitle?.isEmpty == false) ? cleanTitle : nil
+        self.conversationTitle = (cleanTitle?.isEmpty == false) ? SecretSanitizer.sanitizeText(cleanTitle!) : nil
 
-        let rawSummary = try container.decodeIfPresent(String.self, forKey: .taskSummary) ?? self.metadata["summary"]
+        let rawSummary = try container.decodeIfPresent(String.self, forKey: .taskSummary) ?? rawMetadata["summary"]
         let cleanSummary = rawSummary?.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.taskSummary = (cleanSummary?.isEmpty == false) ? cleanSummary : nil
+        self.taskSummary = (cleanSummary?.isEmpty == false) ? SecretSanitizer.sanitizeText(cleanSummary!) : nil
 
         self.executionID = try container.decodeIfPresent(String.self, forKey: .executionID)
-            ?? self.metadata["executionId"] ?? self.metadata["latestRunId"]
+            ?? rawMetadata["executionId"] ?? rawMetadata["latestRunId"]
 
-        if let parentStr = try container.decodeIfPresent(String.self, forKey: .parentSessionID) ?? self.metadata["parentSessionId"] {
+        if let parentStr = try container.decodeIfPresent(String.self, forKey: .parentSessionID) ?? rawMetadata["parentSessionId"] {
             self.parentSessionID = AgentSessionID(parentStr)
         } else {
             self.parentSessionID = nil
@@ -162,7 +163,7 @@ public struct AgentEvent: Identifiable, Codable, Hashable, Sendable {
 
         if let url = try container.decodeIfPresent(URL.self, forKey: .conversationURL) {
             self.conversationURL = url
-        } else if let uStr = self.metadata["conversationUrl"] ?? self.metadata["prUrl"], let parsed = URL(string: uStr) {
+        } else if let uStr = rawMetadata["conversationUrl"] ?? rawMetadata["prUrl"], let parsed = URL(string: uStr) {
             self.conversationURL = parsed
         } else {
             self.conversationURL = nil

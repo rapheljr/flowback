@@ -17,6 +17,8 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
     private var focusLock: FocusLockState
     private let shutdownHandler: (@Sendable () -> Void)?
     private let testNotificationHandler: (@Sendable () async -> Void)?
+    private let focusLockChangeHandler: (@Sendable (FocusLockState) -> Void)?
+    private let configChangeHandler: (@Sendable (PolicyConfiguration) -> Void)?
     private let sessionToken: String?
 
     public init(
@@ -28,7 +30,9 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         focusLock: FocusLockState = FocusLockState(),
         sessionToken: String? = nil,
         shutdownHandler: (@Sendable () -> Void)? = nil,
-        testNotificationHandler: (@Sendable () async -> Void)? = nil
+        testNotificationHandler: (@Sendable () async -> Void)? = nil,
+        focusLockChangeHandler: (@Sendable (FocusLockState) -> Void)? = nil,
+        configChangeHandler: (@Sendable (PolicyConfiguration) -> Void)? = nil
     ) {
         self.eventBus = eventBus
         self.sessionManager = sessionManager
@@ -39,6 +43,8 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         self.sessionToken = sessionToken
         self.shutdownHandler = shutdownHandler
         self.testNotificationHandler = testNotificationHandler
+        self.focusLockChangeHandler = focusLockChangeHandler
+        self.configChangeHandler = configChangeHandler
     }
 
     public func setFocusLock(_ state: FocusLockState) {
@@ -73,6 +79,12 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
 
         case "hook":
             return await handleHook(providerString: request.argument, payload: request.payload)
+
+        case "hook-install":
+            return await handleHookManage(providerString: request.argument, install: true)
+
+        case "hook-uninstall":
+            return await handleHookManage(providerString: request.argument, install: false)
 
         case "emit":
             return await handleEmit(payload: request.payload)
@@ -186,17 +198,20 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
             // Toggle off if active
             if focusLock.isActive {
                 focusLock = FocusLockState(isActive: false)
+                focusLockChangeHandler?(focusLock)
                 return IPCResponse(success: true, message: "Focus Lock disabled")
             } else {
                 // Default 30 minutes
                 let exp = Date().addingTimeInterval(30 * 60)
                 focusLock = FocusLockState(isActive: true, expiresAt: exp, label: "30 min")
+                focusLockChangeHandler?(focusLock)
                 return IPCResponse(success: true, message: "Focus Lock enabled for 30 minutes")
             }
         }
 
         if arg == "off" || arg == "disable" || arg == "0" {
             focusLock = FocusLockState(isActive: false)
+            focusLockChangeHandler?(focusLock)
             return IPCResponse(success: true, message: "Focus Lock disabled")
         }
 
@@ -213,6 +228,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
 
         let exp = Date().addingTimeInterval(TimeInterval(durationMinutes * 60))
         focusLock = FocusLockState(isActive: true, expiresAt: exp, label: "\(durationMinutes) min")
+        focusLockChangeHandler?(focusLock)
         return IPCResponse(success: true, message: "Focus Lock enabled for \(durationMinutes) minutes")
     }
 
@@ -268,6 +284,27 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
 
         let responseData = provider.generateHookResponse(for: data) ?? allowData
         return IPCResponse(success: true, message: "Hook ingested", data: responseData)
+    }
+
+    private func handleHookManage(providerString: String?, install: Bool) async -> IPCResponse {
+        guard let provName = providerString, !provName.isEmpty else {
+            return IPCResponse(success: false, message: "Missing provider name")
+        }
+        let provID = AgentProviderID(provName)
+        guard let provider = await providerRegistry.getProvider(provID) else {
+            return IPCResponse(success: false, message: "Provider '\(provName)' not registered")
+        }
+        do {
+            if install {
+                try await provider.installIntegration()
+                return IPCResponse(success: true, message: "Successfully installed Flowback hook integration for \(provider.displayName)")
+            } else {
+                try await provider.uninstallIntegration()
+                return IPCResponse(success: true, message: "Successfully uninstalled Flowback hook integration for \(provider.displayName)")
+            }
+        } catch {
+            return IPCResponse(success: false, message: "Failed to update hook integration: \(error.localizedDescription)")
+        }
     }
 
     private func handleEmit(payload: Data?) async -> IPCResponse {
@@ -345,6 +382,7 @@ public final class IPCHandler: IPCHandlerDelegate, @unchecked Sendable {
         }
         do {
             let config = try await settingsRepo.importConfigurationJSON(jsonString)
+            configChangeHandler?(config)
             return IPCResponse(success: true, message: "Configuration imported successfully (policy: \(config.focusPolicy.rawValue))")
         } catch {
             return IPCResponse(success: false, message: "Failed to import configuration: \(error.localizedDescription)")

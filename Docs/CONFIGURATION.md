@@ -6,14 +6,11 @@ Flowback uses a multi-tier policy resolution engine allowing granular focus mana
 
 ## Configuration Location
 
-Flowback stores user configuration in:
-```text
-~/.flowback/config.json
-```
-And session metadata in local SQLite (WAL mode):
+Flowback persists active policy configuration and session metadata in a local SQLite database (WAL mode):
 ```text
 ~/.flowback/flowback.sqlite
 ```
+Configuration snapshots can be exported to and imported from portable JSON files (such as `~/.flowback/config.json`) via the CLI (`flowback config export` / `flowback config import`) or the **Advanced** tab in the Flowback Dashboard.
 
 ---
 

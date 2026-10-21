@@ -251,7 +251,13 @@ public final class OpenCodeProvider: AgentProvider, Sendable {
     }
 
     public func discoverActiveSessions() async -> [AgentSession] {
-        // Fallback observation: check running OpenCode instances
+        // When the native OpenCode plugin is installed, lifecycle events are streamed directly over IPC.
+        // Avoid fabricating synthetic process-level sessions every 10s when OpenCode.app is merely open idle.
+        let targetPluginPath = (pluginInstallDir as NSString).appendingPathComponent("flowback.js")
+        if FileManager.default.fileExists(atPath: targetPluginPath) {
+            return []
+        }
+
         let running = NSWorkspace.shared.runningApplications.filter {
             guard let b = $0.bundleIdentifier else { return false }
             return b == "ai.opencode.app" || b == "com.opencode"

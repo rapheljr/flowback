@@ -196,6 +196,26 @@ public final class FlowbackService: NSObject, ObservableObject {
                     title: "Flowback Test Alert",
                     body: "Notification and focus routing verification succeeded."
                 )
+            },
+            focusLockChangeHandler: { [weak self] updatedLock in
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
+                    self.focusLock = updatedLock
+                    self.dashboardViewModel.focusLock = updatedLock
+                    await self.updateMinimalUIState()
+                }
+            },
+            configChangeHandler: { [weak self] updatedConfig in
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
+                    self.configuration = updatedConfig
+                    self.dashboardViewModel.config = updatedConfig
+                    await self.attentionArbiter?.updateTiming(
+                        aggregationWindow: Double(updatedConfig.attentionAggregationMs) / 1000.0,
+                        cooldownDuration: Double(updatedConfig.focusCooldownMs) / 1000.0
+                    )
+                    await self.updateMinimalUIState()
+                }
             }
         )
         self.socketServer = UnixSocketServer(delegate: ipcHandler, sessionToken: sessionToken)
@@ -350,10 +370,17 @@ public final class FlowbackService: NSObject, ObservableObject {
         let session = await sessionManager.handleEvent(event)
         try? await eventRepository.saveEvent(event)
 
-        // Check terminal states for attention
-        if event.type == .agentCompleted || event.type == .agentFailed || event.type == .agentPermissionRequired {
-            let priority: AttentionPriority = (event.type == .agentPermissionRequired) ? .permissionRequired :
-                ((event.type == .agentFailed) ? .failure : .completed)
+        // Check actionable states for attention
+        if event.type.isActionableForAttention {
+            let priority: AttentionPriority
+            switch event.type {
+            case .agentPermissionRequired, .agentWaiting:
+                priority = .permissionRequired
+            case .agentFailed:
+                priority = .failure
+            default:
+                priority = .completed
+            }
 
             let req = AttentionRequest(
                 sessionID: session.id,
@@ -675,6 +702,7 @@ extension FlowbackService: NSWindowDelegate {
             onFocusSession: { [weak self] session in
                 Task { [weak self] in
                     _ = await self?.focusController.manualFocusSession(session)
+                    await self?.updateMinimalUIState()
                 }
             },
             onSaveConfig: { [weak self] updated in
@@ -683,10 +711,21 @@ extension FlowbackService: NSWindowDelegate {
                         try await self?.settingsRepository.saveConfiguration(updated)
                         self?.configuration = updated
                         self?.dashboardViewModel.config = updated
+                        await self?.attentionArbiter?.updateTiming(
+                            aggregationWindow: Double(updated.attentionAggregationMs) / 1000.0,
+                            cooldownDuration: Double(updated.focusCooldownMs) / 1000.0
+                        )
                         logger.info("Configuration successfully updated and persisted.")
                     } catch {
                         logger.error("Failed to persist updated configuration: \(error.localizedDescription)")
                     }
+                }
+            },
+            onUpdateFocusLock: { [weak self] updatedLock in
+                self?.focusLock = updatedLock
+                self?.ipcHandler?.setFocusLock(updatedLock)
+                Task { [weak self] in
+                    await self?.updateMinimalUIState()
                 }
             },
             onRepairAntigravity: { [weak self] in

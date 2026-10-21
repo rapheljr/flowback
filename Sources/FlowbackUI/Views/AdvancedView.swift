@@ -48,23 +48,27 @@ public final class AdvancedViewModel: ObservableObject {
     @MainActor
     public func resetSystemPermissions(bundleIdentifier: String? = nil) {
         let id = bundleIdentifier ?? (Bundle.main.bundleIdentifier ?? "com.flowback.app")
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
-        process.arguments = ["reset", "All", id]
+        permissionsResetSucceeded = nil
+        permissionsResetMessage = "Resetting TCC permissions for \(id)…"
 
-        do {
-            try process.run()
-            process.waitUntilExit()
-            if process.terminationStatus == 0 {
-                permissionsResetSucceeded = true
-                permissionsResetMessage = "Permissions successfully reset for \(id). macOS will re-prompt when needed."
-            } else {
-                permissionsResetSucceeded = false
-                permissionsResetMessage = "tccutil exited with status \(process.terminationStatus)."
+        Task { @MainActor [weak self] in
+            do {
+                let result = try await AsyncProcessRunner.run(
+                    executablePath: "/usr/bin/tccutil",
+                    arguments: ["reset", "All", id],
+                    timeoutSeconds: 5.0
+                )
+                if result.exitCode == 0 {
+                    self?.permissionsResetSucceeded = true
+                    self?.permissionsResetMessage = "Permissions successfully reset for \(id). macOS will re-prompt when needed."
+                } else {
+                    self?.permissionsResetSucceeded = false
+                    self?.permissionsResetMessage = "tccutil exited with status \(result.exitCode)."
+                }
+            } catch {
+                self?.permissionsResetSucceeded = false
+                self?.permissionsResetMessage = "Failed to run tccutil: \(error.localizedDescription)"
             }
-        } catch {
-            permissionsResetSucceeded = false
-            permissionsResetMessage = "Failed to run tccutil: \(error.localizedDescription)"
         }
     }
 

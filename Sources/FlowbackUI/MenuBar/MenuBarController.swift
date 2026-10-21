@@ -30,6 +30,9 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
     private(set) public var frozenRecentSessions: [AgentSession]?
     private(set) public var frozenAttentionQueue: [AttentionRequest]?
 
+    public static let defaultAutosaveName = "FlowbackStatusItem"
+    public private(set) var autosaveName: String?
+
     public init(delegate: MenuBarActionDelegate? = nil) {
         self.delegate = delegate
         super.init()
@@ -41,8 +44,10 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
 
     public func setup() {
         guard statusItem == nil else { return }
+        autosaveName = Self.defaultAutosaveName
+        guard PermissionManager.shared.isAppBundle && NSApp != nil else { return }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem?.autosaveName = "FlowbackStatusItem"
+        statusItem?.autosaveName = Self.defaultAutosaveName
         updateStatusItemAppearance()
 
         let menu = NSMenu()
@@ -56,6 +61,7 @@ public final class MenuBarController: NSObject, NSMenuDelegate, @unchecked Senda
             NSStatusBar.system.removeStatusItem(item)
             statusItem = nil
         }
+        autosaveName = nil
     }
 
     public func updateState(

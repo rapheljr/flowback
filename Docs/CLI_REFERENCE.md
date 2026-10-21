@@ -172,11 +172,17 @@ See [CONFIGURATION.md](CONFIGURATION.md) for full configuration schema and overr
 
 ---
 
-### `flowback hook <provider>`
-Receives agent lifecycle hook payloads over `stdin` (for Google Antigravity, Antigravity CLI, Windsurf, etc.) and emits appropriate hook response decisions.
-If the Flowback daemon is temporarily offline, `flowback hook` degrades safely and outputs a permissive response (`{"decision":"allow"}` or `{"injectSteps":[]}`), ensuring your coding agent is never blocked.
+### `flowback hook <provider> [--install | --uninstall]`
+Receives agent lifecycle hook payloads over `stdin` (for Google Antigravity, Antigravity CLI, Windsurf, Claude Code, etc.) and emits appropriate hook response decisions, or installs/removes the provider's hook configuration when `--install` or `--uninstall` is passed.
+If the Flowback daemon is temporarily offline during hook ingestion, `flowback hook` degrades safely and outputs a permissive response (`{"decision":"allow"}` or `{"injectSteps":[]}`), ensuring your coding agent is never blocked.
 
 ```bash
+# Install or repair a provider's hook integration:
+flowback hook antigravity --install
+
+# Uninstall a provider's hook integration:
+flowback hook antigravity --uninstall
+
 # Example invocation by Antigravity in ~/.gemini/config/hooks.json:
 /usr/local/bin/flowback hook antigravity
 ```
