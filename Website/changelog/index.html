@@ -59,8 +59,61 @@
       <p>All notable changes to Flowback follow <a href="https://semver.org/" target="_blank" rel="noopener noreferrer">Semantic Versioning</a> and the <a href="https://keepachangelog.com/" target="_blank" rel="noopener noreferrer">Keep a Changelog</a> standard.</p>
     </div>
 
+    <!-- Release Entry: v0.4.1 -->
+    <article class="card card-featured" style="margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem;">
+        <div>
+          <h2 style="margin: 0; font-size: 1.85rem;">Version 0.4.1</h2>
+          <div style="color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem;">Milestone v0.4.1 • 2026-10-18</div>
+        </div>
+        <div>
+          <a href="../download/" class="btn btn-primary">Download v0.4.1</a>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 1.75rem;">
+        <!-- Added -->
+        <div>
+          <h3 style="color: var(--accent-emerald); font-size: 1.15rem; margin-bottom: 0.5rem;">Added</h3>
+          <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
+            <li><strong>Focus Cancellation Ownership:</strong> Associated active cancellation handlers with monotonic generation IDs, preventing superseded navigation requests from clearing newer cancellation handlers upon actor reentrancy.</li>
+            <li><strong>TimeoutCoordinator Concurrency Primitive:</strong> Thread-safe state transitions guarded by <code>NSLock</code>, guaranteeing exactly-once resumption and automatic task cleanup.</li>
+          </ul>
+        </div>
+
+        <!-- Changed & Improved -->
+        <div>
+          <h3 style="color: var(--accent-cyan); font-size: 1.15rem; margin-bottom: 0.5rem;">Changed &amp; Improved</h3>
+          <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
+            <li><strong>Deterministic LaunchServices Fallback:</strong> Non-blocking asynchronous fallback via <code>NSWorkspace.openApplication</code> when direct AppKit activation fails, eliminating main-thread UI deadlocks.</li>
+            <li><strong>Specialized Adapter Priority:</strong> Enforced stable FIFO ordering for specialized application adapters with <code>GenericApplicationAdapter</code> pinned at baseline priority.</li>
+            <li><strong>Frozen Menu-Bar Slots:</strong> Recent session ordering and keyboard shortcuts (⌘1–⌘9) snapshot-frozen while menu is open.</li>
+          </ul>
+        </div>
+
+        <!-- Fixed -->
+        <div>
+          <h3 style="color: var(--accent-amber); font-size: 1.15rem; margin-bottom: 0.5rem;">Fixed</h3>
+          <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
+            <li>Actor reentrancy race in <code>FocusController</code> where superseded navigation requests could clear newer cancellation handlers.</li>
+            <li>Main-thread UI deadlocks caused by synchronous semaphore waits during application activation.</li>
+            <li>Window restoration degradation safely falling back to application activation without false errors.</li>
+          </ul>
+        </div>
+
+        <!-- Security -->
+        <div>
+          <h3 style="color: var(--accent-indigo); font-size: 1.15rem; margin-bottom: 0.5rem;">Security &amp; Privacy</h3>
+          <ul style="margin-left: 1.25rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
+            <li>Strict Concurrency &amp; Hardened Runtime: Elimination of continuation double-resumption and task handle retention.</li>
+            <li>100% Local Isolation: Zero telemetry and complete local offline execution.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
     <!-- Release Entry: v0.4.0 -->
-    <article class="card card-featured">
+    <article class="card">
       <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem;">
         <div>
           <h2 style="margin: 0; font-size: 1.85rem;">Version 0.4.0</h2>
