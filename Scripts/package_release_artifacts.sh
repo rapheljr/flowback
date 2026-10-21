@@ -5,9 +5,9 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$PROJECT_ROOT/dist"
 
-VERSION="${1:-$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "0.4.0")}"
+VERSION="${1:-$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "0.4.1")}"
 BUILD_ARCH="${2:-universal}"
-BUILD_NUMBER="${3:-1}"
+BUILD_NUMBER="${3:-$(cat "$PROJECT_ROOT/BUILD" 2>/dev/null || echo "2")}"
 
 echo "=========================================="
 echo "Packaging Flowback Release Artifacts (v${VERSION} - ${BUILD_ARCH})"

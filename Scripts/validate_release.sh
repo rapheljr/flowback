@@ -38,7 +38,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-CANONICAL_VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "0.4.0")
+CANONICAL_VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "0.4.1")
 VERSION="${VERSION:-${FLOWBACK_VERSION:-$CANONICAL_VERSION}}"
 
 MODE_UPPER=$(echo "$MODE" | tr '[:lower:]' '[:upper:]')

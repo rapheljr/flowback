@@ -6,7 +6,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$PROJECT_ROOT/dist"
 WEBSITE_DIR="$PROJECT_ROOT/Website"
 
-CANONICAL_VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "0.4.0")
+CANONICAL_VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "0.4.1")
 VERSION="${1:-${FLOWBACK_VERSION:-$CANONICAL_VERSION}}"
 RELEASE_DATE="$(date -u +"%Y-%m-%d")"
 REPO_URL="https://github.com/rapheljr/flowback"

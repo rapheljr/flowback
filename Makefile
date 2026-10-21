@@ -41,8 +41,8 @@ test:
 	swift run FlowbackTestRunner
 	node Scripts/test_opencode_plugin.js
 
-VERSION ?= $(shell cat VERSION 2>/dev/null || echo 0.4.0)
-BUILD_NUMBER ?= $(shell cat BUILD 2>/dev/null || echo 1)
+VERSION ?= $(shell cat VERSION 2>/dev/null || echo 0.4.1)
+BUILD_NUMBER ?= $(shell cat BUILD 2>/dev/null || echo 2)
 
 package: release
 	bash Scripts/package_app.sh $(VERSION) $(BUILD_NUMBER) universal

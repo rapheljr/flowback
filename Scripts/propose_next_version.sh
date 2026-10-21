@@ -24,8 +24,8 @@ CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 # 2. Resolve latest valid release tag (filtering out legacy v1.0.0 per pure pre-1.0 policy)
 LATEST_TAG=$(git describe --tags --match "v0.*" --abbrev=0 2>/dev/null || echo "")
 
-CANONICAL_VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "0.4.0")
-CANONICAL_BUILD=$(cat "$PROJECT_ROOT/BUILD" 2>/dev/null || echo "1")
+CANONICAL_VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "0.4.1")
+CANONICAL_BUILD=$(cat "$PROJECT_ROOT/BUILD" 2>/dev/null || echo "2")
 
 if [ -z "$LATEST_TAG" ]; then
     echo "Notice: No pre-1.0 Git release tag detected (ignoring legacy v1.0.0)."
