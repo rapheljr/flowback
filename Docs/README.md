@@ -14,7 +14,7 @@ Welcome to the Flowback documentation hub.
 
 ## Core Architecture & Integrations
 * **[Architecture](ARCHITECTURE.md)** — Architectural design, decoupling, event bus, and subsystem structure.
-* **[Agent Integrations](AGENT_INTEGRATIONS.md)** — Antigravity, Claude Code, Codex, and Generic JSON Hook Protocol.
+* **[Agent Providers Specification](AGENT_INTEGRATIONS.md)** — Antigravity, Windsurf, OpenCode, Cursor, Copilot, Claude Code, Codex, Antigravity CLI, and Generic JSON Hook Protocol.
 * **[Application Adapters](APPLICATION_ADAPTERS.md)** — Adapters for VS Code, Cursor, Windsurf, Terminals, and Browsers.
 * **[Focus Engine](FOCUS_ENGINE.md)** — Intent sensing, priority arbitration, and cooldown mechanics.
 * **[Event Protocol](EVENT_PROTOCOL.md)** — Complete JSON schema v1 specification.
@@ -32,4 +32,5 @@ Welcome to the Flowback documentation hub.
 ## Engineering & Releasing
 * **[Development Guide](DEVELOPMENT.md)** — Building from source, deterministic test harness, and contributing.
 * **[Release Engineering](RELEASE.md)** — Release checklist, code signing, notarization, and checksum verification.
+* **[Product Roadmap](../ROADMAP.md)** — Upcoming milestones and multi-monitor features.
 * **[Support Flowback](https://buymeacoffee.com/flowback)** — Support continued development on Buy Me a Coffee ([Support Page](https://rapheljr.github.io/flowback/support/)).

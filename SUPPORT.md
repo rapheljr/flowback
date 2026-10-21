@@ -18,9 +18,12 @@ This tests:
 * Notification authorizations
 * SQLite database connectivity & WAL mode integrity
 * Unix domain socket server responsiveness
-* Hook registrations (Antigravity, Claude Code, Codex, etc.)
+* Hook registrations (Antigravity, Windsurf, OpenCode, Cursor, Copilot, Claude Code, Codex, Aider, etc.)
 
 Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for step-by-step solutions to common diagnostic errors.
+
+### In-App Diagnostic Report Exporter
+In Flowback Dashboard → **Support**, you can click **Export Diagnostic Report** to generate a privacy-guaranteed bundle (`flowback-diagnostics-*.json`). Flowback automatically scrubs Bearer tokens, secrets, passwords, and user home directory paths, ensuring it is safe to attach to GitHub issues.
 
 ---
 
@@ -40,10 +43,10 @@ For questions such as:
 If you encountered a bug, unexpected behavior, or a crash:
 1. Search [Existing Issues](https://github.com/rapheljr/flowback/issues) to see if it has already been reported.
 2. If not, open a new issue using our [Bug Report Form](https://github.com/rapheljr/flowback/issues/new?template=bug_report.yml).
-3. Please provide sanitized output from `flowback doctor` and reproduction steps.
+3. Please provide sanitized output from `flowback doctor` or your exported diagnostic bundle and reproduction steps.
 
 > [!CAUTION]
-> Never paste API keys, passwords, private source code, or proprietary directory structures in public issues.
+> Never paste API keys, passwords, private source code, or proprietary directory structures in public issues. Use the built-in diagnostic exporter which scrubs sensitive information automatically.
 
 ---
 

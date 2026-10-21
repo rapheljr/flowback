@@ -24,7 +24,7 @@ Before cutting a release:
    ```
 
 2. **Verify Version Consistency:**
-   Ensure the target version (e.g., `0.4.0`) is updated across:
+   Ensure the target version (e.g., `0.4.1`) is updated across:
    * `VERSION` (authoritative canonical source)
    * `BUILD`
    * `Sources/FlowbackCore/FlowbackVersion.swift`
@@ -33,15 +33,15 @@ Before cutting a release:
 
 3. **Review and Finalize Changelog:**
    * Open `CHANGELOG.md`.
-   * Rename the `[Unreleased]` section to the new version header (e.g., `## [0.4.0] - 2026-10-18`).
+   * Rename the `[Unreleased]` section to the new version header (e.g., `## [0.4.1] - 2026-10-18`).
    * Verify all added, changed, fixed, security, and known limitation entries are user-facing and accurate.
 
 4. **Execute Full Test & Verification Suite:**
    ```bash
-   # Run all 61 verification scenarios
+   # Run all 1,040 verification assertions across 36 test suites
    swift run FlowbackTestRunner
    ```
-   Ensure 100% pass rate: `Passed: 61, Failed: 0`.
+   Ensure 100% pass rate: `Passed: 1040, Failed: 0`.
 
 5. **Linting & Code Quality:**
    ```bash
@@ -59,7 +59,7 @@ Flowback builds disk images (`.dmg`) and zip archives (`.zip`) along with crypto
 rm -rf dist .build/release
 
 # 2. Package universal release artifacts, DMG, ZIP, checksums, and Cask
-bash Scripts/package_release_artifacts.sh 0.4.0 universal
+bash Scripts/package_release_artifacts.sh 0.4.1 universal
 # (Or using Makefile: make artifacts)
 ```
 
@@ -67,10 +67,10 @@ Artifacts produced in `dist/`:
 ```text
 dist/
 ├── Flowback.app                  # Packaged macOS application bundle
-├── Flowback-0.4.0-macos.zip      # Canonical distribution ZIP for Homebrew Cask
-├── Flowback-0.4.0-arm64.zip      # Apple Silicon ZIP
-├── Flowback-0.4.0.dmg            # Universal installer DMG
-├── Flowback-0.4.0-arm64.dmg      # Apple Silicon installer DMG
+├── Flowback-0.4.1-macos.zip      # Canonical distribution ZIP for Homebrew Cask
+├── Flowback-0.4.1-arm64.zip      # Apple Silicon ZIP
+├── Flowback-0.4.1.dmg            # Universal installer DMG
+├── Flowback-0.4.1-arm64.dmg      # Apple Silicon installer DMG
 ├── Flowback.dmg                  # Unversioned convenience DMG
 ├── Flowback.entitlements         # Hardened Runtime entitlements
 ├── SHA256SUMS                    # SHA-256 cryptographic hashes
@@ -152,11 +152,11 @@ Before tagging or distributing any release, run the automated validation suite:
 
 ```bash
 # Local development mode (permits ad-hoc signed preview):
-bash Scripts/validate_release.sh --local 0.4.0
+bash Scripts/validate_release.sh --local 0.4.1
 # (Or: make validate)
 
 # Strict production release mode (requires Developer ID signature & notarization ticket):
-bash Scripts/validate_release.sh --release 0.4.0
+bash Scripts/validate_release.sh --release 0.4.1
 # (Or: make validate-release)
 ```
 
@@ -180,7 +180,7 @@ The staged Cask formula is generated at `Casks/flowback.rb`.
 
 To audit and style check with Homebrew:
 ```bash
-bash Scripts/generate_cask.sh 0.4.0
+bash Scripts/generate_cask.sh 0.4.1
 ```
 
 To test local installation in a dry-run or temporary directory:
@@ -193,7 +193,7 @@ brew untap local-flowback-test/tap
 ```
 
 When publishing to the official tap `rapheljr/homebrew-flowback`:
-1. Ensure the release tag `v0.4.0` is published and assets are downloadable from GitHub Releases.
+1. Ensure the release tag `v0.4.1` is published and assets are downloadable from GitHub Releases.
 2. Copy `Casks/flowback.rb` to the `rapheljr/homebrew-flowback` repository under `Casks/flowback.rb`.
 3. Commit and push to `main` branch of `homebrew-flowback`.
 4. Users install with:
@@ -208,8 +208,8 @@ When publishing to the official tap `rapheljr/homebrew-flowback`:
 
 1. **Commit and Tag:**
    ```bash
-   git tag -a v0.4.0 -m "Release v0.4.0: Universal macOS AI Agent Context & Focus Manager"
-   git push origin v0.4.0
+   git tag -a v0.4.1 -m "Release v0.4.1: Universal macOS AI Agent Context & Focus Manager"
+   git push origin v0.4.1
    ```
 
 2. **GitHub Actions Workflow:**

@@ -76,6 +76,7 @@ Flowback runs as a lightweight native menu bar application accompanied by a nati
 | **Windsurf** | **Supported** | Official Cascade JSON Hooks + Transcripts | `~/.codeium/windsurf/hooks.json` (`pre_user_prompt`, `post_cascade_response`, `pre_run_command`, etc.) + `~/.codeium/windsurf/transcripts/` |
 | **OpenCode** | **Supported** | Official Plugin Architecture | `~/.config/opencode/plugins/flowback.js` event subscriptions (`session.*`, `tool.execute.*`) over local IPC |
 | **Cursor Background Agent** | **Supported** | Cloud Agents API + Local Window Adapter | Remote `api.cursor.com/v1/agents` lifecycle tracking, subagents, repo/branch metadata + local window heuristics |
+| **GitHub Copilot** | **Supported** | Process & Lifecycle Adapter | Process monitoring, configuration check (`~/.copilot`), and terminal resume hint (`gh copilot`) |
 | **Generic Hook Protocol** | **Supported** | POSIX Unix Domain Socket | Emits schema v1 JSON over `~/.flowback/flowback.sock` |
 | **Custom Local Scripts** | **Supported** | CLI Emit | `flowback emit '{"event":"agent.completed",...}'` |
 
@@ -126,7 +127,7 @@ Provider Hook / Scan → AgentEvent → EventBus → Deduplicator → SessionMan
 * macOS 14.0 (Sonoma) or newer (Apple Silicon & Intel)
 
 ### Option 1: DMG Installer (Recommended)
-1. Download `Flowback-0.4.0-arm64.dmg` from the [Releases](https://github.com/rapheljr/flowback/releases) page or [Website Download](https://rapheljr.github.io/flowback/download/).
+1. Download `Flowback-0.4.1-arm64.dmg` from the [Releases](https://github.com/rapheljr/flowback/releases) page or [Website Download](https://rapheljr.github.io/flowback/download/).
 2. Mount the DMG and drag `Flowback.app` to `/Applications`.
 3. Link the bundled CLI tool:
    ```bash
@@ -175,22 +176,21 @@ Settings can be customized via the Dashboard Settings tab or in `~/.flowback/con
 
 ```json
 {
-  "global": {
-    "idleThresholdSeconds": 5.0,
-    "cooldownDurationMs": 1000,
-    "spacesPolicy": "neverSwitchSpaces",
-    "restoreFullscreen": false
-  },
-  "workspaces": {
-    "/Users/username/src/sensitive-repo": {
-      "autoRestoreOnCompletion": false,
-      "notificationOnly": true
-    }
+  "schemaVersion": 1,
+  "focusPolicy": "smart",
+  "completionBehavior": "restore-origin",
+  "permissionBehavior": "focus-agent",
+  "spacePolicy": "never-switch",
+  "focusCooldownMs": 1000,
+  "attentionAggregationMs": 1500,
+  "activeInteractionThresholdSeconds": 5.0,
+  "workspaceOverrides": {
+    "/Users/username/src/sensitive-repo": "notification-only"
   }
 }
 ```
 
-See [Docs/CONFIGURATION.md](Docs/CONFIGURATION.md) for full options.
+See [Docs/CONFIGURATION.md](Docs/CONFIGURATION.md) for full options and enum values.
 
 ---
 
@@ -239,7 +239,7 @@ bash Scripts/create_dmg.sh
 
 ## 14. Testing & Development
 
-Flowback includes a deterministic test harness executing 61 comprehensive verification assertions:
+Flowback includes a deterministic test harness executing **1,040 comprehensive verification assertions across 36 test suites**:
 
 ```bash
 # Run the verification test suite
@@ -249,9 +249,13 @@ swift run FlowbackTestRunner
 Expected output:
 ```text
 ================================================================
+Flowback Universal Context & Focus Manager — Verification Suites
+================================================================
+...
+================================================================
 TEST RESULTS SUMMARY
-Total tests executed: 61
-Passed: 61
+Total tests executed: 1040
+Passed: 1040
 Failed: 0
 ================================================================
 ALL VERIFICATION SUITES PASSED! ✓
@@ -344,6 +348,8 @@ Read the full [ROADMAP.md](ROADMAP.md).
 * ☕ **Buy Me a Coffee:** [https://buymeacoffee.com/flowback](https://buymeacoffee.com/flowback) (Support Page: [https://rapheljr.github.io/flowback/support/](https://rapheljr.github.io/flowback/support/))
 * 📦 **Downloads Page:** [https://rapheljr.github.io/flowback/download/](https://rapheljr.github.io/flowback/download/)
 * 📚 **Documentation Hub:** [Docs/README.md](Docs/README.md)
+* 🤖 **Agent Providers Specification:** [PROVIDERS.md](PROVIDERS.md)
+* 🖥️ **Application Adapters Specification:** [APPLICATION_ADAPTERS.md](APPLICATION_ADAPTERS.md)
 * 🚀 **GitHub Releases:** [https://github.com/rapheljr/flowback/releases](https://github.com/rapheljr/flowback/releases)
 * 💬 **GitHub Discussions:** [https://github.com/rapheljr/flowback/discussions](https://github.com/rapheljr/flowback/discussions)
 * 🐛 **Issue Tracker:** [https://github.com/rapheljr/flowback/issues](https://github.com/rapheljr/flowback/issues)

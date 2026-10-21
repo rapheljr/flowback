@@ -15,18 +15,21 @@ This guide covers building, testing, and contributing to Flowback.
 ## Directory Structure
 
 ```text
-focus-switcher/
+flowback/
 ├── Package.swift                    # Swift Package definition
 ├── Scripts/
 │   ├── build.sh                     # Compiles release binaries
 │   ├── package_app.sh               # Assembles and codesigns Flowback.app
 │   ├── create_dmg.sh                # Generates compressed DMG installer
-│   └── install_cli.sh               # Installs flowback CLI to PATH
+│   ├── install_cli.sh               # Installs flowback CLI to PATH
+│   ├── verify_all.sh                # Pre-flight local CI mirroring verification
+│   ├── validate_version_sync.sh     # Canonical version & metadata validator
+│   └── test_website.sh              # Validates marketing website links & responsive layout
 ├── Sources/
 │   ├── FlowbackCore/                # Domain models, state machine, event bus, policies
 │   ├── FlowbackStorage/             # SQLite engine, migrations, repositories, recovery
 │   ├── FlowbackFocus/               # Adapters, intent engine, arbiter, focus controller
-│   ├── FlowbackProviders/           # Antigravity, Claude Code, Codex, Generic Hook
+│   ├── FlowbackProviders/           # Antigravity, Windsurf, OpenCode, Cursor, Copilot, Claude, Codex, Aider, Generic
 │   ├── FlowbackServer/              # Unix socket server and IPC handler
 │   ├── FlowbackNotifications/       # UNUserNotificationCenter manager
 │   ├── FlowbackUI/                  # Menu bar controller & SwiftUI dashboard
@@ -80,12 +83,29 @@ Flowback Universal Context & Focus Manager — Verification Suites
 ...
 ================================================================
 TEST RESULTS SUMMARY
-Total tests executed: 37
-Passed: 37
+Total tests executed: 1040
+Passed: 1040
 Failed: 0
 ================================================================
 ALL VERIFICATION SUITES PASSED! ✓
 ```
+
+---
+
+## Pre-Flight Local Verification
+
+Before committing or opening a PR, run the automated verification script:
+
+```bash
+bash Scripts/verify_all.sh
+```
+
+This runs:
+1. SwiftLint in strict mode
+2. Swift debug & release builds
+3. Standalone verification suites (`FlowbackTestRunner`)
+4. Markdown link verification
+5. Canonical version synchronization check (`validate_version_sync.sh`)
 
 ---
 

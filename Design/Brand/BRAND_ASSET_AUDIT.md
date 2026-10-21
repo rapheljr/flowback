@@ -22,7 +22,7 @@ The core concept—**The Cantilever Re-entry Loop & Origin Dock**—was preserve
 - **Affected Assets:** `Design/Brand/symbol-monochrome-black.svg`, `symbol-monochrome-white.svg`
 - **Root Cause:** Both monochrome SVGs declared `<mask id="...">` with circle coordinates `cx="130" cy="240"`. When applied to the anchor rectangle inside `<g transform="translate(18, -16)">`, the SVG `maskContentUnits="userSpaceOnUse"` coordinate system applied the group translation twice. As a result, the knockout aperture hole rendered at `y = 295` instead of `y = 240` (a vertical misalignment of **55 pixels**).
 - **Remediation:** Eliminated the fragile SVG mask entirely. Re-architected the Origin Anchor as a single unified compound vector path using `fill-rule="evenodd"`. The aperture hole at `cx=112, cy=256, r=22` is now mathematically intrinsic to the geometry.
-- **Verification:** Verified in [`Scripts/verify_brand_assets.swift`](file:///Users/abin/workspace/projects/flowback/Scripts/verify_brand_assets.swift) by scanning pixel coordinates; monochrome black and white marks now share identical hole coordinates (`x = 129, y = 239`, matching mathematical `130, 240` within subpixel antialiasing).
+- **Verification:** Verified in [`Scripts/verify_brand_assets.swift`](../../Scripts/verify_brand_assets.swift) by scanning pixel coordinates; monochrome black and white marks now share identical hole coordinates (`x = 129, y = 239`, matching mathematical `130, 240` within subpixel antialiasing).
 
 ---
 
@@ -41,7 +41,7 @@ The core concept—**The Cantilever Re-entry Loop & Origin Dock**—was preserve
 - **Root Cause:** `menubar-icon.svg` used `<mask id="menuHole">` and `fill="currentColor"`. In headless vector tools or older macOS SVG parsers without a CSS cascade context, `currentColor` can resolve unpredictably.
 - **Remediation:**
   1. Updated `menubar-icon.svg` to use a compound path with `fill-rule="evenodd"` and solid `#000000` fill.
-  2. Generated a native vector PDF template [`menubar-icon.pdf`](file:///Users/abin/workspace/projects/flowback/Design/Brand/menubar-icon.pdf) using CoreGraphics / PDFKit.
+  2. Generated a native vector PDF template [`menubar-icon.pdf`](menubar-icon.pdf) using CoreGraphics / PDFKit.
   3. Generated Retina-paired raster templates (`menubar-icon.png` 18×18 pt and `menubar-icon@2x.png` 36×36 px).
   4. Bundled all formats in `Flowback.app/Contents/Resources/`.
 - **Verification:** Both PDF and SVG templates parse and render cleanly in AppKit with `isTemplate = true`.
@@ -50,7 +50,7 @@ The core concept—**The Cantilever Re-entry Loop & Origin Dock**—was preserve
 
 ### Defect 4: Incomplete Fallback Chain in `MenuBarController.swift`
 - **Severity:** Low (Resilience defect)
-- **Affected Code:** [`Sources/FlowbackUI/MenuBar/MenuBarController.swift`](file:///Users/abin/workspace/projects/flowback/Sources/FlowbackUI/MenuBar/MenuBarController.swift#L88-L120)
+- **Affected Code:** [`Sources/FlowbackUI/MenuBar/MenuBarController.swift`](../../Sources/FlowbackUI/MenuBar/MenuBarController.swift#L88-L120)
 - **Root Cause:** The status item icon loader only attempted to load SVG from the bundle. If SVG decoding failed, it immediately fell back to the generic SF Symbol `arrow.triangle.swap`.
 - **Remediation:** Upgraded `flowbackStatusImage` to implement a 4-tier fallback chain:
   1. Primary: Native vector PDF template (`menubar-icon.pdf`).
@@ -63,7 +63,7 @@ The core concept—**The Cantilever Re-entry Loop & Origin Dock**—was preserve
 
 ### Defect 5: Missing `PkgInfo` and Icon Registration in Application Bundle
 - **Severity:** Medium (macOS bundle compliance)
-- **Affected Code:** [`Scripts/package_app.sh`](file:///Users/abin/workspace/projects/flowback/Scripts/package_app.sh)
+- **Affected Code:** [`Scripts/package_app.sh`](../../Scripts/package_app.sh)
 - **Root Cause:** The packaging script did not create `Contents/PkgInfo`, causing macOS LaunchServices to initially classify the folder as an incomplete directory bundle rather than an application package.
 - **Remediation:** Added `echo -n "APPL????" > "$CONTENTS_DIR/PkgInfo"` and ensured `AppIcon.icns`, `menubar-icon.pdf`, and `menubar-icon.svg` are copied to `Contents/Resources/`.
 - **Verification:** Verified via `NSWorkspace.shared.icon(forFile: absPath)`; macOS Finder and LaunchServices now recognize `Flowback.app` as `com.apple.application-bundle` and display the branded icon.
@@ -81,7 +81,7 @@ The core concept—**The Cantilever Re-entry Loop & Origin Dock**—was preserve
 
 ### Defect 7: Inexact Contrast Ratio Claims in Brand Guidelines
 - **Severity:** Low (Documentation precision)
-- **Affected Documentation:** [`Design/Brand/BRAND_GUIDELINES.md`](file:///Users/abin/workspace/projects/flowback/Design/Brand/BRAND_GUIDELINES.md)
+- **Affected Documentation:** [`Design/Brand/BRAND_GUIDELINES.md`](BRAND_GUIDELINES.md)
 - **Root Cause:** The guideline stated Electric Cyan had a contrast ratio of `9.8 : 1` (a typo transposition of 8.95:1), and claimed sweeping AAA compliance without distinguishing dark vs. light backgrounds and text vs. graphical components.
 - **Remediation:** Recalculated all ratios using exact WCAG 2.1 relative luminance formulas. Documented that Electric Cyan (`#38BDF8`) achieves **8.95:1** on Deep Graphite (AAA), but only **2.14:1** on Light Canvas (Fails AA/AAA). Explicitly codified the rule: **Electric Cyan is strictly forbidden on light backgrounds; Deep Focus Blue (`#0284C7`) must be used instead.**
 - **Verification:** Automated in `Scripts/verify_brand_assets.swift` test suite 6.
@@ -90,7 +90,7 @@ The core concept—**The Cantilever Re-entry Loop & Origin Dock**—was preserve
 
 ### Defect 8: Subjective Numerical Scores in Concept Record
 - **Severity:** Low (Editorial precision)
-- **Affected Documentation:** [`Design/Brand/CONCEPT_EXPLORATION.md`](file:///Users/abin/workspace/projects/flowback/Design/Brand/CONCEPT_EXPLORATION.md)
+- **Affected Documentation:** [`Design/Brand/CONCEPT_EXPLORATION.md`](CONCEPT_EXPLORATION.md)
 - **Root Cause:** The document included decimal scores ("9.8 / 10", "10.0 / 10") and claimed "Zero Conflict" against all competitor trademarks.
 - **Remediation:** Replaced decimal pseudo-metrics with whole-number heuristic ratings, clearly labeled them as internal qualitative design team heuristics, and replaced absolute claims with properly scoped diligence statements.
 

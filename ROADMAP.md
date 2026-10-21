@@ -10,7 +10,7 @@ Status Legend:
 
 ---
 
-## Completed Pre-1.0 Milestones (v0.0.1 – v0.4.0) 🟢
+## Completed Pre-1.0 Milestones (v0.0.1 – v0.4.1) 🟢
 
 **Goal:** Establish a rock-solid, production-ready macOS native foundation for agent session tracking and focus restoration across rapid pre-1.0 iterations.
 
@@ -18,7 +18,8 @@ Status Legend:
 * 🟢 **v0.1.0 (Core Engine):** Deterministic 12-step focus engine, process liveness protection, headless daemon/CLI flags, and socket security.
 * 🟢 **v0.2.0 (Provider Expansion):** Native background agent integrations for Windsurf, OpenCode, Cursor, and official Antigravity CLI (`agy`).
 * 🟢 **v0.3.0 (Intelligence & Scale):** Conversation-aware event resolution, SQLite Schema v2 with migration runner, and 1,000-event burst UI coalescing.
-* 🟢 **v0.4.0 (Design System & Destinations — Current):** macOS Card Design System with HIG/WCAG AA compliance, Copilot provider, General Sidebar Destinations, and canonical metadata.
+* 🟢 **v0.4.0 (Design System & Destinations):** macOS Card Design System with HIG/WCAG AA compliance, Copilot provider, General Sidebar Destinations, and canonical metadata.
+* 🟢 **v0.4.1 (Focus Concurrency Hardening & Fallback Safety — Current):** Monotonic generation IDs for cancellation ownership, actor reentrancy safety, non-blocking asynchronous LaunchServices fallback, and thread-safe TimeoutCoordinator.
 
 ---
 

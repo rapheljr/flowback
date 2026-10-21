@@ -38,6 +38,7 @@ Flowback evaluates conversation identity and restoration capabilities independen
 | **OpenCode** | `sessionID` from Plugin API | Plugin payload `title` or task prompt | `windowOnly` | **Integration-Tested** (Mock Context & Socket IPC) | Activates OpenCode application window and workspace (`.workspaceActivatedOnly` / `.windowActivatedOnly`). |
 | **OpenAI Codex** | Thread / Session ID | User prompt first line | `windowOnly` | **Integration-Tested** (Lifecycles & Hooks) | Activates containing application or terminal window (`.windowActivatedOnly`). Does not fabricate unsupported CLI resume commands. |
 | **Aider** | Git branch / session ID | Git branch description or initial instruction | `windowOnly` | **Integration-Tested** (Lifecycles & Adapters) | Activates terminal window (`.windowActivatedOnly`). Normalizes recognized lifecycle events; unknown events default to running rather than completion. |
+| **GitHub Copilot** | CLI / Hook `session_id` | `title` or prompt summary | `windowOnly` | **Integration-Tested** (Adapter & Health) | Restores containing editor window; presents `gh copilot` resume hint (`.resumeHintPresented`). |
 | **Generic Hook** | `conversation_id` in socket payload | `conversation_title` or `task_id` in JSON | `windowOnly` / Dynamic | **Integration-Tested** | Dynamic: opens `conversation_url` if present, otherwise activates registered window/workspace. |
 
 > **Capability Legend:**
@@ -199,15 +200,38 @@ Flowback strictly decouples local Cursor editor focus from remote Cloud Backgrou
 
 ---
 
-## 9. Generic Hook Provider (`GenericHookProvider`)
+## 9. GitHub Copilot Provider (`CopilotProvider`)
+
+* **Integration Mechanism:** Process and lifecycle adapter for GitHub Copilot CLI and editor agent sessions.
+* **Environment Detection:** Automatically checks for active configuration in `~/.copilot` and `~/.config/github-copilot`.
+* **Supported Lifecycle Events:**
+  * `started` / `turn_start` / `assistant.turn_start` → `.agentRunning`
+  * `confirm` / `permission_required` / `confirmation_required` → `.agentPermissionRequired`
+  * `waiting` / `idle` / `paused` / `turn_waiting` → `.agentWaiting`
+  * `completed` / `finished` / `done` / `success` / `turn_completed` → `.agentCompleted`
+  * `error` / `failed` → `.agentFailed`
+  * `cancelled` / `stopped` / `aborted` → `.agentCancelled`
+* **Session Resumption Hint:** Generates structured resume commands for terminal sessions:
+  ```text
+  cd "<workspace>" && gh copilot
+  ```
+* **Window Restoration:** Restores focus to the originating editor or terminal window (`.windowOnly`).
+
+---
+
+## 10. Generic Hook Provider (`GenericHookProvider`)
 
 For custom agents, scripts, CI runners, or tools without a dedicated provider, Flowback exposes a local JSON Event Protocol over IPC:
 
 ```bash
-flowback emit agent.completed \
-    --provider custom-agent \
-    --session session-42 \
-    --workspace /Users/abin/workspace/projects/flowback
+flowback emit '{
+  "schemaVersion": 1,
+  "event": "agent.completed",
+  "provider": "custom-agent",
+  "sessionId": "session-42",
+  "workspace": "/Users/abin/workspace/projects/flowback",
+  "timestamp": "2026-10-18T14:30:00Z"
+}'
 ```
 
 Or by sending JSON directly to `~/.flowback/flowback.sock`:
@@ -218,7 +242,7 @@ Or by sending JSON directly to `~/.flowback/flowback.sock`:
   "provider": "custom-agent",
   "sessionId": "session-42",
   "workspace": "/Users/abin/workspace/projects/flowback",
-  "timestamp": "2026-09-10T14:30:00Z"
+  "timestamp": "2026-10-18T14:30:00Z"
 }
 ```
 
@@ -268,8 +292,10 @@ Or by sending JSON directly to `~/.flowback/flowback.sock`:
        WindsurfProvider(),
        OpenCodeProvider(),
        CursorBackgroundProvider(),
+       CopilotProvider(),
        NewAgentProvider(),
        GenericHookProvider()
    ]
    ```
 Core focus decision and UI logic remain untouched.
+

@@ -613,7 +613,8 @@ await testGroup("Structured Focus Outcomes & Intent Engine") {
     let deadOutcome = intentEngine.evaluate(
         session: deadSession,
         config: PolicyConfiguration(),
-        focusLock: FocusLockState()
+        focusLock: FocusLockState(),
+        frontmostApp: nil
     )
     switch deadOutcome {
     case .notifyOnly(let reason):

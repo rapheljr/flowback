@@ -31,8 +31,11 @@ cd flowback
 # 2. Build local debug binaries
 swift build
 
-# 3. Run full verification test suite (61 tests)
+# 3. Run full verification test suite (1,040 assertions)
 swift run FlowbackTestRunner
+
+# 4. Or run pre-flight local verification (mirrors CI)
+bash Scripts/verify_all.sh
 ```
 
 ---
@@ -65,8 +68,8 @@ A convenient `Makefile` is provided in the repository root:
 Before modifying code, familiarize yourself with [ARCHITECTURE.md](ARCHITECTURE.md):
 
 * **`FlowbackCore/`**: Core domain entities (`AgentSession`, `OriginContext`, `AttentionRequest`), finite state machine (`AgentStateMachine`), sliding-window deduplicator, and event bus.
-* **`FlowbackFocus/`**: User intent detection (`UserIntentEngine`), priority arbitration (`AttentionArbiter`), window raising (`FocusController`), and application adapters (`VSCodeAdapter`, `CursorAdapter`, `TerminalAdapter`, `BraveAdapter`).
-* **`FlowbackProviders/`**: Agent lifecycle translators (`AntigravityProvider`, `ClaudeCodeProvider`, `CodexProvider`, `GenericHookProvider`).
+* **`FlowbackFocus/`**: User intent detection (`UserIntentEngine`), priority arbitration (`AttentionArbiter`), window raising (`FocusController`), and application adapters (`WindsurfAdapter`, `CursorAdapter`, `VSCodeAdapter`, `TerminalAdapter`, `BraveAdapter`, `GenericApplicationAdapter`).
+* **`FlowbackProviders/`**: Agent lifecycle translators (`AntigravityProvider`, `AntigravityCLIProvider`, `WindsurfProvider`, `OpenCodeProvider`, `CursorBackgroundProvider`, `CopilotProvider`, `ClaudeCodeProvider`, `CodexProvider`, `AiderProvider`, `GenericHookProvider`).
 * **`FlowbackStorage/`**: Local SQLite engine with WAL mode, migrations (`Migrations.swift`), session repository, and recovery logic.
 * **`FlowbackServer/`**: Unix domain socket server (`~/.flowback/flowback.sock`) and IPC dispatcher.
 * **`FlowbackNotifications/`**: macOS UserNotifications integration.
@@ -144,7 +147,7 @@ To add support for a new coding agent:
 
 To add support for an IDE, text editor, or terminal:
 1. Implement `ApplicationAdapter` in `Sources/FlowbackFocus/Adapters/`.
-2. Register the application's bundle identifiers (e.g., `com.example.editor`).
-3. Implement `findWindow(for:context:)` using window title pattern matching or AppleScript dictionary discovery.
+2. Register the application's bundle identifiers in `canHandle(bundleIdentifier:)`.
+3. Implement `restoreContext(context:appController:windowController:)` following the Section 14 restoration hierarchy (Exact Window ID → Workspace Title Match → PID → Bundle activation).
 4. Verify graceful degradation when Accessibility permission is denied.
 5. Add test coverage in `FlowbackTestRunner`.

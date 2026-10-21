@@ -474,7 +474,7 @@ func runAuditRemediationSuites() async {
             isRemote: true
         )
         
-        let decisionIdle = intentEngine.evaluate(session: remoteSession, config: .default, focusLock: FocusLockState())
+        let decisionIdle = intentEngine.evaluate(session: remoteSession, config: .default, focusLock: FocusLockState(), frontmostApp: nil)
         switch decisionIdle {
         case .restoreDestination(let url, let reason):
             assertTest(url == remoteURL, "F-09: Idle user evaluates to .restoreDestination with remote URL")
@@ -485,7 +485,7 @@ func runAuditRemediationSuites() async {
         
         // 2. Remote session when user is actively interacting (< 5s idle)
         mockIdle.idleSecondsMock = 0.5
-        let decisionActive = intentEngine.evaluate(session: remoteSession, config: .default, focusLock: FocusLockState())
+        let decisionActive = intentEngine.evaluate(session: remoteSession, config: .default, focusLock: FocusLockState(), frontmostApp: nil)
         switch decisionActive {
         case .notifyOnly(let reason):
             assertTest(reason.contains("actively interacting"), "F-09: Remote session respects active user typing safeguard")
@@ -501,7 +501,7 @@ func runAuditRemediationSuites() async {
             conversationURL: nil,
             isRemote: true
         )
-        let decisionNoURL = intentEngine.evaluate(session: remoteNoURL, config: .default, focusLock: FocusLockState())
+        let decisionNoURL = intentEngine.evaluate(session: remoteNoURL, config: .default, focusLock: FocusLockState(), frontmostApp: nil)
         switch decisionNoURL {
         case .notifyOnly(let reason):
             assertTest(reason.contains("no usable destination URL"), "F-09: Remote session without URL honestly reports no usable destination URL")

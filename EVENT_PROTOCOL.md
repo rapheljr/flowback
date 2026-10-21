@@ -140,10 +140,14 @@ The socket is accessible only to processes running under the current user's UID 
 
 ### Via Flowback CLI
 ```bash
-flowback emit agent.completed \
-    --provider custom-linter \
-    --session lint-982 \
-    --workspace /Users/abin/workspace/projects/focus-switcher
+flowback emit '{
+  "schemaVersion": 1,
+  "event": "agent.completed",
+  "provider": "custom-linter",
+  "sessionId": "lint-982",
+  "workspace": "/Users/abin/workspace/projects/flowback",
+  "timestamp": "2026-10-18T14:30:00Z"
+}'
 ```
 
 ### Via Bash / `nc -U`

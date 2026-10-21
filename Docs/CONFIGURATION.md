@@ -6,11 +6,11 @@ Flowback uses a multi-tier policy resolution engine allowing granular focus mana
 
 ## Configuration Location
 
-Flowback stores user settings in:
+Flowback stores user configuration in:
 ```text
 ~/.flowback/config.json
 ```
-And session metadata in SQLite (WAL mode):
+And session metadata in local SQLite (WAL mode):
 ```text
 ~/.flowback/flowback.sqlite
 ```
@@ -19,69 +19,105 @@ And session metadata in SQLite (WAL mode):
 
 ## Policy Resolution Hierarchy
 
-When an agent event arrives, Flowback computes the active focus behavior using a 4-tier resolution hierarchy:
+When an agent event arrives, Flowback computes the active focus policy using a 4-tier resolution hierarchy:
 
 ```text
-Workspace Override  (Highest Priority: specific repo path)
+Workspace Override   (Highest Priority: specific repository filesystem path)
        ↓
-Application Override (Target Editor / Terminal bundle ID)
+Application Override (Target Editor / Terminal bundle identifier)
        ↓
-Provider Override    (Antigravity, Claude Code, Codex, Generic)
+Provider Override    (Antigravity, Windsurf, OpenCode, Cursor, Copilot, etc.)
        ↓
-Global Defaults      (Lowest Priority: general system settings)
+Global Focus Policy  (Lowest Priority: general system baseline)
 ```
 
 ---
 
-## Example `config.json`
+## Canonical Configuration Schema (`config.json`)
+
+Flowback serializes and validates settings against the strongly-typed `PolicyConfiguration` model:
 
 ```json
 {
-  "global": {
-    "idleThresholdSeconds": 5.0,
-    "cooldownDurationMs": 1000,
-    "aggregationWindowSeconds": 1.5,
-    "spacesPolicy": "neverSwitchSpaces",
-    "restoreFullscreen": false,
-    "soundEnabled": true
+  "schemaVersion": 1,
+  "focusPolicy": "smart",
+  "completionBehavior": "restore-origin",
+  "permissionBehavior": "focus-agent",
+  "failureBehavior": "focus-agent",
+  "spacePolicy": "never-switch",
+  "focusCooldownMs": 1000,
+  "attentionAggregationMs": 1500,
+  "activeInteractionThresholdSeconds": 5.0,
+  "protectedApplications": [
+    "com.apple.keynote",
+    "us.zoom.xos",
+    "com.microsoft.teams",
+    "com.cisco.webexmeetingsapp",
+    "com.apple.FaceTime",
+    "com.apple.QuickTimePlayerX",
+    "com.telestream.screenflow10"
+  ],
+  "launchAtLogin": false,
+  "providerOverrides": {
+    "antigravity": "smart",
+    "claude-code": "restore-if-left-origin"
   },
-  "providers": {
-    "antigravity": {
-      "autoRestoreOnCompletion": true,
-      "requirePermissionImmediateFocus": true,
-      "proactiveTranscriptScanning": true
-    },
-    "claude-code": {
-      "autoRestoreOnCompletion": true,
-      "requirePermissionImmediateFocus": true
-    }
+  "applicationOverrides": {
+    "com.google.antigravity-ide": "smart",
+    "com.microsoft.VSCode": "always-restore"
   },
-  "workspaces": {
-    "/Users/username/src/critical-prod-repo": {
-      "autoRestoreOnCompletion": false,
-      "notificationOnly": true
-    }
-  },
-  "applications": {
-    "com.google.antigravity-ide": {
-      "restoreStrategy": "exactWindowId"
-    },
-    "com.microsoft.VSCode": {
-      "restoreStrategy": "workspaceTitleMatch"
-    }
+  "workspaceOverrides": {
+    "/Users/username/src/critical-prod-repo": "notification-only",
+    "/Users/username/src/silent-evals": "never-interrupt"
   }
 }
 ```
 
 ---
 
-## Setting Parameters
+## Configuration Parameters Reference
 
-| Parameter | Type | Default | Description |
+| Parameter | Type | Default | Description & Valid Options |
 |---|---|---|---|
-| `idleThresholdSeconds` | Float | `5.0` | Minimum system idle duration before auto-focusing origin window. |
-| `cooldownDurationMs` | Int | `1000` | Window (in milliseconds) preventing rapid repeated window switches. |
-| `aggregationWindowSeconds` | Float | `1.5` | Sliding window for grouping multiple simultaneous completions. |
-| `spacesPolicy` | String | `neverSwitchSpaces` | Options: `neverSwitchSpaces`, `allowSpaceSwitching`, `activateAppOnly`. |
-| `restoreFullscreen` | Bool | `false` | If true, permits switching to full-screen spaces. |
-| `soundEnabled` | Bool | `true` | Play system notification chimes on completion. |
+| `schemaVersion` | Integer | `1` | Configuration schema version identifier. |
+| `focusPolicy` | String | `"smart"` | Base focus policy. Options: `"smart"`, `"always-restore"`, `"restore-if-left-origin"`, `"notification-only"`, `"never-interrupt"`. |
+| `completionBehavior` | String | `"restore-origin"` | Action on agent completion. Options: `"restore-origin"`, `"notification-only"`, `"ask-user"`. |
+| `permissionBehavior` | String | `"focus-agent"` | Action when agent requires confirmation. Options: `"focus-agent"`, `"notification-only"`. |
+| `failureBehavior` | String | `"focus-agent"` | Action when agent fails. Options: `"focus-agent"`, `"notification-only"`. |
+| `spacePolicy` | String | `"never-switch"` | Handling of macOS Spaces. Options: `"never-switch"`, `"app-only"`, `"app-and-window"`, `"allow-switching"`. |
+| `focusCooldownMs` | Integer | `1000` | Cooldown window (in milliseconds) preventing rapid repeated window switches. |
+| `attentionAggregationMs` | Integer | `1500` | Sliding window (in milliseconds) to aggregate simultaneous agent completions. |
+| `activeInteractionThresholdSeconds` | Double | `5.0` | Minimum seconds of user idle before auto-restoring origin window. |
+| `protectedApplications` | Array[String] | `[...]` | Bundle IDs of apps (video calls, presentations) that suppress automatic focus stealing when frontmost. |
+| `launchAtLogin` | Boolean | `false` | Automatically launch Flowback menu bar daemon on user login via `SMAppService`. |
+| `providerOverrides` | Map[String, Policy] | `{}` | Per-provider policy overrides (e.g. `{"antigravity": "smart"}`). |
+| `applicationOverrides` | Map[String, Policy] | `{}` | Per-application bundle ID overrides (e.g. `{"com.microsoft.VSCode": "always-restore"}`). |
+| `workspaceOverrides` | Map[String, Policy] | `{}` | Per-workspace folder path overrides (e.g. `{"/Users/me/repo": "notification-only"}`). |
+
+---
+
+## Focus Policy Values Explained
+
+* **`smart` (Default):** Evaluates user activity via hardware event source. If the user was actively typing or clicking within the last 5 seconds, suppresses focus stealing and displays an actionable macOS notification; if idle, smoothly raises the origin window.
+* **`always-restore`:** Unconditionally raises the origin window when an agent turn completes (unless a protected application like Zoom or Keynote is currently frontmost).
+* **`restore-if-left-origin`:** Restores focus only if the user navigated to a different application after the agent started.
+* **`notification-only`:** Never switches focus automatically. Displays an actionable notification banner with a `[Focus Window]` button.
+* **`never-interrupt`:** Complete quiet mode. Suppresses automatic focus switches and notification alerts.
+
+---
+
+## Managing Configuration via CLI
+
+Flowback provides command-line utilities to export, modify, and import configuration:
+
+```bash
+# Export active configuration to standard output:
+flowback config export
+
+# Export configuration to a file:
+flowback config export ~/.flowback/config.json
+
+# Import configuration from a file:
+flowback config import ~/.flowback/config.json
+```
+

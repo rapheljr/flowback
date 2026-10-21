@@ -4,7 +4,7 @@
 **Target Platform:** macOS 14.0+ (Sonoma, Sequoia)  
 **Evaluator Roles:** Principal macOS UX Engineer, Apple HIG Specialist, SwiftUI/AppKit Engineer, Accessibility Reviewer, QA Engineer  
 **Date:** October 2026  
-**Repository:** [flowback](file:///Users/abin/workspace/projects/flowback)  
+**Repository:** [flowback](../../README.md)  
 **Status:** Audit Completed & Remediations Implemented and Verified  
 
 ---

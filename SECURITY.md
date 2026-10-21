@@ -10,8 +10,8 @@ Security updates are provided for the latest stable release of Flowback:
 
 | Version | Supported | Notes |
 |---|---|---|
-| `1.0.x` | :white_check_mark: Yes | Current active release branch |
-| `< 1.0` | :x: No | Pre-release and development snapshots |
+| `0.4.x` | :white_check_mark: Yes | Current active pre-1.0 milestone series (v0.4.1) |
+| `< 0.4.0` | :x: No | Historical development prototypes (v0.0.1 – v0.3.0) |
 
 ---
 

@@ -58,45 +58,45 @@ Flowback is divided into clean Swift Package Manager libraries:
 * **Self-Healing Recovery:** `RecoveryManager` detects SQLite header corruption, backs up corrupted files to `.corrupt.<timestamp>`, and recreates fresh schemas automatically.
 
 ### 3. `FlowbackFocus`
-* **ApplicationController:** Wraps `NSWorkspace` and `NSRunningApplication` for PID and bundle-based discovery and activation.
+* **ApplicationController:** Wraps `NSWorkspace` and `NSRunningApplication` for PID and bundle-based discovery and activation, featuring cooperative activation and non-blocking asynchronous LaunchServices fallback.
 * **WindowController:** CoreGraphics `CGWindowListCopyWindowInfo` queries and Accessibility `AXUIElement` window raising.
 * **Application Adapters:** Open adapter architecture (`ApplicationAdapterRegistry`):
-  * `VSCodeAdapter`: Handles VS Code, Insiders, OSS. Matches by Window ID, then workspace folder name.
-  * `CursorAdapter`: Handles Cursor AI editor.
-  * `TerminalAdapter`: Handles Terminal, iTerm2, Ghostty, Warp, Hyper.
+  * `WindsurfAdapter`: Handles Codeium Windsurf editor (`com.codeium.windsurf`). Matches exact window ID or workspace directory title (`[Workspace] — Windsurf`).
+  * `CursorAdapter`: Handles Cursor AI editor (`co.anysphere.cursor`, `com.todesktop.230313mzl4w4u92`, `com.cursor.Cursor`).
+  * `VSCodeAdapter`: Handles VS Code, Insiders, OSS, VSCodium, Positron, Trae. Matches by Window ID, then workspace folder name.
+  * `TerminalAdapter`: Handles Apple Terminal, iTerm2, Ghostty, Warp, Alacritty, Kitty, WezTerm, Hyper.
   * `BraveAdapter`: Handles Brave Browser tabs and windows.
   * `GenericApplicationAdapter`: Fallback for all standard macOS apps.
 * **UserIntentEngine:** Deterministic focus evaluator checking Focus Lock, policies, protected apps, fullscreen mode, active user interaction (< 5s idle threshold), and macOS Spaces.
 * **AttentionArbiter:** Priority queue sorting requests (`permissionRequired` > `failure` > `completed` > `waiting` > `informational`), aggregating simultaneous agent events (1.5s window), and enforcing focus cooldown (1.0s) to eliminate window thrashing.
-* **FocusController:** Central coordinator implementing Section 14 restoration hierarchy.
+* **FocusController:** Central coordinator implementing Section 14 restoration hierarchy with actor reentrancy safety and tokenized cancellation ownership.
 
 ### 4. `FlowbackProviders`
-* **Provider Protocol:** `AgentProvider` protocol defining discovery, health check, hook installation/uninstallation, and payload parsing.
+* **Provider Protocol:** `AgentProvider` protocol defining discovery, health check, hook installation/uninstallation, payload parsing, and resume syntax.
 * **AntigravityProvider:** Native hook installer for `~/.gemini/config/hooks.json`. Subscribes to `Stop` hook, prioritizing `fullyIdle = true`.
-* **ClaudeCodeProvider:** Detects CLI installation, manages hook registration.
-* **CodexProvider:** OpenAI Codex session monitor.
-* **AntigravityCLIProvider:** Antigravity CLI (`agy`, formerly Gemini CLI) session monitor and native lifecycle hook adapter.
-* **AiderProvider:** Aider git-based session monitor.
+* **AntigravityCLIProvider:** Antigravity CLI (`agy`, formerly Gemini CLI) session monitor, lockfile tracker, and native lifecycle hook adapter.
+* **WindsurfProvider:** Official Cascade JSON lifecycle hooks (`~/.codeium/windsurf/hooks.json`) and transcript scanner.
+* **OpenCodeProvider:** Native OpenCode plugin (`~/.config/opencode/plugins/flowback.js`) with event subscriptions over local IPC.
+* **CursorBackgroundProvider:** Remote Cursor Cloud Agents API client (`api.cursor.com/v1/agents`) tracking subagents, branches, and PR URLs with local window heuristics.
+* **CopilotProvider:** GitHub Copilot CLI and agent adapter (`~/.copilot`, `~/.config/github-copilot`) with `gh copilot` resume hint.
+* **ClaudeCodeProvider:** Detects CLI installation, manages hook registration and terminal session tracking.
+* **CodexProvider:** OpenAI Codex session monitor and status mapping.
+* **AiderProvider:** Aider git-based session monitor and terminal watcher.
 * **GenericHookProvider:** JSON schema v1 receiver for custom agents and scripts.
 
 ### 5. `FlowbackServer`
-* **Unix Domain Socket:** High-performance POSIX socket listener at `~/.flowback/flowback.sock`.
-* **JSON-RPC Dispatcher:** `IPCHandler` executes `status`, `agents`, `sessions`, `doctor`, `focus`, `focus-lock`, `hook`, `emit`, and `test-focus`.
+* **Unix Domain Socket:** High-performance POSIX socket listener at `~/.flowback/flowback.sock` with peer UID verification.
+* **JSON-RPC Dispatcher:** `IPCHandler` executes `status`, `refresh`, `agents`, `sessions`, `doctor`, `providers`, `focus`, `focus-lock`, `hook`, `emit`, `test-focus`, `test-notification`, `config-export`, `config-import`, and `quit`.
 
 ### 6. `FlowbackNotifications`
 * **macOS UserNotifications:** Direct integration with `UNUserNotificationCenter`.
 * **Actionable Alerts:** Features custom categories with `[Focus]` and `[Review]` action buttons.
 
 ### 7. `FlowbackUI`
-* **MenuBarController:** Native `NSStatusItem` with dynamic badge ("● 3 agents active"), ⌘1-⌘9 recent session shortcuts, Attention Queue, Focus Lock menu, and direct dashboard launcher.
-* **SwiftUI Dashboard:** Window controller with 7 primary views:
-  * Overview: Active agents, waiting items, provider health.
-  * Agents: Live agent cards with duration and status badges.
-  * Sessions: Comprehensive session history.
-  * Timeline: Millisecond-accurate event audit log.
-  * Applications: Monitored applications and registered adapters.
-  * Diagnostics: Flowback Doctor with self-repair buttons.
-  * Settings: Configurable policies, cooldowns, and protected apps.
+* **MenuBarController:** Native `NSStatusItem` with dynamic badge ("● 3 agents active"), ⌘1-⌘9 recent session shortcuts, Attention Queue, Focus Lock menu, and direct dashboard launcher. Freezes recent sessions into an immutable snapshot during menu presentation to ensure stable keyboard shortcut targets.
+* **SwiftUI Dashboard:** Window controller adhering to the macOS Card Design System (HIG / WCAG AA compliant) with 7 primary tabs and 4 general destinations:
+  * Primary Tabs: **Overview** (active agents & quick stats), **Agents** (live agent cards with elapsed timers), **Sessions** (paginated SQLite history), **Timeline** (millisecond-accurate event log), **Applications** (monitored processes & registered adapters), **Diagnostics** (Flowback Doctor with repair actions), and **Settings** (configurable policies, cooldowns, and protected apps).
+  * General Sidebar Destinations: **Advanced Settings** (cooldown slider, launch at login, factory defaults reset), **What's New** (dynamic release notes feed), **Support** (privacy-sanitized diagnostic exporter and Buy Me a Coffee links), and **About Flowback** (version metadata, contributor credits, and embedded MIT license sheet).
 
 ### 8. `FlowbackApp`
 * **Composition Root:** `FlowbackService` orchestrates all background actors, monitors sleep/wake via `NSWorkspace.willSleepNotification` / `didWakeNotification`, and registers global shortcuts.
@@ -178,3 +178,8 @@ Flowback storage implements zero-downtime, backward-compatible SQLite migrations
 22. **macOS Cooperative Activation & Terminal Coverage (F-21):** `ApplicationController.activate` unhides hidden applications and uses cooperative activation (`activate(from:options:)`). `TerminalAdapter` adds support for Alacritty, Kitty, and WezTerm.
 23. **Modern Settings Extension Deep-Links (F-22):** `PermissionManager` provides deep-links to modern macOS 13+ Notification Settings extensions (`com.apple.Notifications-Settings.extension`) with legacy preference pane fallback.
 24. **Offline Doctor Environment Diagnostics (F-23):** `flowback doctor` provides offline inspection of local storage, permissions, hooks, and CLI tools when the daemon is not running.
+25. **Focus Cancellation Ownership & Monotonic Generation IDs (F-24):** `FocusController` associates active cancellation handlers with monotonic generation IDs, preventing superseded navigation requests from clearing newer cancellation handlers upon actor reentrancy. Ensured cooperative cancellation propagation to child worker tasks.
+26. **Deterministic LaunchServices Fallback & Main-Thread Safety (F-25):** `ApplicationController` provides non-blocking asynchronous fallback via `NSWorkspace.openApplication` when direct AppKit activation fails, explicitly avoiding blocking main thread semaphores to eliminate UI deadlocks.
+27. **Thread-Safe TimeoutCoordinator State Machine (F-26):** `TimeoutCoordinator` guards concurrency state transitions under `NSLock`, guaranteeing continuations resume at most once, capturing tasks under lock, executing cancellations outside lock, and immediately purging child task handles upon terminal state.
+28. **Menu Bar Session Ordering Stability (F-27):** `MenuBarController` freezes recent session ordering into an immutable snapshot upon menu opening, preserving stable keyboard shortcuts (⌘1–⌘9) even during concurrent multi-agent completions.
+
