@@ -2,13 +2,29 @@
   "schemaVersion": 1,
   "version": "0.4.1",
   "channel": "stable",
-  "releaseDate": "2026-10-21",
-  "gitCommit": "2aaebd9496fdd70bfd1da5555742e7d90e40675a",
+  "releaseDate": "2026-10-23",
+  "gitCommit": "c416c46884172e82c762c5f6fb55585793536f8e",
   "buildConfiguration": "release",
   "minimumMacOS": "14.0",
   "signatureStatus": "ad-hoc",
   "notarizationStatus": "unnotarized",
   "artifacts": [
+    {
+      "name": "Flowback-0.4.1-arm64.dmg",
+      "architecture": "arm64",
+      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.1/Flowback-0.4.1-arm64.dmg",
+      "sha256": "cf05d42b0017ed8b184b120284d32df10975e96cc36ccbb8e1e22604cd3a1a8c",
+      "signatureStatus": "ad-hoc",
+      "notarizationStatus": "unnotarized"
+    },
+    {
+      "name": "Flowback-0.4.1.dmg",
+      "architecture": "universal",
+      "downloadURL": "https://github.com/rapheljr/flowback/releases/download/v0.4.1/Flowback-0.4.1.dmg",
+      "sha256": "cf05d42b0017ed8b184b120284d32df10975e96cc36ccbb8e1e22604cd3a1a8c",
+      "signatureStatus": "ad-hoc",
+      "notarizationStatus": "unnotarized"
+    },
     {
       "name": "Flowback-0.4.1-arm64.zip",
       "architecture": "arm64",

@@ -13,6 +13,11 @@ echo "=================================================="
 echo " Running Flowback Pre-Flight Verification"
 echo "=================================================="
 
+# Auto-detect Xcode if installed to provide full developer toolchain (XCTest, sourcekitd)
+if [ -d "/Applications/Xcode.app/Contents/Developer" ]; then
+    export DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+fi
+
 # 1. SwiftLint in Strict Mode
 echo ""
 echo "▶ [1/4] Running SwiftLint (--strict)..."

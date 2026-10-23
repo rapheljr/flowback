@@ -150,7 +150,8 @@ if isXCTestAvailable {
             name: "FlowbackFocusTests",
             dependencies: [
                 "FlowbackFocus",
-                "FlowbackCore"
+                "FlowbackCore",
+                "FlowbackTestHarness"
             ],
             path: "Tests/FlowbackFocusTests"
         ),
@@ -158,7 +159,8 @@ if isXCTestAvailable {
             name: "FlowbackProviderTests",
             dependencies: [
                 "FlowbackProviders",
-                "FlowbackCore"
+                "FlowbackCore",
+                "FlowbackTestHarness"
             ],
             path: "Tests/FlowbackProviderTests"
         ),
